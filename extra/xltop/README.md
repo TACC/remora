@@ -5,9 +5,9 @@ First, you need to build the two libraries in the 'extra' folder (libconfuse, li
 To install it (Stampede):
   - Remove all the modules
   - export XLTOP_PORT=YOUR_OWN_PORT
-  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$WORK/foo/lib
+  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:foo/lib
   - ./autogen.sh
-  - ./configure CFLAGS="-I$WORK/foo/include" LDFLAGS="-L$WORK/foo/lib -lev -lconfuse" --prefix=XXX
+  - ./configure CFLAGS="-Ifoo/include" LDFLAGS="-Lfoo/lib -lev -lconfuse" --prefix=XXX
   - make
   - make install
 
