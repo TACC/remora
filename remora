@@ -141,7 +141,7 @@ fi
 
 CWD=`pwd`
 # Determing current work directory
-OUTDIR=$CWD/jobstats_$SLURM_JOB_ID
+OUTDIR=$CWD/remora_$SLURM_JOB_ID
 mkdir -p $OUTDIR
 rm -rf $OUTDIR/*
 

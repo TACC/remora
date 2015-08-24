@@ -68,7 +68,7 @@ class text_colors:
   TACC ='\033[91m'
 
 class headers:
-  TACC=text_colors.TACC + "TACC_Jobstats: "
+  TACC=text_colors.TACC + "TACC_remora: "
   ERROR=text_colors.FAIL+"(ERROR) " + TACC + text_colors.ENDC
   WARNING=text_colors.WARNING+"(WARNING) " + TACC + text_colors.ENDC
   CONTACT=text_colors.OKGREEN + "\nPlease contact TACC if you need help" + text_colors.ENDC
@@ -496,7 +496,7 @@ def plot_network(folder):
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Plots the data collected by REMORA. It can be called from the batch script or from the commmandline once the job has finished.')
-  parser.add_argument("-j", "--jobid", type=int, help="JOBID to postprocess. Only required from the commandline (nothing required in batch script)")
+  parser.add_argument("-j", "--jobid", help="JOBID to postprocess. Only required from the commandline (nothing required in batch script)")
   
   args = parser.parse_args()
   jobid = ""
@@ -507,11 +507,11 @@ if __name__ == "__main__":
     if args.jobid:
       jobid = str(args.jobid)
 
-  if (not os.path.exists (os.getcwd()+"/jobstats_"+str(jobid))):
-    tacc_log.print_critical ("Impossible to find folder jobstats_%s" %(jobid))
+  if (not os.path.exists (os.getcwd()+"/remora_"+str(jobid))):
+    tacc_log.print_critical ("Impossible to find folder remora_%s" %(jobid))
     exit(1)
 
-  get_period (os.getcwd()+"/jobstats_"+str(jobid))
-  plot_stats(os.getcwd()+"/jobstats_"+str(jobid))
-  plot_network(os.getcwd()+"/jobstats_"+str(jobid))
+  get_period (os.getcwd()+"/remora_"+str(jobid))
+  plot_stats(os.getcwd()+"/remora_"+str(jobid))
+  plot_network(os.getcwd()+"/remora_"+str(jobid))
   
