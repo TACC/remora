@@ -83,6 +83,10 @@ function show_time () {
   echo "TACC: Total Elapsed Time       : "$day"d "$hour"h "$min"m "$sec"s "$milisec"ms"
 }
 
+if [ -z "$TACC_REMORA_BIN" ]; then
+    print_error "TACC_REMORA_BIN undefined"
+    exit
+fi
 
 if [ -n "${PMI_ID+1}" ]; then
   if [ "$PMI_ID" == "0" ]; then
