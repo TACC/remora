@@ -901,18 +901,18 @@ static void fix_output_format (void) {
   gettimeofday(&tp, NULL);
   seconds = tp.tv_sec;
 
-  sprintf (input, "/tmp/jobstats_%s/xltop_.txt", jobid);
+  sprintf (input, "/tmp/remora_%s/xltop_.txt", jobid);
   struct stat st = {0};
   char folder[100];
 
   // Make sure that the folder actually exists (it should, but just making sure)
-  sprintf (folder, "jobstats_%s", jobid);
+  sprintf (folder, "remora_%s", jobid);
 
   if (stat(folder, &st) == -1) {
     mkdir(folder, 0700);
   }
 
-  sprintf (output, "./jobstats_%s/xltop.txt", jobid);
+  sprintf (output, "./remora_%s/xltop.txt", jobid);
   pFileIn = fopen (input, "r");
   
   while ((read = getline(&line, &len, pFileIn)) !=-1) {
@@ -968,14 +968,14 @@ static void screen_refresh_cb_file(EV_P_ int LINES, int COLS)
 
   //Use /tmp for an intermediate file
   //Make sure the folder exists
-  sprintf (folder, "/tmp/jobstats_%s", jobid);
+  sprintf (folder, "/tmp/remora_%s", jobid);
   struct stat st = {0};
   
   if (stat(folder, &st) == -1) {
         mkdir(folder, 0700);
   }
 
-  sprintf (filename, "/tmp/jobstats_%s/xltop_.txt", jobid);
+  sprintf (filename, "/tmp/remora_%s/xltop_.txt", jobid);
   pFile = fopen (filename, "w");
   for (; j < (int) top_k_length && line < LINES - 1; j++, line++)
     print_k_file(pFile, line, top_col, &top_k[j]);
