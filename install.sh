@@ -8,7 +8,7 @@
 #                    Antonio Gomez-Iglesias
 
 export REMORA_DIR=/scratch/01157/carlos/apps/remora_install
-export XLTOP_PORT=9901
+export XLTOP_PORT=XXXX
 
 # Do not change anything below this line 
 #--------------------------------------------------------------------------------
@@ -105,6 +105,6 @@ echo "For a fully functional installation make sure to:"; echo ""
 echo "	export PATH=\$PATH:$REMORA_DIR/bin"
 echo "	export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:$REMORA_DIR/lib"
 echo "	export PYTHONPATH=\$PYTHONPATH:$REMORA_DIR/python"
-echo "  export \$TACC_REMORA_BIN=$REMORA_DIR/bin"; echo ""
+echo "  export TACC_REMORA_BIN=$REMORA_DIR/bin"; echo ""
 echo "Good Luck!"
 echo $SEPARATOR
