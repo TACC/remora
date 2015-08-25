@@ -193,8 +193,16 @@ env > $OUTDIR/env.txt
 idx=0
 for i in $NODES
 do
-  LID[$idx]=`ssh $i -f 'cat /sys/class/infiniband/mlx4_0/ports/1/lid'`
-  PID[$idx]=`ssh -f $i 'sh '$TACC_REMORA_BIN'/remora_report.sh '$i $OUTDIR $TACC_REMORA_PERIOD $SYMMETRIC $TACC_REMORA_MODE' > .TACC_remora_out 2> .TACC_remora_err < /dev/null  & echo \$!'`
+  LIDCOMMAND="cat /sys/class/infiniband/mlx4_0/ports/1/lid"
+  LID[$idx]=`ssh -f $i $LIDCOMMAND`
+  COMMAND="sh $TACC_REMORA_BIN/remora_report.sh $i $OUTDIR $TACC_REMORA_PERIOD $SYMMETRIC $TACC_REMORA_MODE > .TACC_remora_out 2> .TACC_remora_err < /dev/null  & echo \$!"
+  
+  if [ "$VERBOSE" == "1" ]; then
+    echo "ssh -f $i $COMMAND"
+  fi
+
+  PID[$idx]=`ssh -f $i $COMMAND`
+#  PID[$idx]=`ssh -f $i 'sh '$TACC_REMORA_BIN'/remora_report.sh '$i $OUTDIR $TACC_REMORA_PERIOD $SYMMETRIC $TACC_REMORA_MODE' > .TACC_remora_out 2> .TACC_remora_err < /dev/null  & echo \$!'`
   if [ "$SYMMETRIC" == "1" ]; then
     PID_MIC[$idx]=`ssh -q -f $i-mic0 'sh '$TACC_REMORA_BIN'/remora_report_mic.sh '$i-mic0 $OUTDIR $TACC_REMORA_PERIOD $SYMMETRIC $TACC_REMORA_MODE $TACC_REMORA_BIN' > .TACC_remora_out 2> .TACC_remora_err < /dev/null & echo \$!'`
   fi
@@ -206,7 +214,7 @@ if [ "$TACC_REMORA_MODE" = "FULL" ]; then
     # IB connectivity info
     idx=1
     while [  $idx -lt $node_cnt ]; do
-      ibtracert ${LID[0]} ${LID[$idx]} > $OUTDIR/trace_network.txt
+      ibtracert ${LID[0]} ${LID[$idx]} >> $OUTDIR/trace_network.txt
       echo "_____________" > $OUTDIR/trace_network.txt
       idx=$((idx+1))
     done
@@ -277,11 +285,11 @@ if [ "$SYMMETRIC" == "1" ]; then
   sed -i '1i #HOST     VIRT_MAX  RES_MAX  FREE_MIN' $OUTDIR/mem_all_nodes_mic.txt
 fi
 
-#Show Maximum IO Requests/S to all MDS servers (H-Home, S-Scratch, W-Work)
 
 #Show some timings (h:m:s.ms)
 show_time $((END-START))
 
+#Show Maximum IO Requests/S to all MDS servers (H-Home, S-Scratch, W-Work)
 if [ "$TACC_REMORA_MODE" == "FULL" ]; then
   remora_parse_fs.sh $OUTDIR/xltop.txt
 fi
