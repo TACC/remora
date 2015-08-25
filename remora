@@ -88,8 +88,10 @@ if [ -z "$TACC_REMORA_BIN" ]; then
     exit
 fi
 
-if [ -n "${PMI_ID+1}" ]; then
-  if [ "$PMI_ID" == "0" ]; then
+
+if [ -n "${PMI_ID+1}" ] || [ -n "${PMI_RANK+1}" ] || [ -n "${MPIRUN_RANK+1}" ]; then
+my_rank=$(( ${PMI_RANK-0} + ${PMI_ID-0} + ${MPIRUN_RANK-0} + ${OMPI_COMM_WORLD_RANK-0} + ${OMPI_MCA_ns_nds_vpid-0}  + ${ibrun_o_option-0} ))
+  if [ "$my_rank" == "0" ]; then
     print_error "Incorrect syntax: REMORA can't run in parallel"
     usage
   fi
