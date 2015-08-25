@@ -30,10 +30,10 @@ remora ./my_program [arguments]
 Remora will create a folder with a number of files that contain the values for the 
 resources indicated above.
 
-It is also possible to get plots of those files for an easier analysis. Use the tool 'job
-statsplot'. Within the batch script, 'jobstatsplot' does not need any parameter. From the 
-login node, you can cd to the location that contains the remora_JOBID folder, and once t
-here execute 'remoraplot JOBID'.
+It is also possible to get plots of those files for an easier analysis. Use the tool
+'remora_post'. Within the batch script, 'remora_post' does not need any parameter.
+From the login node, you can cd to the location that contains the remora_JOBID folder, 
+and once there execute 'remora_post -j JOBID'.
 
 The following environment variables control the behaviour of the tool:
 
