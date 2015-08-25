@@ -47,35 +47,12 @@ If you intend to install remora outside TACC, please keep in mind that we are st
 working on its portability. Remora depends on a modified version of xltop that writes 
 output directly to a file in order to collect IO data.
 
-==== Step 1: Build dependencies ====
-First, build the two libraries in the 'extra' folder (libconfuse, libev). Assuming you 
-install them in $WORK/foo you can install the modified xltop version by following these
-steps:
+Use the provided install.sh script to install REMORA. Modify the variables
+XLTOP_PORT and REMORA_DIR atthe top of hte script so taht they point to the 
+port xltop should be listening to and to the instalaltion directory.
 
-% module purge
-% export XLTOP_PORT=YOUR_OWN_PORT
-% export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:foo/lib
-% ./autogen.sh
-% ./configure CFLAGS="-Ifoo/include" LDFLAGS="-Lfoo/lib -lev -lconfuse" --prefix=MY_PREFIX
-% make
-% make install
-
-Note that xltop needs SLURM_JOB_ID to be set to a given job id
-
-Call it like this:
-./xltop --master=master 
-
-If you intend to use Xeon Phi co-processors you must also compile a small C code that 
-will pin the background process in the Phi to the last core to avoid excessive overhead 
-during data collection. To do this:
-
-% cd extras
-% gcc ./mic_affinity.c -o ma
-% mv ./ma MY_PREXFIX
-
-==== Step 2: Copy all necessary scripts to the final destination ====
-
-cp remor* MY_PREFIX
+The installation script will create build and log files that you can check
+in case anything fails during hte installation process.
 
 === CHANGELOG ===
 Revision 1.0: (2015-08-18) First public release of REMORA
