@@ -83,6 +83,16 @@ make                         | tee -a $BUILD_LOG
 echo "Installing XLTOP ..."  | tee -a $INSTALL_LOG
 make install                 | tee -a $INSTALL_LOG
 
+#Now build mpstat
+echo "Building mpstat ..." | tee -a $BUILD_LOG
+cd $REMORA_BUILD_DIR/extra
+git clone https://github.com/sysstat/sysstat | tee -a $BUILD_LOG
+cd sysstat
+./configure | tee -a $BUILD_LOG
+make mpstat |  tee -a $BUILD_LOG
+echo "Installing mpstat ..."
+cp mpstat $REMORA_DIR/bin
+
 if [ "xPHI_BUILD" == "x1" ]; then
 	echo "Building Xeon Phi affinity script ..."   |  tee -a $BUILD_LOG
 	cd $REMORA_BUILD_DIR/extra/
