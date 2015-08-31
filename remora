@@ -197,16 +197,19 @@ for i in $NODES
 do
   LIDCOMMAND="cat /sys/class/infiniband/mlx4_0/ports/1/lid"
   LID[$idx]=`ssh -f $i $LIDCOMMAND`
-  COMMAND="sh $TACC_REMORA_BIN/remora_report.sh $i $OUTDIR $TACC_REMORA_PERIOD $SYMMETRIC $TACC_REMORA_MODE > .TACC_remora_out 2> .TACC_remora_err < /dev/null  & echo \$!"
+  COMMAND="$TACC_REMORA_BIN/remora_report.sh $i $OUTDIR $TACC_REMORA_PERIOD $SYMMETRIC $TACC_REMORA_MODE > .TACC_remora_out & echo \$!"
   
   if [ "$VERBOSE" == "1" ]; then
-    echo "ssh -f $i $COMMAND"
+    echo "ssh -f -n $i $COMMAND"
   fi
 
-  PID[$idx]=`ssh -f $i $COMMAND`
-#  PID[$idx]=`ssh -f $i 'sh '$TACC_REMORA_BIN'/remora_report.sh '$i $OUTDIR $TACC_REMORA_PERIOD $SYMMETRIC $TACC_REMORA_MODE' > .TACC_remora_out 2> .TACC_remora_err < /dev/null  & echo \$!'`
+  PID[$idx]=`ssh -f -n $i $COMMAND | sed -e's/\[.*\]//' `
   if [ "$SYMMETRIC" == "1" ]; then
-    PID_MIC[$idx]=`ssh -q -f $i-mic0 'sh '$TACC_REMORA_BIN'/remora_report_mic.sh '$i-mic0 $OUTDIR $TACC_REMORA_PERIOD $SYMMETRIC $TACC_REMORA_MODE $TACC_REMORA_BIN' > .TACC_remora_out 2> .TACC_remora_err < /dev/null & echo \$!'`
+    COMMAND="$TACC_REMORA_BIN/remora_report_mic.sh ${i}-mic0 $OUTDIR $TACC_REMORA_PERIOD $SYMMETRIC $TACC_REMORA_MODE > .TACC_remora_out  &  echo \$! "
+    if [ "$VERBOSE" == "1" ]; then
+        echo "ssh -q -f -n $i-mic0 $COMMAND"
+    fi
+    PID_MIC[$idx]=`ssh -q -f -n $i-mic0 $COMMAND `
   fi
   idx=$((idx+1))
 done
