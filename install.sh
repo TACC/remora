@@ -8,7 +8,8 @@
 #                    Antonio Gomez-Iglesias
 
 export REMORA_DIR=/scratch/01157/carlos/apps/remora_install
-export XLTOP_PORT=XXXX
+export XLTOP_PORT=9901
+export PHI_BUILD=1
 
 # Do not change anything below this line 
 #--------------------------------------------------------------------------------
@@ -83,7 +84,7 @@ make                         | tee -a $BUILD_LOG
 echo "Installing XLTOP ..."  | tee -a $INSTALL_LOG
 make install                 | tee -a $INSTALL_LOG
 
-if [ "xPHI_BUILD" == "x1" ]; then
+if [ "$PHI_BUILD" == "1" ]; then
 	echo "Building Xeon Phi affinity script ..."   |  tee -a $BUILD_LOG
 	cd $REMORA_BUILD_DIR/extra/
 	icc -mmic -o ma ./mic_affinity.c
