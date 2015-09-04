@@ -48,8 +48,9 @@ working on its portability. Remora depends on a modified version of xltop that w
 output directly to a file in order to collect IO data.
 
 Use the provided install.sh script to install REMORA. Modify the variables
-XLTOP_PORT and REMORA_DIR atthe top of hte script so taht they point to the 
-port xltop should be listening to and to the instalaltion directory.
+XLTOP_PORT, REMORA_DIR and PHI_BUILD at the top of the script so that they 
+point to the port xltop should be listening in, to the installation directory, 
+and select if a Xeon Phi build is necessary (1) or not (0).
 
 The installation script will create build and log files that you can check
 in case anything fails during hte installation process.
