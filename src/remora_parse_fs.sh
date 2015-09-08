@@ -28,9 +28,9 @@ wfs=stockyard-work
 fs=()
 fs_loc=()
 
-fs[1]=$(cat $1 | awk 'NR==2 {print $2}')
-fs[2]=$(cat $1 | awk 'NR==2 {print $6}')
-fs[3]=$(cat $1 | awk 'NR==2 {print $10}')
+fs[1]=$(cat $1 | awk 'NR==2 {print $1}')
+fs[2]=$(cat $1 | awk 'NR==2 {print $5}')
+fs[3]=$(cat $1 | awk 'NR==2 {print $9}')
 
 fail=0
 if [ "x${fs[1]}" == "x" ]; then
