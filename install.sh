@@ -104,7 +104,7 @@ fi
 
 echo "Copying all scripts to installation folder ..." |  tee -a $INSTALL_LOG
 cd $REMORA_BUILD_DIR
-cp -v ./remora* $REMORA_DIR/bin
+cp -v ./src/* $REMORA_DIR/bin
 
 echo "Installing python module blockdiag ..." | tee -a $INSTALL_LOG
 module load python
