@@ -7,9 +7,9 @@
 # v1.0 (2015-08-25)  Carlos Rosales-Fernandez
 #                    Antonio Gomez-Iglesias
 
-export REMORA_DIR=/scratch/01157/carlos/apps/remora_install
-export XLTOP_PORT=9901
-export PHI_BUILD=1
+export REMORA_DIR=`pwd`
+export XLTOP_PORT=XXXX
+export PHI_BUILD=0
 
 # Do not change anything below this line 
 #--------------------------------------------------------------------------------
