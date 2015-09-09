@@ -38,6 +38,7 @@
 #
 #========================================================================
 #  HISTORY
+#       2015/09/09: Using python parser for file system data
 #       2015/08/12: Initial version
 #========================================================================
 #
@@ -296,7 +297,7 @@ show_time $((END-START))
 
 #Show Maximum IO Requests/S to all MDS servers (H-Home, S-Scratch, W-Work)
 if [ "$TACC_REMORA_MODE" == "FULL" ]; then
-  remora_parse_fs.sh $OUTDIR/xltop.txt
+  cd $OUTDIR; $TACC_REMORA_BIN/remora_parse_fs.py; cd ../
 fi
 
 echo "------------------------------------------------------------------------------"
