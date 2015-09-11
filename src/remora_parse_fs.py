@@ -55,8 +55,8 @@ with open("xltop.txt","r") as file:
 					fs_present[i] = 1
 				fs_str = "%s\t%s\t%s\t%s\n" % (columns[0],columns[fs_loc[i]+1],columns[fs_loc[i]+2],columns[fs_loc[i]+3])
 				fs_file[i].write( fs_str )
-				if columns[fs_loc[i]+3] > fs_max[i]:
-					fs_max[i] = columns[fs_loc[i]+3]
+				if float(columns[fs_loc[i]+3]) > fs_max[i]:
+					fs_max[i] = float(columns[fs_loc[i]+3])
 
 # Close the files
 for i in range(0,len(fs)):
