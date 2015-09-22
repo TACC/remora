@@ -8,7 +8,7 @@
 #%
 #% DO NOT call this script directory. This is called by REMORA
 #%
-#% remora_report.sh NODE_NAME OUTDIR TACC_REMORA_PERIOD SYMMETRIC TACC_REMORA_MODE
+#% remora_report.sh NODE_NAME OUTDIR TACC_REMORA_PERIOD SYMMETRIC TACC_REMORA_MODE CUDA
 #========================================================================
 #- IMPLEMENTATION
 #-      version     REMORA 0.1
@@ -27,6 +27,7 @@
 # vmax_mem : maximum virtual memory
 
 SYMMETRIC=$4
+CUDA=$6
 
 vmem_max_old=0
 rmem_max_old=0
@@ -138,6 +139,12 @@ END {
         }
     }
 }' >> $2/cpu-$1.txt  
+fi
+
+# Get GPU utilization data
+if [ "$CUDA" == "1" ]; then
+gpumem=$(nvidia-smi | grep MiB | awk '{print $9}')
+echo $current_time ${gpumem::-3} >> $2/mem_stats-$1-gpu.txt
 fi
 
   sleep $3

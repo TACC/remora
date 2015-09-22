@@ -8,7 +8,7 @@
 #% DO NOT call this script directory. This is a postprocessing tool
 #% used by REMORA
 #%
-#% remora_summary.sh NODE_NAME OUTDIR SYMMETRIC
+#% remora_summary.sh NODE_NAME OUTDIR SYMMETRIC CUDA
 #========================================================================
 #- IMPLEMENTATION
 #-      version     REMORA 0.1
@@ -36,3 +36,9 @@ if [ "$3" == "1" ]; then
 	echo "$currenthost $vmax_mem $tmax_mem $free_mem" >> $2/mem_all_nodes_mic.txt
 fi
 
+if [ "$4" == "1" ]; then
+    currenthost=$1-gpu
+    max_mem=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {printf "%6.4f\n",max }' $2/mem_stats_$currenthost.txt)
+    free_mem=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 < min {min=$2} END {printf "%6.4f\n",min }' $2/mem_stats_$currenthost.txt)
+    echo "$currenthost $max_mem $free_mem" >> $2/mem_all_nodes_gpu.txt
+fi
