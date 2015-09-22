@@ -143,8 +143,12 @@ fi
 
 # Get GPU utilization data
 if [ "$CUDA" == "1" ]; then
-gpumem=$(nvidia-smi | grep MiB | awk '{print $9}')
-echo $current_time ${gpumem::-3} >> $2/mem_stats-$1-gpu.txt
+gpumem=$(nvidia-smi | grep MiB | awk '{print $9}'); gpumem=${gpumem::-3}
+gpumax=$(nvidia-smi | grep MiB | awk '{print $11}'); gpumax=${gpumax::-3}
+gpumem=$(echo $gpumem | awk '{print $1/1000}')
+gpumax=$(echo $gpumax | awk '{print $1/1000}'a
+gpufree=$(echo "$gpumax $gpumem" | awk '{ print $1-$2 }')
+echo $current_time $gpumem $gpufree >> $2/mem_stats-$1-gpu.txt
 fi
 
   sleep $3
