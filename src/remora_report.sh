@@ -148,7 +148,7 @@ if [ "$REMORA_CUDA" == "1" ]; then
 	gpumem=$(echo $gpumem | awk '{print $1/1000}')
 	gpumax=$(echo $gpumax | awk '{print $1/1000}')
 	gpufree=$(echo "$gpumax $gpumem" | awk '{ print $1-$2 }')
-	echo "$current_time $gpumem $gpufree" >> $2/mem_stats-$1-gpu.txt
+	echo "$current_time $gpumem $gpufree" >> $2/mem_stats_$1-gpu.txt
 fi
 
   sleep $3
