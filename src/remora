@@ -145,13 +145,16 @@ if [ "$TACC_REMORA_PERIOD" -lt "1" ]; then
   export TACC_REMORA_PERIOD=1
 fi
 
-# By default, collect GPU data is GPU is present
+# By default, do not collect GPU data
 if [ -z "$TACC_REMORA_CUDA" ]; then
-  export TACC_REMORA_CUDA=1
+  export TACC_REMORA_CUDA=0
 fi
-# If nvidia-smi is not present disable GPU collection
+# If nvidia-smi is not present disable GPU collection even if it was requested
 gputest=$(nvidia-smi > /dev/null 2> /dev/null || echo "0")
 if [ "$gputest" == "0" ]; then
+  if [ "$TACC_REMORA_CUDA" == "1" ]; then
+    print_error " Missing GPU driver: disabling GPU collection"
+  fi
   export TACC_REMORA_CUDA=0
 fi
 
@@ -285,11 +288,19 @@ echo "==========================================================================
 # Print memory usage to stdout
 #I can't think of a case were virtual would be less than resident, so let's report only virtual in stdout (which triggers OOM killer)..
 #real_max_cpu=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {printf "TACC: Maximum Memory Used Per Node: %6.4f GB\n",max}' $OUTDIR/mem_all_nodes.txt)
-awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {printf "TACC: Max Memory Used Per Node : %4.2f GB\n",max}' $OUTDIR/mem_all_nodes.txt
-free_min_cpu=$(awk ' NR == 1 {max=$4; min=$4} NR > 1 && $4 < min {min=$4} END {printf "%4.2f\n",min}' $OUTDIR/mem_all_nodes.txt)
-free_min_cpu_virt=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print 32.0-max}' $OUTDIR/mem_all_nodes.txt)
-echo "$free_min_cpu_virt 2.0" | awk '{res=0} $1 < $2 {printf "TACC: WARNING - Free memory per node close to zero ( %4.2f GB )\n",free_min_cpu}'
-sed -i '1i #HOST     VIRT_MAX  RES_MAX  FREE_MIN' $OUTDIR/mem_all_nodes.txt
+if [ "$TACC_REMORA_CUDA" == "0" ]; then
+  awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {printf "TACC: Max Memory Used Per Node : %4.2f GB\n",max}' $OUTDIR/mem_all_nodes.txt
+  free_min_cpu=$(awk ' NR == 1 {max=$4; min=$4} NR > 1 && $4 < min {min=$4} END {printf "%4.2f\n",min}' $OUTDIR/mem_all_nodes.txt)
+  free_min_cpu_virt=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print 32.0-max}' $OUTDIR/mem_all_nodes.txt)
+  echo "$free_min_cpu_virt 2.0" | awk '{res=0} $1 < $2 {printf "TACC: WARNING - Free memory per node close to zero ( %4.2f GB )\n",free_min_cpu}'
+  sed -i '1i #HOST     VIRT_MAX  RES_MAX  FREE_MIN' $OUTDIR/mem_all_nodes.txt
+else
+  awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {printf "TACC: Max Memory Used Per Node : %4.2f GB\n",max}' $OUTDIR/mem_all_nodes.txt
+  free_min_cpu=$(awk ' NR == 1 {max=$4; min=$4} NR > 1 && $4 < min {min=$4} END {printf "%4.2f\n",min}' $OUTDIR/mem_all_nodes.txt)
+  free_min_cpu_virt=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {print 32.0-max}' $OUTDIR/mem_all_nodes.txt)
+  echo "$free_min_cpu_virt 2.0" | awk '{res=0} $1 < $2 {printf "TACC: WARNING - Free memory per node close to zero ( %4.2f GB )\n",free_min_cpu}'
+  sed -i '1i #HOST     VIRT_MAX  RES_MAX  FREE_MIN' $OUTDIR/mem_all_nodes.txt
+fi
 
 if [ "$SYMMETRIC" == "1" ]; then
   #Virtual memory in Phi seems to report always resident+8GB, so let's report only resident in stdout, which we know is true.
