@@ -8,7 +8,7 @@
 #% DO NOT call this script directory. This is a postprocessing tool
 #% used by REMORA
 #%
-#% remora_summary.sh NODE_NAME OUTDIR SYMMETRIC REMORA_CUDA
+#% remora_summary.sh NODE_NAME OUTDIR SYMMETRIC TACC_REMORA_CUDA
 #========================================================================
 #- IMPLEMENTATION
 #-      version     REMORA 0.1
