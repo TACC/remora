@@ -114,7 +114,7 @@ fi
 # Check if this is a sequential, parallel, or symmetric run
 SYMMETRIC=0
 PARALLEL=0
-CUDA=0
+REMORA_CUDA=0
 if [ "x$1" == "xibrun" ]; then
   PARALLEL=1
 elif [ "x$1" == "xibrun.symm" ]; then
@@ -198,7 +198,7 @@ for i in $NODES
 do
   LIDCOMMAND="cat /sys/class/infiniband/mlx4_0/ports/1/lid"
   LID[$idx]=`ssh -f $i $LIDCOMMAND`
-  COMMAND="$TACC_REMORA_BIN/remora_report.sh $i $OUTDIR $TACC_REMORA_PERIOD $SYMMETRIC $TACC_REMORA_MODE $CUDA > .TACC_remora_out & echo \$!"
+  COMMAND="$TACC_REMORA_BIN/remora_report.sh $i $OUTDIR $TACC_REMORA_PERIOD $SYMMETRIC $TACC_REMORA_MODE $REMORA_CUDA > .TACC_remora_out & echo \$!"
   
   if [ "$VERBOSE" == "1" ]; then
     echo "ssh -f -n $i $COMMAND"
@@ -263,7 +263,7 @@ done
 echo ""
 for i in $NODES
 do
-  ssh $i "$TACC_REMORA_BIN/remora_summary.sh $i $OUTDIR $SYMMETRIC $CUDA"
+  ssh $i "$TACC_REMORA_BIN/remora_summary.sh $i $OUTDIR $SYMMETRIC $REMORA_CUDA"
 done 
 #if [ "$VERBOSE" == "0" ]; then
 #	rm -rf $OUTDIR
@@ -291,10 +291,8 @@ if [ "$SYMMETRIC" == "1" ]; then
   sed -i '1i #HOST     VIRT_MAX  RES_MAX  FREE_MIN' $OUTDIR/mem_all_nodes_mic.txt
 fi
 
-if [ "$CUDA" == "1" ]; then
-  #Virtual memory in Phi seems to report always resident+8GB, so let's report only resident in stdout, which we know is true.
+if [ "$REMORA_CUDA" == "1" ]; then
   awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {printf "TACC: Max Memory Used Per GPU  : %4.2f GB\n",max}' $OUTDIR/mem_all_nodes_gpu.txt
-  #awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {printf "TACC: Maximum Virtual Memory Used Per Xeon Phi: %6.4f GB\n",max}' $OUTDIR/mem_all_nodes_mic.txt
   free_min_gpu=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 < min {min=$3} END {printf "%4.2f\n",min}' $OUTDIR/mem_all_nodes_gpu.txt)
   echo "$free_min_gpu 1.0" | awk '{res=0} $1 < $2 {printf "TACC: WARNING - Free memory per GPU close to zero ( %4.2f GB )\n",free_min_gpu}'
   sed -i '1i #HOST     MAX  FREE_MIN' $OUTDIR/mem_all_nodes_gpu.txt

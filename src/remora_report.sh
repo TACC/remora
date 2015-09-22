@@ -8,7 +8,7 @@
 #%
 #% DO NOT call this script directory. This is called by REMORA
 #%
-#% remora_report.sh NODE_NAME OUTDIR TACC_REMORA_PERIOD SYMMETRIC TACC_REMORA_MODE CUDA
+#% remora_report.sh NODE_NAME OUTDIR TACC_REMORA_PERIOD SYMMETRIC TACC_REMORA_MODE REMORA_CUDA
 #========================================================================
 #- IMPLEMENTATION
 #-      version     REMORA 0.1
@@ -27,7 +27,7 @@
 # vmax_mem : maximum virtual memory
 
 SYMMETRIC=$4
-CUDA=$6
+REMORA_CUDA=$6
 
 vmem_max_old=0
 rmem_max_old=0
@@ -142,13 +142,13 @@ END {
 fi
 
 # Get GPU utilization data
-if [ "$CUDA" == "1" ]; then
-gpumem=$(nvidia-smi | grep MiB | awk '{print $9}'); gpumem=${gpumem::-3}
-gpumax=$(nvidia-smi | grep MiB | awk '{print $11}'); gpumax=${gpumax::-3}
-gpumem=$(echo $gpumem | awk '{print $1/1000}')
-gpumax=$(echo $gpumax | awk '{print $1/1000}'a
-gpufree=$(echo "$gpumax $gpumem" | awk '{ print $1-$2 }')
-echo $current_time $gpumem $gpufree >> $2/mem_stats-$1-gpu.txt
+if [ "$REMORA_CUDA" == "1" ]; then
+	gpumem=$(nvidia-smi | grep MiB | awk '{print $9}'); gpumem=${gpumem::-3}
+	gpumax=$(nvidia-smi | grep MiB | awk '{print $11}'); gpumax=${gpumax::-3}
+	gpumem=$(echo $gpumem | awk '{print $1/1000}')
+	gpumax=$(echo $gpumax | awk '{print $1/1000}')
+	gpufree=$(echo "$gpumax $gpumem" | awk '{ print $1-$2 }')
+	echo "$current_time $gpumem $gpufree" >> $2/mem_stats-$1-gpu.txt
 fi
 
   sleep $3
