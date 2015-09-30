@@ -192,7 +192,7 @@ One of the most recurring questions for HPC users is "how can I know how much me
 \item Total free memory: this will take into account the memory not being used by the application, the libraries needed by the application, and the OS.
 \end{itemize}
 
-Data is collected from /proc/<pid>/status for all of these except shared memory, which can be obtained from /dev/shm. Memory usage for all user processes is aggregated and written to a single file per node involved in the execution. At the end of the run the maximum values for memory utilization (and minimum value of total free memory) are aggregated into a single file.
+Data is collected from /proc/\textless pid\textgreater /status for all of these except shared memory, which can be obtained from /dev/shm. Memory usage for all user processes is aggregated and written to a single file per node involved in the execution. At the end of the run the maximum values for memory utilization (and minimum value of total free memory) are aggregated into a single file.
 
 When Xeon Phi co-processors are used as part of a symmetric execution model, each Xeon Phi is treated as a separate node and the same memory information is collected from Phi and from host CPU. Individual files are maintained for each node and Phi and the per node aggregated summary is provided individually for nodes and Xeon Phi devices, since their available memory tends to be different.
 
@@ -228,7 +228,7 @@ Number of packets transmitted using InfiniBand. This data can be used to get ext
 \chapter{Using Remora}
 
 \section{Collecting Data}
-After making sure the remora \verb+bin+ directory is in your \verb+PATH+ and the remora \verb+lib+ directory is in your \verb+LD\_LIBRARY\_PATH+
+After making sure the remora \verb+bin+ directory is in your \verb+PATH+ and the remora \verb+lib+ directory is in your \verb|LD_LIBRARY_PATH|
 
 \section{Post-Processing}
 All the data is collected in a set of files with the statistics organized in columns. Users can take those files and run any postprocessing tool that they develop. However, for simplicity, REMORA already provides a plotting script that takes all the statistics generated during collection and generates a number of plots. These plots show the most relevant information previously collected and represent a visual alternative while analyzing the results. This is a Python script that requires Numpy, matplotlib and blockdiag. The script can be called from the batch script or from the login nodes after the job has finished. In this second scenario, the script requires the id of the job to be analyzed as argument.
