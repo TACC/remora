@@ -42,13 +42,21 @@ import os.path
 import sys
 
 #Avoid issues with X11
-import matplotlib
+try:
+  import matplotlib
+except ImportError:
+  print "ERROR: matplotlib could not be imported. Make sure you have matplotlib installed"
+  sys.exit(1)
 matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+try:
+  import numpy as np
+except ImportError:
+  print "ERROR: NumPy could not be imported. Make sure you have NumPy installed"
+  sys.exit(1)
 
-import numpy as np
 from itertools import ifilter
 import re
 from StringIO import StringIO
@@ -266,14 +274,18 @@ def plot_xltop(file):
   if not os.path.isfile (file):
     return
   
+  xltop = {}
+
   filesystems=["SCRATCH", "WORK", "HOME"]
   ops=[" WR", " RD", " REQS"]
   labels = [ f+o for f in filesystems for o in ops ]
   #Plot xltop values
   with open(file) as f:
     lines = f.readlines()[1:] #Skip the first line (header)
- 
-  xltop = { l:[] for l in labels } 
+
+  for label in labels:
+      xltop[label] = []
+#  xltop = { l:[] for l in labels } 
   xvalues = np.empty(0, dtype=np.int)
   #Only process non-empty lines
   lines = (l for l in lines if bool(l.strip()))
