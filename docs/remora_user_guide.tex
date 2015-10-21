@@ -73,10 +73,10 @@
 \verb+ +
 \vspace{1em}
 \begin{flushright}
-\huge\bf REMORA v1.0\\
+\huge\bf REMORA v1.3.1\\
 \rule{\textwidth}{4pt}
 \large{\bf REsource MOnitoring for Remote Applications\\
-Document Revision 0.1 - Work In Progress\\
+Document Revision 1.0\\
 \today}
 \end{flushright}
 
@@ -97,10 +97,10 @@ Copyright 2015 The University of Texas at Austin.
 \end{titlepage}
 
 \begin{abstract}
-Remora is a tool to monitor runtime resource utilization. As of version 1.0 the suite contains code designed to test:
+Remora is a tool to monitor runtime resource utilization. As of version 1.3.1 the suite contains code designed to test:
 
 \begin{itemize}
-\item Memory utilization in CPUs, and Xeon Phi co-processors
+\item Memory utilization in CPUs, Xeon Phi co-processors, and NVIDIA GPUs
 \item CPU utilization
 \item IO utilization for the Lustre file system
 \item NUMA properties
@@ -113,18 +113,18 @@ Throughout the text we have used text boxes to highlight important information. 
 
 Our intention is to create a simple runtime resource monitoring tools that provide both simple to understand high level information to the user, as well as detailed statistics for in-depth analysis. We welcome all feedback. Feedback that includes suggestions for improvement in the usability, reliability, and accuracy of this tool is particularly welcome. 
 
-Version 1.0 is the first public version of Remora.
+Version 1.3.1 is a micro release where the \verb+remora_post+ executable has been modified to work with versions of Python older than 2.7.
 \end{abstract}
 
 \tableofcontents
 
 \chapter{Installation}
-The Performance Analysis Workbench is simple to install. In order to use all of its features you will need GNU Make and a C compiler. If testing the Xeon Phi you will also need a compiler and with support for compilation of native code for the Xeon Phi - currently limited to Intel 13+ compilers.
+Remora is simple to install. In order to use all of its features you will need GNU Make and a C compiler. If testing the Xeon Phi you will also need a compiler with support for compilation of native code for the Xeon Phi - currently limited to Intel 13+ compilers.
 
-First of all obtain the latest version tarball, currently remora-1.0.tar.gz, and expand it in a convenient location in your system:
+First of all obtain the latest version tarball, currently remora-1.3.1.tar.gz, and expand it in a convenient location in your system:
 
 \begin{verbatim}
-    tar xzvf ./remora-1.0.tar.gz
+    tar xzvf ./remora-1.3.1.tar.gz
 \end{verbatim}
 
 Alternatively clone the git repository with the latest development version:
@@ -231,7 +231,7 @@ Number of packets transmitted using InfiniBand. This data can be used to get ext
 After making sure the remora \verb+bin+ directory is in your \verb+PATH+ and the remora \verb+lib+ directory is in your \verb|LD_LIBRARY_PATH|
 
 \section{Post-Processing}
-All the data is collected in a set of files with the statistics organized in columns. Users can take those files and run any postprocessing tool that they develop. However, for simplicity, REMORA already provides a plotting script that takes all the statistics generated during collection and generates a number of plots. These plots show the most relevant information previously collected and represent a visual alternative while analyzing the results. This is a Python script that requires Numpy, matplotlib and blockdiag. The script can be called from the batch script or from the login nodes after the job has finished. In this second scenario, the script requires the id of the job to be analyzed as argument.
+All the data is collected in a set of files with the statistics organized in columns. Users can take those files and run any postprocessing tool that they develop. However, for simplicity, REMORA already provides a plotting script called \verb+remora_post+ that takes all the statistics generated during collection and generates a number of plots. These plots show the most relevant information previously collected and represent a visual alternative while analyzing the results. This is a Python script that requires Numpy, matplotlib and blockdiag. The script can be called from the batch script or from the login nodes after the job has finished. In this second scenario, the script requires the id of the job to be analyzed as argument.
 
 \section{Execution Customization}
 

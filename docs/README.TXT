@@ -1,7 +1,7 @@
 === REMORA: REsource MOnitoring for Remote Applications ===
 
 Remora is a tool to monitor runtime resource utilization:
-  - Memory
+  - Memory (CPU, Xeon Phi, GPU)
   - CPU utilization
   - Lustre usage
   - NUMA memory
@@ -35,7 +35,7 @@ It is also possible to get plots of those files for an easier analysis. Use the 
 From the login node, you can cd to the location that contains the remora_JOBID folder, 
 and once there execute 'remora_post -j JOBID'.
 
-The following environment variables control the behaviour of the tool:
+The following environment variables control the behavior of the tool:
 
   - REMORA_PERIOD  - How often memory usage is checked. Default is 10 seconds.
   - REMORA_VERBOSE - Verbose mode will save all information to a file. Default is 0 (off).
@@ -56,7 +56,11 @@ The installation script will create build and log files that you can check
 in case anything fails during hte installation process.
 
 === CHANGELOG ===
-Revision 1.0: (2015-08-18) First public release of REMORA
+Revision 1.3.1: (2015-10-21) Changed remora_post to support older Python versions
+Revision 1.3.0: (2015-09-19) Added memory monitoring for NVIDIA GPUs
+Revision 1.2.0: (2015-09-11) Minor bugfixes
+Revision 1.1.0: (2015-09-09) Fixed Lustre data parser
+Revision 1.0.0: (2015-08-18) First public release of REMORA
 
-2015-08-18 \ Carlos Rosales-Fernandez \ carlos@tacc.utexas.edu
-2015-08-18 \ Antonio Gomez-Iglesias   \ agomez@tacc.utexas.edu
+2015-10-21 \ Carlos Rosales-Fernandez \ carlos@tacc.utexas.edu
+2015-10-21 \ Antonio Gomez-Iglesias   \ agomez@tacc.utexas.edu
