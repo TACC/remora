@@ -41,6 +41,14 @@
 #       2015/09/09: Using python parser for file system data
 #       2015/08/12: Initial version
 #========================================================================
+#  USING REMORA
+#       If you use REMORA, you can cite it:
+#                   REMORA: a Resource Monitoring Tool for Everyone
+#                   C. Rosales, A. Gomez-Iglesias, A. Predoehl
+#                   HUST2015 November 15-20, 2015, Austin, TX, USA
+#                   DOI: 10.1145/2834996.2834999
+#
+#========================================================================
 #
 # DEBUG OPTION
 #     TACC_REMORA_BIN set to workdir with copies of the scripts

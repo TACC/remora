@@ -18,8 +18,8 @@
 #
 #========================================================================
 #  HISTORY
-#       2017/08/12: Initial version
-#       2017/08/25: Version 1.1. Improved output format
+#       2015/08/12: Initial version
+#       2015/10/22: Version 1.4. Improved output format
 #========================================================================
 
 #
@@ -40,13 +40,11 @@ if [ "$SYMMETRIC" == "0" ]; then
 
     #Lustre counters
     printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "time" "msgs_alloc" "msgs_max" "errors" "send_count" "recv_count" "route_count" "drop_count" "send_length" "recv_length" "route_length" "drop_length" > $2/lustre_counters-$1.txt
-#    echo "time msgs_alloc msgs_max errors send_count recv_count route_count drop_count send_length recv_length route_length drop_length" > $2/lustre_counters-$1.txt
   fi
 fi
 
 USER=`whoami`
 printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "#TIME" "VMEM_MAX" "VMEM" "RMEM_MAX" "RMEM" "SHMEM" "MEM_FREE" "TMEM_MAX"> $2/mem_stats_$1.txt
-#echo "#TIME VMEM_MAX VMEM RMEM_MAX RMEM SHMEM MEM_FREE TMEM_MAX" > $2/mem_stats_$1.txt
 printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "#TIME" "Node0_NumaHit" "Node0_NumaMiss" "Node0_LocalNode" "Node0_OtherNode" "Node0_MemFree" "Node0_MemUsed" "Node1_NumaHit" "Node1_NumaMiss" "Node1_LocalNode" "Node1_OtherNode" "Node1_MemFree" "Node1_MemUsed" > $2/numa_stats_$1.txt
 while [ 1 ]
 do
@@ -69,7 +67,6 @@ do
     node0_memused=`echo $numMem | awk '{ print $10; }'` #Memory used on this node
     node1_memused=`echo $numMem | awk '{ print $11; }'`
     printf "%-17d %-17d %-17d %-17d %-17d %-17f %-17f %-17d %-17d %-17d %-17d %-17f %-17f\n" $current_time $node0_numahit $node0_numamiss $node0_numalocal $node0_numaother $node0_memfree $node0_memused $node1_numahit $node1_numamiss $node1_numalocal $node1_numaother $node1_memfree $node1_memused >> $2/numa_stats_$1.txt
-#    echo $current_time $node0_numahit $node0_numamiss $node0_numalocal $node0_numaother $node0_memfree $node0_memused $node1_numahit $node1_numamiss $node1_numalocal $node1_numaother $node1_memfree $node1_memused >> $2/numa_stats_$1.txt
     
     # Memory statistics
     #Get space used in /dev/shm
@@ -96,13 +93,11 @@ do
     fi
 
     printf "%-17d %-17f %-17f %-17f %-17f %-17f %-17f %-17f\n" $current_time $vmem_max $vmem $rmem_max $rmem $shmem $mem_free $tmem_max >> $2/mem_stats_$1.txt
-#    echo $current_time $vmem_max $vmem $rmem_max $rmem $shmem $mem_free $tmem_max >> $2/mem_stats_$1.txt
 
 if [ "$SYMMETRIC" == "0" ]; then
   if [ "$5" = "FULL" ]; then
     NEWPACKAGES=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`
     printf "%d %10d\n" $current_time $((NEWPACKAGES-PACKAGES)) >> $2/ib_xmit_packets-$1.txt
-#    echo $current_time $((NEWPACKAGES-PACKAGES)) >> $2/ib_xmit_packets-$1.txt
     PACKAGES=$NEWPACKAGES
 
 
@@ -121,7 +116,6 @@ if [ "$SYMMETRIC" == "0" ]; then
     #   drop_length  ->  Bytes dropped
     lnetstats=`cat /proc/sys/lnet/stats`
     printf "%-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d\n" $current_time $lnetstats >> $2/lustre_counters-$1.txt
-#    echo $current_time $lnetstats >> $2/lustre_counters-$1.txt
   fi
 
   #Get CPU utilization
