@@ -319,7 +319,6 @@ if [ "$TACC_REMORA_CUDA" == "1" ]; then
   sed -i '1i #HOST     MAX  FREE_MIN' $OUTDIR/mem_all_nodes_gpu.txt
 fi
 
-
 #Show some timings (h:m:s.ms)
 show_time $((END-START))
 
