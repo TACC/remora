@@ -58,8 +58,8 @@ in case anything fails during hte installation process.
 
 ## Authors 
 
-2015-10-21 \ Carlos Rosales-Fernandez \ carlos@tacc.utexas.edu
-2015-10-21 \ Antonio Gomez-Iglesias   \ agomez@tacc.utexas.edu
+Carlos Rosales-Fernandez | carlos@tacc.utexas.edu  
+Antonio Gomez-Iglesias   | agomez@tacc.utexas.edu
 
 ## Cite REMORA
 
