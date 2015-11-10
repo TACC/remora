@@ -30,7 +30,7 @@
 % Define header and footer
 \pagestyle{fancy}
 \fancyhf{}
-\lhead{C. Rosales}
+\lhead{C. Rosales, A. G\'{o}mez}
 \rhead{REMORA User Guide}
 \lfoot{REMORA User Guide}
 \rfoot{\thepage}
@@ -38,9 +38,9 @@
 % Define header and footer for first page in chapter
 \fancypagestyle{plain}{
 \fancyhf{}
-\lhead{C. Rosales}
+\lhead{C. Rosales, A. G\'{o}mez}
 \rhead{REMORA User Guide}
-\lfoot{REMORA USer Guide}
+\lfoot{REMORA User Guide}
 \rfoot{\thepage}
 }
 
@@ -84,7 +84,7 @@ Document Revision 1.0\\
 \newpage
 \thispagestyle{empty}
 \begin{flushleft}
-Antonio G\'omez Iglesias, Carlos Rosales Fern\'andez \\
+Antonio G\'omez-Iglesias, Carlos Rosales Fern\'andez \\
 \verb+agomez@tacc.utexas.edu+, \verb+carlos@tacc.utexas.edu+\\
 \vspace{0.5em}
 High Performance Computing \\
@@ -97,7 +97,8 @@ Copyright 2015 The University of Texas at Austin.
 \end{titlepage}
 
 \begin{abstract}
-Remora is a tool to monitor runtime resource utilization. As of version 1.3.1 the suite contains code designed to test:
+
+REMORA is a tool to monitor runtime resource utilization in HPC environments. As of version 1.3.1 the suite contains code designed to test:
 
 \begin{itemize}
 \item Memory utilization in CPUs, Xeon Phi co-processors, and NVIDIA GPUs
@@ -109,11 +110,16 @@ Remora is a tool to monitor runtime resource utilization. As of version 1.3.1 th
 
 Throughout the text we have used text boxes to highlight important information. These boxes look like this:
 
-\IntroBox{ These gray boxes contain highlighted material for each section and chapter. }
+\IntroBox{These gray boxes contain highlighted material for each section and chapter.}
 
-Our intention is to create a simple runtime resource monitoring tools that provide both simple to understand high level information to the user, as well as detailed statistics for in-depth analysis. We welcome all feedback. Feedback that includes suggestions for improvement in the usability, reliability, and accuracy of this tool is particularly welcome. 
+Our intention is to create a simple runtime resource monitoring tool that provides both simple to understand high level information to the user, as well as detailed statistics for in-depth analysis. We welcome all feedback. Feedback that includes suggestions for improvement in the usability, reliability, and accuracy of this tool is particularly welcome. 
 
 Version 1.3.1 is a micro release where the \verb+remora_post+ executable has been modified to work with versions of Python older than 2.7.
+
+If you use REMORA, you can cite it:
+
+C. Rosales, A. G\'{o}mez-Iglesias, A. Predoehl. ``REMORA: a Resource Monitoring Tool for Everyone''. HUST2015 November 15-20, 2015, Austin, TX, USA. DOI: 10.1145/2834996.2834999 \cite{remora}
+
 \end{abstract}
 
 \tableofcontents
@@ -121,7 +127,7 @@ Version 1.3.1 is a micro release where the \verb+remora_post+ executable has bee
 \chapter{Installation}
 Remora is simple to install. In order to use all of its features you will need GNU Make and a C compiler. If testing the Xeon Phi you will also need a compiler with support for compilation of native code for the Xeon Phi - currently limited to Intel 13+ compilers.
 
-First of all obtain the latest version tarball, currently remora-1.3.1.tar.gz, and expand it in a convenient location in your system:
+First of all obtain the latest version tarball, currently remora-1.3.1.tar.gz \footnote{\href{https://github.com/TACC/remora/archive/v1.3.1.tar.gz}{https://github.com/TACC/remora/archive/v1.3.1.tar.gz}}, and expand it in a convenient location in your system:
 
 \begin{verbatim}
     tar xzvf ./remora-1.3.1.tar.gz
@@ -157,7 +163,9 @@ The executable tests will be placed in the \verb+remora/bin+ directory unless th
 
 \FloatBarrier
 \chapter{Design and Implementation}
-Remora is designed with ease of use in mind. Our goal is to create a usage model that users can take advantage of with minimal effort. While there are models where the tool could run transparently, just by loading a module that would change the environment to collect all the information at runtime, we decided to opt for a model where the user loads the module, and then changes the submission script to invoke our tool by prepending its name to the actual command that has to be analyzed. This has the advantage of preventing unnecessary overhead when the module is loaded and runs that do not require instrumentation are submitted. It also simplifies the data collection for serial jobs and scripts, which do not use an MPI launcher that can be easily hijacked or modified. For example, if the original command is \textit{mpirun ./myparallelapp}, the new command will be \textit{remora mpirun ./myparallelapp}. A more complicated scenario is when the user wants to run a set of different scripts in the same job. In that case, the user will have to put all the commands regarding the execution in a shell script (i.e. a shell script called \textit{myjob}). Then, all the user has to do is to call the script as follows \textit{remora ./myjob}. The tool can be used in a batch script or interactively in the command prompt. 
+Remora is designed with ease of use in mind. Our goal is to create a usage model that users can take advantage of with minimal effort. While there are models where the tool could run transparently, just by loading a module that would change the environment to collect all the information at runtime, we decided to opt for a model where the user loads the module, and then changes the submission script to invoke our tool by prepending its name to the actual command that has to be analyzed. This has the advantage of preventing unnecessary overhead when the module is loaded and runs that do not require instrumentation are submitted. It also simplifies the data collection for serial jobs and scripts, which do not use an MPI launcher that can be easily hijacked or modified. For example, if the original command is \textit{mpirun ./myparallelapp}, the new command will be \textit{remora mpirun ./myparallelapp}. A more complicated scenario is when the user wants to run a set of different scripts in the same job. In that case, the user will have to put all the commands regarding the execution in a shell script (i.e. a shell script called \textit{myjob}). Then, all the user has to do is to call the script as follows \textit{remora ./myjob}. The tool can be used in a batch script or interactively in the command prompt.
+
+Although we mention modules in the previous paragraph, modules are only used as a way to make easier for users to use Remora. It is not required to install Remora as a module.
 
 In its current implementation the tool generates a flat ssh tree with a single connection from the master node in the execution to all other nodes. This connection initiates a background process that collects the statistics for each node with a frequency specified by the user. The remote background tasks execute a loop over all processes owned by the user, and aggregate the data before committing it to file.
 
@@ -250,6 +258,8 @@ REMORA provides two different running modes and it also allows the users to spec
 \FloatBarrier
 \addcontentsline{toc}{section}{\bf References}
 \begin{thebibliography}{00}
+
+\bibitem{remora} C. Rosales, A. G\'{o}mez-Iglesias, A. Predoehl. ``REMORA: a Resource Monitoring Tool for Everyone''. HUST2015 November 15-20, 2015, Austin, TX, USA. DOI: \href{http://dx.doi.org/10.1145/2834996.2834999}{10.1145/2834996.2834999}
 
 \bibitem{xltop}xltop is a continuous Lustre monitor with batch scheduler intergation: \href{https://github.com/jhammond/xltop}{https://github.com/jhammond/xltop}
 
