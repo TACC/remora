@@ -16,15 +16,15 @@ Examples for utilization in Stampede @ TACC (after "module load remora"):
 
 1. Parallel execution
     ...
-    #SBATCH -n 16
-    #SBATCH -A my_project
+    ``#SBATCH -n 16``
+    ``#SBATCH -A my_project``
 
     remora ibrun my_parallel_program [arguments]
 
 2. Sequential execution (may be threaded)
     ...
-    #SBATCH -n 1
-    #SBATCH -A my_project
+    ``#SBATCH -n 1``
+    ``#SBATCH -A my_project``
     remora ./my_program [arguments]
 
 Remora will create a folder with a number of files that contain the values for the 
