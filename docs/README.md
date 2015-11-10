@@ -55,12 +55,7 @@ and select if a Xeon Phi build is necessary (1) or not (0).
 The installation script will create build and log files that you can check
 in case anything fails during hte installation process.
 
-=== CHANGELOG ===
-Revision 1.3.1: (2015-10-21) Changed remora_post to support older Python versions
-Revision 1.3.0: (2015-09-19) Added memory monitoring for NVIDIA GPUs
-Revision 1.2.0: (2015-09-11) Minor bugfixes
-Revision 1.1.0: (2015-09-09) Fixed Lustre data parser
-Revision 1.0.0: (2015-08-18) First public release of REMORA
+=== AUTHORS ===
 
 2015-10-21 \ Carlos Rosales-Fernandez \ carlos@tacc.utexas.edu
 2015-10-21 \ Antonio Gomez-Iglesias   \ agomez@tacc.utexas.edu
