@@ -1,31 +1,31 @@
-=== REMORA: REsource MOnitoring for Remote Applications ===
+# REMORA: REsource MOnitoring for Remote Applications
 
 Remora is a tool to monitor runtime resource utilization:
-  - Memory (CPU, Xeon Phi, GPU)
-  - CPU utilization
-  - Lustre usage
-  - NUMA memory
-  - Network topology
+  * Memory (CPU, Xeon Phi, GPU)
+  * CPU utilization
+  * Lustre usage
+  * NUMA memory
+  * Network topology
 
 To use the tool, modify your batch script and include 'remora' before your script, 
 executable, or MPI launcher.
 
-=== USE EXAMPLES ===
+## Use examples
 
 Examples for utilization in Stampede @ TACC (after "module load remora"):
 
 1. Parallel execution
-...
-#SBATCH -n 16
-#SBATCH -A my_project
+    ...
+    #SBATCH -n 16
+    #SBATCH -A my_project
 
-remora ibrun my_parallel_program [arguments]
+    remora ibrun my_parallel_program [arguments]
 
 2. Sequential execution (may be threaded)
-...
-#SBATCH -n 1
-#SBATCH -A my_project
-remora ./my_program [arguments]
+    ...
+    #SBATCH -n 1
+    #SBATCH -A my_project
+    remora ./my_program [arguments]
 
 Remora will create a folder with a number of files that contain the values for the 
 resources indicated above.
@@ -37,12 +37,12 @@ and once there execute 'remora_post -j JOBID'.
 
 The following environment variables control the behavior of the tool:
 
-  - REMORA_PERIOD  - How often memory usage is checked. Default is 10 seconds.
-  - REMORA_VERBOSE - Verbose mode will save all information to a file. Default is 0 (off).
-  - REMORA_MODE    - FULL (default) for all stats, BASIC for memory and cpu only.
-  
-  
-=== Installation ===
+  * REMORA_PERIOD  - How often memory usage is checked. Default is 10 seconds.
+  * REMORA_VERBOSE - Verbose mode will save all information to a file. Default is 0 (off).
+  * REMORA_MODE    - FULL (default) for all stats, BASIC for memory and cpu only.
+
+## Installation
+
 If you intend to install remora outside TACC, please keep in mind that we are still 
 working on its portability. Remora depends on a modified version of xltop that writes 
 output directly to a file in order to collect IO data.
@@ -55,7 +55,11 @@ and select if a Xeon Phi build is necessary (1) or not (0).
 The installation script will create build and log files that you can check
 in case anything fails during hte installation process.
 
-=== AUTHORS ===
+## Authors 
 
 2015-10-21 \ Carlos Rosales-Fernandez \ carlos@tacc.utexas.edu
 2015-10-21 \ Antonio Gomez-Iglesias   \ agomez@tacc.utexas.edu
+
+## Cite REMORA
+
+C. Rosales, A. Gomez-Iglesias, A. Predoehl. "REMORA: a Resource Monitoring Tool for Everyone". HUST2015 November 15-20, 2015, Austin, TX, USA. DOI: 10.1145/2834996.2834999
