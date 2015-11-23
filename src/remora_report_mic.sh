@@ -7,7 +7,7 @@
 #%
 #% DO NOT call this script directory. This is called by REMORA
 #%
-#% remora_report_mic.sh NODE_NAME OUTDIR TACC_REMORA_PERIOD SYMMETRIC TACC_REMORA_MODE TACC_REMORA_BIN
+#% remora_report_mic.sh NODE_NAME OUTDIR REMORA_PERIOD SYMMETRIC REMORA_MODE REMORA_BIN
 #========================================================================
 #- IMPLEMENTATION
 #-      version     REMORA 0.1

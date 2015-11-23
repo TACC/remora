@@ -116,6 +116,6 @@ echo "For a fully functional installation make sure to:"; echo ""
 echo "	export PATH=\$PATH:$REMORA_DIR/bin"
 echo "	export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:$REMORA_DIR/lib"
 echo "	export PYTHONPATH=\$PYTHONPATH:$REMORA_DIR/python"
-echo "	export TACC_REMORA_BIN=$REMORA_DIR/bin"; echo ""
+echo "	export REMORA_BIN=$REMORA_DIR/bin"; echo ""
 echo "Good Luck!"
 echo $SEPARATOR

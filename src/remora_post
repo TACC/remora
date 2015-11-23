@@ -73,15 +73,15 @@ class text_colors:
   WARNING = '\033[93m'
   FAIL = '\033[31m'
   ENDC = '\033[0m'
-  TACC ='\033[91m'
+  REMORA ='\033[91m'
 
 class headers:
-  TACC=text_colors.TACC + "TACC_remora: "
-  ERROR=text_colors.FAIL+"(ERROR) " + TACC + text_colors.ENDC
-  WARNING=text_colors.WARNING+"(WARNING) " + TACC + text_colors.ENDC
-  CONTACT=text_colors.OKGREEN + "\nPlease contact TACC if you need help" + text_colors.ENDC
-  CRITICAL=text_colors.FAIL + "(CRITICAL) " + TACC + text_colors.ENDC
-  INFO=TACC + text_colors.ENDC
+  REMORA=text_colors.REMORA + "REMORA: "
+  ERROR=text_colors.FAIL+"(ERROR) " + REMORA + text_colors.ENDC
+  WARNING=text_colors.WARNING+"(WARNING) " + REMORA + text_colors.ENDC
+  CONTACT=text_colors.OKGREEN + "\nPlease contact the developers if you need help" + text_colors.ENDC
+  CRITICAL=text_colors.FAIL + "(CRITICAL) " + REMORA + text_colors.ENDC
+  INFO=REMORA + text_colors.ENDC
 
 class tacc_log:
   @staticmethod
@@ -155,7 +155,7 @@ def plot_cpu (file):
   color=cm.rainbow(np.linspace(0,1,numcolumns-1))
   values = np.loadtxt(StringIO(text), usecols=range(1,numcolumns))
   if (values.ndim<=1):
-    tacc_log.print_warning (" While processing file %s: it seems that there is not much information to plot. Think of decreasing TACC_REMORA_PERIOD" %(file))
+    tacc_log.print_warning (" While processing file %s: it seems that there is not much information to plot. Think of decreasing REMORA_PERIOD" %(file))
     return
 
   ax = plt.subplot(111)
@@ -338,7 +338,7 @@ def plot_lnstats(file):
   """
   vals = np.loadtxt (file, usecols=(0, 1, 2, 4, 5, 7, 8, 9, 11), skiprows=1)
   if (vals.ndim<=1):
-    tacc_log.print_warning (" While processing file %s: it seems that there is not much information to plot. Think of decreasing TACC_REMORA_PERIOD" %(file))
+    tacc_log.print_warning (" While processing file %s: it seems that there is not much information to plot. Think of decreasing REMORA_PERIOD" %(file))
     return
   rows, columns = vals.shape
 

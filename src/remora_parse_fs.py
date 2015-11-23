@@ -67,4 +67,4 @@ for i in range(0,len(fs)):
 		fs_max[i] = "-.--"
 
 # Report max IOPS values
-print "TACC: MDS Load (IO REQ/S)      : %s (HOME) / %s (WORK) / %s (SCRATCH)" % (fs_max[0],fs_max[2],fs_max[1])
+print "REMORA: MDS Load (IO REQ/S)      : %s (HOME) / %s (WORK) / %s (SCRATCH)" % (fs_max[0],fs_max[2],fs_max[1])
