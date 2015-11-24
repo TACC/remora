@@ -43,8 +43,9 @@
 #       2015/08/12: Initial version
 #========================================================================
 #  CITE REMORA
-#       If you use REMORA, you can cite it:
-#                   REMORA: a Resource Monitoring Tool for Everyone
+#       If you use REMORA please cite it, it will help us secure support 
+#       for further development
+#                   REMORA: A Resource Monitoring Tool For Everyone
 #                   C. Rosales, A. Gomez-Iglesias, A. Predoehl
 #                   HUST2015 November 15-20, 2015, Austin, TX, USA
 #                   DOI: 10.1145/2834996.2834999
@@ -120,6 +121,31 @@ if [ "x$1" == "x" ]; then
   exit
 fi
 
+# Check the scheduler system used and define host list
+if [ -n "$SLURM_NODELIST" ]; then
+  REMORA_SCHEDULER=slurm
+  NODES=`scontrol show hostname $SLURM_NODELIST`
+elif [ -n "$PE_HOSTFILE" ]; then
+  REMORA_SHCEDULER=sge
+  NODES=`cat $PE_HOSTFILE | awk '{print $1}' | uniq`
+else
+  print_error "Unknown scheduler - unable to generate host list"
+  exit 1
+fi
+
+# Need to check that the hostlist is not empty
+node_cnt=0; for i in $NODES; do node_cnt=$(( node_cnt + 1 )); done
+if [ "$node_cnt" == "0"  ];then
+  print_error "Host list is empty"
+  exit 1
+fi
+
+# Doing this here because we want slurm hostlist check to run
+# to make sure we are in a compute node
+if [ "$PARALLEL" == "0" ]; then
+  NODES=`hostname -s`
+fi
+
 # Check if this is a sequential, parallel, or symmetric run
 SYMMETRIC=0
 PARALLEL=0
@@ -184,24 +210,6 @@ fi
 if [ "$REMORA_MODE" = "FULL" ]; then
   ibstatus mlx4_0 > $OUTDIR/ibstatus.txt
   echo "__________________________" >> $OUTDIR/ibstatus.txt
-fi
-
-
-# Start memory usage collection in the
-# background and capture process ID
-NODES=`scontrol show hostname $SLURM_NODELIST`
-node_cnt=0; for i in $NODES; do node_cnt=$(( node_cnt + 1 )); done
-
-# Need to check that the hostlist is not empty
-if [ "$node_cnt" == "0"  ];then
-  print_error "SLURM host list unavailable"
-  exit 1
-fi
-
-# Doing this here because we want slurm hostlist check to run
-# to make sure we are in a compute node
-if [ "$PARALLEL" == "0" ]; then
-  NODES=`hostname -s`
 fi
 
 #Text file containing job report environmental variables and start-end timestamp
