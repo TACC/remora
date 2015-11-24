@@ -124,9 +124,11 @@ fi
 # Check the scheduler system used and define host list
 if [ -n "$SLURM_NODELIST" ]; then
   REMORA_SCHEDULER=slurm
+  REMORA_JOB_ID=$SLURM_JOB_ID
   NODES=`scontrol show hostname $SLURM_NODELIST`
 elif [ -n "$PE_HOSTFILE" ]; then
   REMORA_SHCEDULER=sge
+  REMORA_JOB_ID=$JOB_ID
   NODES=`cat $PE_HOSTFILE | awk '{print $1}' | uniq`
 else
   print_error "Unknown scheduler - unable to generate host list"
@@ -195,7 +197,7 @@ fi
 
 CWD=`pwd`
 # Determing current work directory
-OUTDIR=$CWD/remora_$SLURM_JOB_ID
+OUTDIR=$CWD/remora_$REMORA_JOB_ID
 mkdir -p $OUTDIR
 rm -rf $OUTDIR/*
 
