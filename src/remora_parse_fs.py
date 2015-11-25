@@ -18,7 +18,7 @@
 #
 #========================================================================
 #  HISTORY
-#		2015/09/09: Python implementation, handles heterogeneous file
+#	2015/09/09: Python implementation, handles heterogeneous file
 #                   system entries in xltop.txt correctly
 #       2015/08/12: Initial version
 #========================================================================
@@ -41,22 +41,22 @@ fs_file = [1,2,3]
 
 # process IO file line by line
 with open("xltop.txt","r") as file:
-	for line in file:
-		columns = line.split()
-		for i in range(0,len(fs)):
-			fs_loc[i] = 20
-			for idx in range( 0, len(columns) ):
-				if columns[idx] == fs[i]:
-					fs_loc[i] = idx
-			if fs_loc[i] < 20:
-				if fs_present[i] == 0:
-					fs_file[i] = open( fs_name[i], "a" )
-					fs_file[i].write( hdr )
-					fs_present[i] = 1
-				fs_str = "%s\t%s\t%s\t%s\n" % (columns[0],columns[fs_loc[i]+1],columns[fs_loc[i]+2],columns[fs_loc[i]+3])
-				fs_file[i].write( fs_str )
-				if float(columns[fs_loc[i]+3]) > fs_max[i]:
-					fs_max[i] = float(columns[fs_loc[i]+3])
+    for line in file:
+        columns = line.split()
+        for i in range(0,len(fs)):
+            fs_loc[i] = 20
+            for idx in range( 0, len(columns) ):
+                if columns[idx] == fs[i]:
+                    fs_loc[i] = idx
+            if fs_loc[i] < 20:
+                if fs_present[i] == 0:
+                    fs_file[i] = open( fs_name[i], "a" )
+                    fs_file[i].write( hdr )
+                    fs_present[i] = 1
+                fs_str = "%s\t%s\t%s\t%s\n" % (columns[0],columns[fs_loc[i]+1],columns[fs_loc[i]+2],columns[fs_loc[i]+3])
+                fs_file[i].write( fs_str )
+                if float(columns[fs_loc[i]+3]) > fs_max[i]:
+                    fs_max[i] = float(columns[fs_loc[i]+3])
 
 # Close the files
 for i in range(0,len(fs)):

@@ -15,7 +15,7 @@
 #% module loaded.
 #%
 #% This script receives as input a jobid. If the argument is notprovided,
-#% it assumes that it has been called from a job and takes the jobid from 
+#% it assumes that it has been called from a job and takes the jobid from
 #% there.
 #%
 #%
@@ -91,7 +91,7 @@ class tacc_log:
   @staticmethod
   def print_error (text):
     print headers.ERROR + text + headers.CONTACT
-  
+
   @staticmethod
   def print_critical (text):
     print headers.CRITICAL + text + headers.CONTACT
@@ -273,7 +273,7 @@ def plot_xltop(file):
 
   if not os.path.isfile (file):
     return
-  
+
   xltop = {}
 
   filesystems=["SCRATCH", "WORK", "HOME"]
@@ -285,7 +285,7 @@ def plot_xltop(file):
 
   for label in labels:
       xltop[label] = []
-#  xltop = { l:[] for l in labels } 
+#  xltop = { l:[] for l in labels }
   xvalues = np.empty(0, dtype=np.int)
   #Only process non-empty lines
   lines = (l for l in lines if bool(l.strip()))
@@ -295,7 +295,7 @@ def plot_xltop(file):
     numelements+=1
     for idx in labels:
       xltop[idx].append(0.0)
-    
+
     parts = l.split()
     for idx, value in enumerate(parts):
       if idx==0:
@@ -373,7 +373,7 @@ def plot_stats(folder):
       It simply calls other functions.
   """
   import glob
-  
+
   cpu_files = glob.glob(folder+'/cpu*txt')
   for file in cpu_files:
     try:
@@ -461,7 +461,7 @@ def plot_network(folder):
         #If there's not a second switch, create a link from the first switch to the end node
         fout.write (switch_leaf1 + " -> " + end + ";\n")
       #After writing to the diag file, reset the variables
-      start ="" 
+      start =""
       end=""
       switch_leaf1=""
       switch_leaf2=""
@@ -470,7 +470,7 @@ def plot_network(folder):
 
     #If the line starts with 'From' that indicates a connection from a node to a leaf switch
     if l.startswith('From'):
-      start = l.split()[-2:][0].replace('"', '') 
+      start = l.split()[-2:][0].replace('"', '')
     #A line starting with 'To' indicates a connection from a leaf switch to a node
     if l.startswith('To'):
       end = l.split()[-2:][0].replace('"','')
@@ -509,7 +509,7 @@ def plot_network(folder):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Plots the data collected by REMORA. It can be called from the batch script or from the commmandline once the job has finished.')
   parser.add_argument("-j", "--jobid", help="JOBID to postprocess. Only required from the commandline (nothing required in batch script)")
-  
+
   args = parser.parse_args()
   jobid = ""
 
@@ -526,4 +526,4 @@ if __name__ == "__main__":
   get_period (os.getcwd()+"/remora_"+str(jobid))
   plot_stats(os.getcwd()+"/remora_"+str(jobid))
   plot_network(os.getcwd()+"/remora_"+str(jobid))
-  
+
