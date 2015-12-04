@@ -62,13 +62,42 @@ create_database()
     sqlite3 $REMORADB "INSERT INTO remora_info VALUES ($REMORAVERSION, `date +'%s'`)";
     sqlite3 $REMORADB "CREATE TABLE jobs (id INTEGER PRIMARY KEY, time_start INTEGER, time_end INTEGER, commmand TEXT, path TEXT, nodes TEXT)";
     sqlite3 $REMORADB "CREATE TABLE memory_usage (FOREIGN KEY(job_id) REFERENCES jobs(id), timestamp INTEGER, shmem TEXT, virtual TEXT, resident TEXT)";
-    sqlite3 $REMORADB "CREATE TABLE cpu_usage (FOREIGN KEY(job_id) REFERENCES jobs(id), timestamp INTEGER PRIMARY KEY, cpud_id INTEGER PRIMARY KEY, usage REAL)";
+    sqlite3 $REMORADB "CREATE TABLE cpu_usage (FOREIGN KEY(job_id) REFERENCES jobs(id), timestamp INTEGER PRIMARY KEY, cpu_id INTEGER PRIMARY KEY, usage REAL)";
     sqlite3 $REMORADB "CREATE TABLE filesystem (FOREIGN KEY(job_id) REFERENCES jobs(id), timestamp INTEGER, fs_name TEXT, requests INTEGER)";
     # Do we want to have a table with all the nodes in the system?
     # And with all the switches?
     sqlite3 $REMORADB "CREATE TABLE network (FOREIGN KEY(job_id) REFERENCES jobs(id))"; # Finish this
     sqlite3 $REMORADB "CREATE TABLE ib (FOREIGN KEY(job_id) REFERENCES jobs(id))";  # Finish this
     sqlite3 $REMORADB "CREATE TABLE numa (FOREIGN KEY(job_id) REFERENCES jobs(id), timestamp INTEGER PRIMARY KEY, node INTEGER PRIMARY KEY, local_mem REAL, remote_mem REAL, local_miss REAL, remote_miss REAL)";
+}
+
+# This functions takes as arguments the following values:
+#   - job_id
+#   - timestamp
+#   - shmem
+#   - virtual
+#   - resident
+insert_memory_usage() {
+    sqlite3 $REMORADB "INSERT INTO cpu_usage (job_id, timestamp, shmem, virtual, resident) VALUES ($1, $2, '$3', '$4', $5)";
+}
+
+# This functions takes as arguments the following values:
+#   - job_id
+#   - timestamp
+#   - fs_name
+#   - cpu_id
+#   - usage
+insert_cpu_usage() {
+    sqlite3 $REMORADB "INSERT INTO cpu_usage (job_id, timestamp, fs_name, cpu_id, usage) VALUES ($1, $2, '$3', '$4', $5)";
+}
+
+# This functions takes as arguments the following values:
+#   - job_id
+#   - timestamp
+#   - filesystem name (HOME, WORK, SCRATCH,...)
+#   - requests
+insert_memory_usage() {
+    sqlite3 $REMORADB "INSERT INTO filesystem (job_id, timestamp, fsname, requests) VALUES ($1, $2, '$3', '$4')";
 }
 
 # This function will need to be implemented: if the version of the database is older than
