@@ -22,7 +22,7 @@
 #% REMORA_PERIOD  - How often statistics are collected.
 #%                  Default is 10 seconds.
 #%                  Integer values are accepted.
-#% REMORA_VERBOSE - Verbose mode will save all information to a file. 
+#% REMORA_VERBOSE - Verbose mode will save all information to a file.
 #%                  Default is 0 (off).
 #%                  Values 0 and 1 are accepted.
 #% REMORA_MODE    - How many stats are collected. Possible values:
@@ -43,7 +43,7 @@
 #       2015/08/12: Initial version
 #========================================================================
 #  CITE REMORA
-#       If you use REMORA please cite it, it will help us secure support 
+#       If you use REMORA please cite it, it will help us secure support
 #       for further development
 #                   REMORA: A Resource Monitoring Tool For Everyone
 #                   C. Rosales, A. Gomez-Iglesias, A. Predoehl
@@ -62,37 +62,7 @@
 SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
 SCRIPT_NAME="$(basename ${0})"
 
-usage() { printf '\033[0;33mREMORA Howto\n\033[0m'; head -${SCRIPT_HEADSIZE:-99} ${0} | grep -e "^#+" | sed -e "s/^#+[ ]*//g" -e "s/\${SCRIPT_NAME}/${SCRIPT_NAME}/g" ; }
-usagefull() { head -${SCRIPT_HEADSIZE:-99} ${0} | grep -e "^#[%+-]" | sed -e "s/^#[%+-]//g" -e "s/\${SCRIPT_NAME}/${SCRIPT_NAME}/g" ; }
-scriptinfo() { head -${SCRIPT_HEADSIZE:-99} ${0} | grep -e "^#-" | sed -e "s/^#-//g" -e "s/\${SCRIPT_NAME}/${SCRIPT_NAME}/g"; }
-print_error() { printf '\033[0;31mREMORA Error: \033[0;34m '"$1"' \033[0m \n'; }
-
-function show_time () {
-  num=$1/1000000000
-  ((milisec=($1/1000000)%1000))
-  min=0
-  hour=0
-  day=0
-  if((num>59));then
-    ((sec=num%60))
-    ((num=num/60))
-    if((num>59));then
-      ((min=num%60))
-      ((num=num/60))
-      if((num>23));then
-        ((hour=num%24))
-        ((day=num/24))
-      else
-        ((hour=num))
-      fi
-    else
-      ((min=num))
-    fi
-  else
-    ((sec=num))
-  fi
-  echo "REMORA: Total Elapsed Time       : "$day"d "$hour"h "$min"m "$sec"s "$milisec"ms"
-}
+source extra.sh
 
 if [ -z "$REMORA_BIN" ]; then
     print_error "REMORA_BIN undefined"

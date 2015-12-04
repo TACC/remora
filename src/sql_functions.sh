@@ -109,11 +109,16 @@ insert_memory_usage() {
 #   - local_miss (misses in local memory)
 #   - remote_miss (misses in remote memory)
 insert_numa_usage() {
-    sqlite3 $REMORADB "INSERT INTO numa_usage (job_id, timestamp, node_id, local_mem, remote_mem, local_miss, remote_miss) VALUES ($1, $2, '$3', $4, $5, $6, $7)";
+    if [ "$#" -ne 1 ]; then
+        echo "REMORA
+    else
+        sqlite3 $REMORADB "INSERT INTO numa_usage (job_id, timestamp, node_id, local_mem, remote_mem, local_miss, remote_miss) VALUES ($1, $2, '$3', $4, $5, $6, $7)";
+    fi
 }
 
 # This function will need to be implemented: if the version of the database is older than
 # the current version used, some tables will have changed.
-update_database()
-{
-}
+#update_database()
+#{
+#
+#}
