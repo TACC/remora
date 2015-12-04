@@ -68,7 +68,7 @@ create_database()
     # And with all the switches?
     sqlite3 $REMORADB "CREATE TABLE network (FOREIGN KEY(job_id) REFERENCES jobs(id))"; # Finish this
     sqlite3 $REMORADB "CREATE TABLE ib (FOREIGN KEY(job_id) REFERENCES jobs(id))";  # Finish this
-    sqlite3 $REMORADB "CREATE TABLE numa (FOREIGN KEY(job_id) REFERENCES jobs(id), timestamp INTEGER PRIMARY KEY, node INTEGER PRIMARY KEY, local_mem REAL, remote_mem REAL, local_miss REAL, remote_miss REAL)";
+    sqlite3 $REMORADB "CREATE TABLE numa_usage (FOREIGN KEY(job_id) REFERENCES jobs(id), timestamp INTEGER PRIMARY KEY, node_id INTEGER PRIMARY KEY, local_mem REAL, remote_mem REAL, local_miss REAL, remote_miss REAL)";
 }
 
 # This functions takes as arguments the following values:
@@ -98,6 +98,18 @@ insert_cpu_usage() {
 #   - requests
 insert_memory_usage() {
     sqlite3 $REMORADB "INSERT INTO filesystem (job_id, timestamp, fsname, requests) VALUES ($1, $2, '$3', '$4')";
+}
+
+# This functions takes as arguments the following values:
+#   - job_id
+#   - timestamp
+#   - node_id (name of the node)
+#   - local_mem (mem used in local memory)
+#   - remote_mem (mem used in remote remory)
+#   - local_miss (misses in local memory)
+#   - remote_miss (misses in remote memory)
+insert_numa_usage() {
+    sqlite3 $REMORADB "INSERT INTO numa_usage (job_id, timestamp, node_id, local_mem, remote_mem, local_miss, remote_miss) VALUES ($1, $2, '$3', $4, $5, $6, $7)";
 }
 
 # This function will need to be implemented: if the version of the database is older than
