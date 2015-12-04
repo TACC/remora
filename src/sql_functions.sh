@@ -78,7 +78,11 @@ create_database()
 #   - virtual
 #   - resident
 insert_memory_usage() {
-    sqlite3 $REMORADB "INSERT INTO cpu_usage (job_id, timestamp, shmem, virtual, resident) VALUES ($1, $2, '$3', '$4', $5)";
+    if [ "$#" -ne 5 ]; then
+        print_error " Incorrect syntax: insufficient arguments. "
+    else
+        sqlite3 $REMORADB "INSERT INTO cpu_usage (job_id, timestamp, shmem, virtual, resident) VALUES ($1, $2, '$3', '$4', $5)";
+    fi
 }
 
 # This functions takes as arguments the following values:
@@ -88,7 +92,11 @@ insert_memory_usage() {
 #   - cpu_id
 #   - usage
 insert_cpu_usage() {
-    sqlite3 $REMORADB "INSERT INTO cpu_usage (job_id, timestamp, fs_name, cpu_id, usage) VALUES ($1, $2, '$3', '$4', $5)";
+    if [ "$#" -ne 5 ]; then
+        print_error " Incorrect syntax: insufficient arguments. "
+    else
+        sqlite3 $REMORADB "INSERT INTO cpu_usage (job_id, timestamp, fs_name, cpu_id, usage) VALUES ($1, $2, '$3', '$4', $5)";
+    fi
 }
 
 # This functions takes as arguments the following values:
@@ -97,7 +105,11 @@ insert_cpu_usage() {
 #   - filesystem name (HOME, WORK, SCRATCH,...)
 #   - requests
 insert_memory_usage() {
-    sqlite3 $REMORADB "INSERT INTO filesystem (job_id, timestamp, fsname, requests) VALUES ($1, $2, '$3', '$4')";
+    if [ "$#" -ne 4 ]; then
+        print_error " Incorrect syntax: insufficient arguments. "
+    else
+        sqlite3 $REMORADB "INSERT INTO filesystem (job_id, timestamp, fsname, requests) VALUES ($1, $2, '$3', '$4')";
+    fi
 }
 
 # This functions takes as arguments the following values:
@@ -109,8 +121,8 @@ insert_memory_usage() {
 #   - local_miss (misses in local memory)
 #   - remote_miss (misses in remote memory)
 insert_numa_usage() {
-    if [ "$#" -ne 1 ]; then
-        echo "REMORA
+    if [ "$#" -ne 7 ]; then
+        print_error " Incorrect syntax: insufficient arguments. "
     else
         sqlite3 $REMORADB "INSERT INTO numa_usage (job_id, timestamp, node_id, local_mem, remote_mem, local_miss, remote_miss) VALUES ($1, $2, '$3', $4, $5, $6, $7)";
     fi
