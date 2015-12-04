@@ -185,7 +185,7 @@ if [ "$REMORA_MODE" = "FULL" ]; then
 fi
 
 #Text file containing job report environmental variables and start-end timestamp
-date >> $OUTDIR/vars.txt 
+date >> $OUTDIR/vars.txt
 echo "" >> $OUTDIR/vars.txt
 echo "REMORA_PERIOD  : $REMORA_PERIOD"  >> $OUTDIR/vars.txt
 echo "REMORA_VERBOSE : $REMORA_VERBOSE" >> $OUTDIR/vars.txt
@@ -201,7 +201,7 @@ do
   LIDCOMMAND="cat /sys/class/infiniband/mlx4_0/ports/1/lid"
   LID[$idx]=`ssh -f $i $LIDCOMMAND`
   COMMAND="$REMORA_BIN/remora_report.sh $i $OUTDIR $REMORA_PERIOD $SYMMETRIC $REMORA_MODE $REMORA_CUDA > .remora_out & echo \$!"
-  
+
   if [ "$VERBOSE" == "1" ]; then
     echo "ssh -f -n $i $COMMAND"
   fi
@@ -232,7 +232,7 @@ fi
 echo ""
 if [ "$VERBOSE" == "1" ]; then
   echo "REMORA: Running command remora $@ "
-fi; 
+fi
 
 echo ""
 
@@ -266,7 +266,7 @@ echo ""
 for i in $NODES
 do
   ssh $i "$REMORA_BIN/remora_summary.sh $i $OUTDIR $SYMMETRIC $REMORA_CUDA"
-done 
+done
 #if [ "$VERBOSE" == "0" ]; then
 #	rm -rf $OUTDIR
 #fi

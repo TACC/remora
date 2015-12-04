@@ -130,7 +130,7 @@ insert_numa_usage() {
 
 # This function will need to be implemented: if the version of the database is older than
 # the current version used, some tables will have changed.
-#update_database()
-#{
-#
-#}
+update_database()
+{
+    print_error " This function is not yet implemented. "
+}
