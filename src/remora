@@ -63,6 +63,7 @@ SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
 SCRIPT_NAME="$(basename ${0})"
 
 source extra.sh
+source scheduler.sh
 
 if [ -z "$REMORA_BIN" ]; then
     print_error "REMORA_BIN undefined"
@@ -92,25 +93,10 @@ if [ "x$1" == "x" ]; then
 fi
 
 # Check the scheduler system used and define host list
-if [ -n "$SLURM_NODELIST" ]; then
-  REMORA_SCHEDULER=slurm
-  REMORA_JOB_ID=$SLURM_JOB_ID
-  NODES=`scontrol show hostname $SLURM_NODELIST`
-elif [ -n "$PE_HOSTFILE" ]; then
-  REMORA_SHCEDULER=sge
-  REMORA_JOB_ID=$JOB_ID
-  NODES=`cat $PE_HOSTFILE | awk '{print $1}' | uniq`
-else
-  print_error "Unknown scheduler - unable to generate host list"
-  exit 1
-fi
+get_node_list()
 
 # Need to check that the hostlist is not empty
-node_cnt=0; for i in $NODES; do node_cnt=$(( node_cnt + 1 )); done
-if [ "$node_cnt" == "0"  ];then
-  print_error "Host list is empty"
-  exit 1
-fi
+check_hostlist_empty()
 
 # Doing this here because we want slurm hostlist check to run
 # to make sure we are in a compute node
