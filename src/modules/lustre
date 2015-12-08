@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# All the functions take two arguments:
+#  1.- The name of the node where this function is running
+#  2.- The full path where the output will be stored/read
+collect_data_lustre()
+{
+  LUSTRE_DIR_PATH=/proc/fs/lustre
+  TIMESTAMP=`date +%s`
+  for FILE in $LUSTRE_DIR_PATH/{mdc,osc}/*
+  do
+     if [ -d "${FILE}" ] ; then
+        COUNTER=`grep req_waittime $FILE/stats | awk '{print $2}'`
+        DEVICE=`sed -e 's/\/proc\/fs\/lustre//' <<< "$FILE" | cut -d "/" -f 3 | cut -d "-" -f 1,2`
+        printf "%-17d %-17d\n" $TIMESTAMP $COUNTER >> $2/lustre_$1_$DEVICE.txt
+     fi
+  done
+}
+
+# This function might perform some processing on the data.
+# If nothing needs to be done, it can be empty (but declared)
+process_data_lustre()
+{
+}
