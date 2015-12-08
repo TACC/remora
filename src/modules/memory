@@ -34,6 +34,7 @@ init_module_memory()
 collect_data_memory()
 {
     TIMESTAMP=`date +%s`
+    USER=`whoami`
     # Memory statistics
     #Get space used in /dev/shm
     shmem_used=`du /dev/shm 2>/dev/null | tail -n 1 | awk '{print $1} '`

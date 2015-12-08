@@ -25,15 +25,23 @@
 #  2.- The full path where the output will be stored/read
 init_module_ib()
 {
-    packets=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`
+    if [ "$SYMMETRIC" == "0" ]; then
+        if [ "$REMORA_MODE" = "FULL" ]; then
+            packets=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`
+        fi
+    fi
 }
 
 collect_data_ib()
 {
-    TIMESTAMP=`date +%s`
-    newpackets=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`
-    printf "%d %10d\n" $TIMESTAMP $((newpackets-packets)) >> $2/ib_xmit_packets-$1.txt
-    packets=$newpackets
+    if [ "$SYMMETRIC" == "0" ]; then
+        if [ "$REMORA_MODE" = "FULL" ]; then
+            TIMESTAMP=`date +%s`
+            newpackets=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`
+            printf "%d %10d\n" $TIMESTAMP $((newpackets-packets)) >> $2/ib_xmit_packets-$1.txt
+            packets=$newpackets
+        fi
+    fi
 }
 # This function might perform some processing on the data.
 # If nothing needs to be done, it can be empty (but declared)

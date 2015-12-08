@@ -62,13 +62,13 @@
 SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
 SCRIPT_NAME="$(basename ${0})"
 
-source extra.sh
-source scheduler.sh
-
 if [ -z "$REMORA_BIN" ]; then
     print_error "REMORA_BIN undefined"
     exit
 fi
+
+source extra
+source scheduler
 
 if [ -n "${PMI_ID+1}" ] || [ -n "${PMI_RANK+1}" ] || [ -n "${MPIRUN_RANK+1}" ]; then
 my_rank=$(( ${PMI_RANK-0} + ${PMI_ID-0} + ${MPIRUN_RANK-0} + ${OMPI_COMM_WORLD_RANK-0} + ${OMPI_MCA_ns_nds_vpid-0}  + ${ibrun_o_option-0} ))
