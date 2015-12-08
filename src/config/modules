@@ -1,0 +1,8 @@
+cpu
+memory
+numa
+lustre
+lnet
+ib
+gpu
+network
