@@ -6,7 +6,7 @@
 #% DESCRIPTION
 #% cpu
 #%
-#% DO NOT call this script directory. This is called by REMORA
+#% DO NOT call this script directly. This is called by REMORA
 #%
 #========================================================================
 #- IMPLEMENTATION
@@ -26,6 +26,7 @@
 
 init_module_cpu()
 {
+  :
 }
 
 collect_data_cpu()
@@ -55,8 +56,16 @@ collect_data_cpu()
   }' >> $2/cpu-$1.txt
 }
 
+
 # This function might perform some processing on the data.
 # If nothing needs to be done, it can be empty (but declared)
 process_data_cpu()
 {
+  :
+}
+
+
+finalize_module_cpu()
+{
+  :
 }

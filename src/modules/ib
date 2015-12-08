@@ -6,7 +6,7 @@
 #% DESCRIPTION
 #% ib
 #%
-#% DO NOT call this script directory. This is called by REMORA
+#% DO NOT call this script directly. This is called by REMORA
 #%
 #========================================================================
 #- IMPLEMENTATION
@@ -39,4 +39,10 @@ collect_data_ib()
 # If nothing needs to be done, it can be empty (but declared)
 process_data_ib()
 {
+  :
+}
+
+finalize_module_ib()
+{
+  :
 }

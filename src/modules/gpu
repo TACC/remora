@@ -6,7 +6,7 @@
 #% DESCRIPTION
 #% gpu
 #%
-#% DO NOT call this script directory. This is called by REMORA
+#% DO NOT call this script directly. This is called by REMORA
 #%
 #========================================================================
 #- IMPLEMENTATION
@@ -25,6 +25,7 @@
 #  2.- The full path where the output will be stored/read
 init_module_gpu()
 {
+  :
 }
 
 collect_data_gpu()
@@ -43,4 +44,10 @@ collect_data_gpu()
 # If nothing needs to be done, it can be empty (but declared)
 process_data_gpu()
 {
+  :
+}
+
+finalize_module_gpu()
+{
+  :
 }

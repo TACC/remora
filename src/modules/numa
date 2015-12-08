@@ -6,7 +6,7 @@
 #% DESCRIPTION
 #% numa
 #%
-#% DO NOT call this script directory. This is called by REMORA
+#% DO NOT call this script directly. This is called by REMORA
 #%
 #========================================================================
 #- IMPLEMENTATION
@@ -26,7 +26,6 @@
 init_module_numa()
 {
     printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "#TIME" "Node0_NumaHit" "Node0_NumaMiss" "Node0_LocalNode" "Node0_OtherNode" "Node0_MemFree" "Node0_MemUsed" "Node1_NumaHit" "Node1_NumaMiss" "Node1_LocalNode" "Node1_OtherNode" "Node1_MemFree" "Node1_MemUsed" > $2/numa_stats_$1.txt
-
 }
 
 collect_data_numa()
@@ -55,4 +54,10 @@ collect_data_numa()
 # If nothing needs to be done, it can be empty (but declared)
 process_data_numa()
 {
+  :
+}
+
+finalize_module_numa()
+{
+  :
 }

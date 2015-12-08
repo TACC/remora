@@ -6,7 +6,7 @@
 #% DESCRIPTION
 #% network
 #%
-#% DO NOT call this script directory. This is called by REMORA
+#% DO NOT call this script directly. This is called by REMORA
 #%
 #========================================================================
 #- IMPLEMENTATION
@@ -57,9 +57,17 @@ init_module_network()
 
 collect_data_network()
 {
+  :
 }
+
 # This function might perform some processing on the data.
 # If nothing needs to be done, it can be empty (but declared)
 process_data_network()
 {
+  :
+}
+
+finalize_module_memory()
+{
+  :
 }
