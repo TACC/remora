@@ -7,8 +7,8 @@
 # v1.0 (2015-08-25)  Carlos Rosales-Fernandez
 #                    Antonio Gomez-Iglesias
 
-export REMORA_DIR=`pwd`
-export XLTOP_PORT=XXXX
+# installation directory: use $REMORA_INSTALL_PREFIX if defined, current directory if not
+export REMORA_DIR=${REMORA_INSTALL_PREFIX:-$PWD}
 export PHI_BUILD=0
 
 # Do not change anything below this line 
@@ -20,9 +20,9 @@ mkdir -p $REMORA_DIR/lib
 mkdir -p $REMORA_DIR/share
 mkdir -p $REMORA_DIR/python
 
-REMORA_BUILD_DIR=`pwd`
+REMORA_BUILD_DIR=$PWD
 
-VERSION=1.0
+VERSION=1.3.1
 COPYRIGHT1="Copyright 2015 The University of Texas at Austin."
 COPYRIGHT2="License: MIT <http://opensource.org/licenses/MIT>"
 COPYRIGHT3="This is free software: you are free to change and redistribute it."
@@ -33,7 +33,7 @@ INSTALL_LOG="$REMORA_BUILD_DIR/remora_install.log"
 
 SEPARATOR="======================================================================"
 PKG="Package  : REMORA"
-VER="Version  : 1.0"
+VER="Version  : $VERSION"
 DATE="Date     : `date +%Y.%m.%d`"
 SYSTEM="System   : `uname -sr`"
 
