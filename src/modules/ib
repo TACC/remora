@@ -4,7 +4,7 @@
 # HEADER
 #========================================================================
 #% DESCRIPTION
-#% lustre
+#% ib
 #%
 #% DO NOT call this script directory. This is called by REMORA
 #%
@@ -23,27 +23,20 @@
 # All the functions take two arguments:
 #  1.- The name of the node where this function is running
 #  2.- The full path where the output will be stored/read
-
-init_module_lustre()
+init_module_ib()
 {
+    packets=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`
 }
 
-collect_data_lustre()
+collect_data_ib()
 {
-  LUSTRE_DIR_PATH=/proc/fs/lustre
-  TIMESTAMP=`date +%s`
-  for FILE in $LUSTRE_DIR_PATH/{mdc,osc}/*
-  do
-     if [ -d "${FILE}" ] ; then
-        COUNTER=`grep req_waittime $FILE/stats | awk '{print $2}'`
-        DEVICE=`sed -e 's/\/proc\/fs\/lustre//' <<< "$FILE" | cut -d "/" -f 3 | cut -d "-" -f 1,2`
-        printf "%-17d %-17d\n" $TIMESTAMP $COUNTER >> $2/lustre_$1_$DEVICE.txt
-     fi
-  done
+    TIMESTAMP=`date +%s`
+    newpackets=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`
+    printf "%d %10d\n" $TIMESTAMP $((newpackets-packets)) >> $2/ib_xmit_packets-$1.txt
+    packets=$newpackets
 }
-
 # This function might perform some processing on the data.
 # If nothing needs to be done, it can be empty (but declared)
-process_data_lustre()
+process_data_ib()
 {
 }

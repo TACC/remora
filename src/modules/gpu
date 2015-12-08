@@ -4,7 +4,7 @@
 # HEADER
 #========================================================================
 #% DESCRIPTION
-#% lustre
+#% gpu
 #%
 #% DO NOT call this script directory. This is called by REMORA
 #%
@@ -23,27 +23,24 @@
 # All the functions take two arguments:
 #  1.- The name of the node where this function is running
 #  2.- The full path where the output will be stored/read
-
-init_module_lustre()
+init_module_gpu()
 {
 }
 
-collect_data_lustre()
+collect_data_gpu()
 {
-  LUSTRE_DIR_PATH=/proc/fs/lustre
-  TIMESTAMP=`date +%s`
-  for FILE in $LUSTRE_DIR_PATH/{mdc,osc}/*
-  do
-     if [ -d "${FILE}" ] ; then
-        COUNTER=`grep req_waittime $FILE/stats | awk '{print $2}'`
-        DEVICE=`sed -e 's/\/proc\/fs\/lustre//' <<< "$FILE" | cut -d "/" -f 3 | cut -d "-" -f 1,2`
-        printf "%-17d %-17d\n" $TIMESTAMP $COUNTER >> $2/lustre_$1_$DEVICE.txt
-     fi
-  done
+    # Get GPU utilization data
+    if [ "$REMORA_CUDA" == "1" ]; then
+        gpumem=$(nvidia-smi | grep MiB | awk '{print $9}'); gpumem=${gpumem::-3}
+        gpumax=$(nvidia-smi | grep MiB | awk '{print $11}'); gpumax=${gpumax::-3}
+        gpumem=$(echo $gpumem | awk '{print $1/1000}')
+        gpumax=$(echo $gpumax | awk '{print $1/1000}')
+        gpufree=$(echo "$gpumax $gpumem" | awk '{ print $1-$2 }')
+        echo "$current_time $gpumem $gpufree" >> $2/mem_stats_$1-gpu.txt
+    fi
 }
-
 # This function might perform some processing on the data.
 # If nothing needs to be done, it can be empty (but declared)
-process_data_lustre()
+process_data_gpu()
 {
 }

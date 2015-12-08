@@ -1,0 +1,68 @@
+#!/bin/sh
+#
+#========================================================================
+# HEADER
+#========================================================================
+#% DESCRIPTION
+#% memory
+#%
+#% DO NOT call this script directory. This is called by REMORA
+#%
+#========================================================================
+#- IMPLEMENTATION
+#-      version     REMORA 1.4
+#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      license     MIT
+#
+#========================================================================
+#  HISTORY
+#       2015/12/08: Initial commit
+#========================================================================
+
+# All the functions take two arguments:
+#  1.- The name of the node where this function is running
+#  2.- The full path where the output will be stored/read
+init_module_memory()
+{
+    vmem_max_old=0
+    rmem_max_old=0
+    tmem_max=0
+    printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "#TIME" "VMEM_MAX" "VMEM" "RMEM_MAX" "RMEM" "SHMEM" "MEM_FREE" "TMEM_MAX"> $2/mem_stats_$1.txt
+}
+
+collect_data_memory()
+{
+    TIMESTAMP=`date +%s`
+    # Memory statistics
+    #Get space used in /dev/shm
+    shmem_used=`du /dev/shm 2>/dev/null | tail -n 1 | awk '{print $1} '`
+    shmem=$(echo "scale=4; $shmem_used/(1024*1024)" | bc)
+
+    mem_free=`grep MemFree /proc/meminfo | awk '{ print $2/1024/1024 }'`
+    vmem_max=$(for i in `ps -u $USER | awk 'NR > 1 {print $1}'`; do cat /proc/$i/status 2> /dev/null | grep VmPeak ; done | awk '{sum+=$2} END {print sum/1024/1024}')
+    if [ $(echo " $vmem_max > $vmem_max_old" | bc) -eq 1 ]; then
+      vmem_max_old=$vmem_max
+    fi
+    vmem_max=$vmem_max_old
+    vmem=$(for i in `ps -u $USER | awk 'NR > 1 {print $1}'`; do cat /proc/$i/status 2> /dev/null | grep VmSize ; done | awk '{sum+=$2} END {print sum/1024/1024}')
+    rmem_max=$(for i in `ps -u $USER | awk 'NR > 1 {print $1}'`; do cat /proc/$i/status 2> /dev/null | grep VmHWM ; done | awk '{sum+=$2} END {print sum/1024/1024}')
+    if [ $(echo " $rmem_max > $rmem_max_old" | bc) -eq 1 ]; then
+      rmem_max_old=$rmem_max
+    fi
+    rmem_max=$rmem_max_old
+    rmem=$(for i in `ps -u $USER | awk 'NR > 1 {print $1}'`; do cat /proc/$i/status 2> /dev/null | grep VmRSS ; done | awk '{sum+=$2} END {print sum/1024/1024}')
+
+    tmem=$(echo "$rmem + $shmem" | bc)
+    if [ $(echo "$tmem > $tmem_max" | bc) -eq 1 ]; then
+        tmem_max=$tmem
+    fi
+
+    printf "%-17d %-17f %-17f %-17f %-17f %-17f %-17f %-17f\n" $TIMESTAMP $vmem_max $vmem $rmem_max $rmem $shmem $mem_free $tmem_max >> $2/mem_stats_$1.txt
+}
+
+# This function might perform some processing on the data.
+# If nothing needs to be done, it can be empty (but declared)
+process_data_memory()
+{
+}
