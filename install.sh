@@ -11,7 +11,7 @@ export REMORA_DIR=`pwd`
 export XLTOP_PORT=XXXX
 export PHI_BUILD=0
 
-# Do not change anything below this line 
+# Do not change anything below this line
 #--------------------------------------------------------------------------------
 
 mkdir -p $REMORA_DIR/bin

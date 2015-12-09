@@ -31,13 +31,14 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 0.1
+#-      version     REMORA 1.4
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
 #
 #========================================================================
 #  HISTORY
+#       2015/12/09: Implemented a modular design
 #       2015/11/21: Removing TACC specific data
 #       2015/09/09: Using python parser for file system data
 #       2015/08/12: Initial version
@@ -73,10 +74,10 @@ SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
 SCRIPT_NAME="$(basename ${0})"
 
 #Source the auxiliary scripts
-source $REMORA_BIN/extra
-source $REMORA_BIN/report
-source $REMORA_BIN/scheduler
-source $REMORA_BIN/sql_functions
+source $REMORA_BIN/aux/extra
+source $REMORA_BIN/aux/report
+source $REMORA_BIN/aux/scheduler
+source $REMORA_BIN/aux/sql_functions
 
 check_running_parallel
 

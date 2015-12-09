@@ -3,6 +3,9 @@
 ## [Unreleased 1.4.0]
 
 Improved the format of the output files. The columns have a fixed width so that they are easier to read.
+Implemented a modular design, where all the data captured by REMORA is done by independent scripts in the
+modules folder. A configuration file, that needs to be configured as part of the installation process,
+specifies the active modules for a particular site.
 
 ## [1.3.1] - 2015-10-21
 
