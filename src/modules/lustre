@@ -33,13 +33,13 @@ collect_data_lustre()
 {
     if [ "$SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" = "FULL" ]; then
-            LUSTRE_DIR_PATH=/proc/fs/lustre
-            TIMESTAMP=`date +%s`
+            local LUSTRE_DIR_PATH=/proc/fs/lustre
+            local TIMESTAMP=`date +%s`
             for FILE in $LUSTRE_DIR_PATH/{mdc,osc}/*
             do
                 if [ -d "${FILE}" ] ; then
-                    COUNTER=`grep req_waittime $FILE/stats | awk '{print $2}'`
-                    DEVICE=`sed -e 's/\/proc\/fs\/lustre//' <<< "$FILE" | cut -d "/" -f 3 | cut -d "-" -f 1,2`
+                    local COUNTER=`grep req_waittime $FILE/stats | awk '{print $2}'`
+                    local DEVICE=`sed -e 's/\/proc\/fs\/lustre//' <<< "$FILE" | cut -d "/" -f 3 | cut -d "-" -f 1,2`
                     printf "%-17d %-17d\n" $TIMESTAMP $COUNTER >> $2/lustre_$1_$DEVICE.txt
                 fi
             done
@@ -56,5 +56,34 @@ process_data_lustre()
 
 finalize_module_lustre()
 {
-  :
+    local FSS=`df --type=lustre -P`
+
+    local MOUNTS=()
+    local idx=0
+    while read -r line; do
+        MOUNTS[$idx]=$line
+        idx=$((idx+1))
+    done <<< "$FSS"
+
+    local prefix=$2/lustre_$1_
+    local sufix=".txt"
+    for FILE in $2/lustre_$1_*.txt
+    do
+        local foo=${FILE#$prefix}
+        local DEVICE=${foo%$sufix}
+        for MOUNT in "${MOUNTS[@]}"
+        do
+            #Get the line where the given DEVICE is mounted
+            local FS=`echo $MOUNT | grep $DEVICE`
+            if [ ! -z "$FS" ]; then
+                #get the last column
+                local temp=`echo -e "$FS" | awk '{print $NF}'`
+                #Remove any "/" character
+                local val=${temp//\/}
+                #Right now we just print this. I'll finish this tomorrow
+                echo $val
+                break
+            fi
+        done
+    done
 }

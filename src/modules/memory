@@ -33,7 +33,7 @@ init_module_memory()
 
 collect_data_memory()
 {
-    TIMESTAMP=`date +%s`
+    local TIMESTAMP=`date +%s`
     USER=`whoami`
     # Memory statistics
     #Get space used in /dev/shm
