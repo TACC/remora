@@ -22,19 +22,30 @@
 #       2015/12/08: Version 1.4. Modular design.
 #========================================================================
 
-
-SYMMETRIC=$4
+#Initialize variables specific to certain modules here
+REMORA_NODE=$1
+REMORA_OUTDIR=$2
+REMORA_PERIOD=$3
+REMORA_SYMMETRIC=$4
+REMORA_MODE=$5
 REMORA_CUDA=$6
+REMORA_PARALLEL=$7
+REMORA_VERBOSE=$8
 
+
+#Source the script that has the modules' functionality
 source modules/modules_utils
 
+#Read the list of active modules from the configuration file
 remora_read_active_modules
-remora_configure_modules $1 $2
+
+#Configure the modules (they might not need it)
+remora_configure_modules $REMORA_NODE $REMORA_OUTDIR
 
 while [ 1 ]
 do
-    remora_read_active_modules $1 $2
+    remora_execute_modules $REMORA_NODE $REMORA_OUTDIR
 
-  sleep $3
+  sleep $REMORA_PERIOD
 
 done
