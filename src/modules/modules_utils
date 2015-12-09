@@ -31,9 +31,8 @@ remora_read_active_modules()
 #Call the init_module function of each active module
 remora_configure_modules()
 {
-   for MODULE in "${REMORA_MODULES}"
+   for MODULE in "${REMORA_MODULES[@]}"
    do
-      source $REMORA_BIN/modules/$MODULE
       init_module_$MODULE $1 $2
    done
 }
@@ -41,19 +40,20 @@ remora_configure_modules()
 #Call the execute_module_function of each active module
 remora_execute_modules()
 {
-   for MODULE in "${REMORA_MODULES}"
+   for MODULE in "${REMORA_MODULES[@]}"
    do
-      source $REMORA_BIN/modules/$MODULE
-      collect_data_$MODULE $1 $2
+        if [ "$REMORA_VERBOSE" == "1" ]; then
+            echo collect_data_$MODULE $1 $2
+        fi
+        collect_data_$MODULE $1 $2
    done
 }
 
 #Call the finalize_module function of each active module
 remora_finalize_modules()
 {
-   for MODULE in "${REMORA_MODULES}"
+   for MODULE in "${REMORA_MODULES[@]}"
    do
-      source $REMORA_BIN/modules/$MODULE
       finalize_module_$MODULE $1 $2
    done
 }
