@@ -53,3 +53,109 @@ function show_time () {
   fi
   echo "REMORA: Total Elapsed Time       : "$day"d "$hour"h "$min"m "$sec"s "$milisec"ms"
 }
+
+
+
+check_running_parallel() {
+    if [ -n "${PMI_ID+1}" ] || [ -n "${PMI_RANK+1}" ] || [ -n "${MPIRUN_RANK+1}" ]; then
+        my_rank=$(( ${PMI_RANK-0} + ${PMI_ID-0} + ${MPIRUN_RANK-0} + ${OMPI_COMM_WORLD_RANK-0} + ${OMPI_MCA_ns_nds_vpid-0}  + ${ibrun_o_option-0} ))
+        if [ "$my_rank" == "0" ]; then
+            print_error "Incorrect syntax: REMORA can't run in parallel"
+            usage
+        fi
+        kill -s TERM $REMORA_TOP_PID
+    fi
+}
+
+parse_arguments() {
+    # Check if help should be printed
+    if [ "x$1" == "x--help" ]; then
+        usagefull
+        kill -s TERM $REMORA_TOP_PID
+    fi
+
+    # Check that we have at least some arguments
+    if [ "x$1" == "x" ]; then
+        print_error " Incorrect syntax: insufficient arguments. "
+        usage
+        kill -s TERM $REMORA_TOP_PID
+    fi
+}
+
+parse_environment() {
+    # Check if verbose output is required
+    REMORA_VERBOSE=0
+    if [ "x$REMORA_REMORA_VERBOSE" == "x1" ]; then
+        REMORA_VERBOSE=1
+        usagefull
+    fi
+    if [ -z "$REMORA_MODE" ]; then
+        export REMORA_MODE=FULL
+    fi
+
+    if [ "$REMORA_MODE" != "FULL" ] && [ "$REMORA_MODE" != "BASIC" ]; then
+        export REMORA_MODE=FULL
+    fi
+
+    # Check if the data collection period has been set by the user
+    # If it has not, set it to a default of 10 seconds
+    if [ -z "$REMORA_PERIOD" ]; then
+        export REMORA_PERIOD=10
+    fi
+    # If data collection period is set to somethign lower than 1 second, reset it
+    if [ "$REMORA_PERIOD" -lt "1" ]; then
+        export REMORA_PERIOD=1
+    fi
+}
+
+is_mpi_job() {
+    # Doing this here because we want slurm hostlist check to run
+    # to make sure we are in a compute node
+    if [ "$REMORA_PARALLEL" == "0" ]; then
+        NODES=`hostname -s`
+    fi
+
+    # Check if this is a sequential, parallel, or symmetric run
+    if [ "x$1" == "xibrun" ]; then
+        REMORA_PARALLEL=1
+    elif [ "x$1" == "xibrun.symm" ]; then
+        REMORA_PARALLEL=1
+        REMORA_SYMMETRIC=1
+    fi
+}
+
+check_gpu() {
+    # By default, do not collect GPU data
+    if [ -z "$REMORA_CUDA" ]; then
+        export REMORA_CUDA=0
+    fi
+    # If nvidia-smi is not present disable GPU collection even if it was requested
+    gputest=$(nvidia-smi > /dev/null 2> /dev/null || echo "0")
+    if [ "$gputest" == "0" ]; then
+        if [ "$REMORA_CUDA" == "1" ]; then
+        print_error " Missing GPU driver: disabling GPU collection"
+        fi
+    export REMORA_CUDA=0
+    fi
+}
+
+init_folders() {
+    CWD=`pwd`
+    # Determing current work directory
+    REMORA_OUTDIR=$CWD/remora_$REMORA_JOB_ID
+    mkdir -p $REMORA_OUTDIR
+    rm -rf $REMORA_OUTDIR/*
+}
+
+capture_environment() {
+    #Text file containing job report environmental variables and start-end timestamp
+    date >> $REMORA_OUTDIR/vars.txt
+    echo "" >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_PERIOD  : $REMORA_PERIOD"  >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_REMORA_VERBOSE : $REMORA_REMORA_VERBOSE" >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_MODE    : $REMORA_MODE"    >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_CUDA    : $REMORA_CUDA"    >> $REMORA_OUTDIR/vars.txt
+
+    #Dump environment during run
+    env > $REMORA_OUTDIR/env.txt
+}
