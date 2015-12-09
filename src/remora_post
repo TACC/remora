@@ -515,6 +515,10 @@ if __name__ == "__main__":
 
   if (os.environ.has_key("SLURM_JOB_ID")):
     jobid = os.environ.get("SLURM_JOB_ID")
+
+  if (os.environ.has_key("JOB_ID")):
+      jobid = os.environ.get("JOB_ID")
+
   if jobid=="":
     if args.jobid:
       jobid = str(args.jobid)
