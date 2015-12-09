@@ -73,9 +73,10 @@ SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
 SCRIPT_NAME="$(basename ${0})"
 
 #Source the auxiliary scripts
-source extra
-source report
-source scheduler
+source $REMORA_BIN/extra
+source $REMORA_BIN/report
+source $REMORA_BIN/scheduler
+source $REMORA_BIN/sql_functions
 
 check_running_parallel
 

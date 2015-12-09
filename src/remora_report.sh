@@ -34,7 +34,7 @@ REMORA_VERBOSE=$8
 
 
 #Source the script that has the modules' functionality
-source modules/modules_utils
+source $REMORA_BIN/modules/modules_utils
 
 #Read the list of active modules from the configuration file
 remora_read_active_modules
