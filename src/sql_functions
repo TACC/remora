@@ -26,7 +26,7 @@
 REMORADB=$HOME/.remora.db
 
 # Current version of the database
-REMORAVERSION=1.4
+REMORADB_VERSION=1.4
 
 # Function that returns the version stored in the main table of the database
 check_db_version()
