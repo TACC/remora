@@ -79,17 +79,23 @@ finalize_module_lustre()
     local prefix=$2/lustre_$1_
     local sufix=".txt"
     FILES="$2/lustre_$1_*.txt"
+    #Matrix that stores, for each filesystem, for each timestamp, the
+    #aggregated value of the counter
+    declare -A matrix
+    declare -A timestamps
+    filesystems=()
+
     for FILE in $FILES
     do
         #Sanity check
         if [ "$FILE" == "$2/lustre_$1_.txt" ]; then
             continue
         fi
-        echo $FILE
         local foo=${FILE#$prefix}
         local DEVICE=${foo%$sufix}
         DEVICE=${DEVICE//-[OST,MDT]*/}
         local fs_name=""
+        local is_new=0
         for MOUNT in "${MOUNTS[@]}"
         do
             #Get the line where the given DEVICE is mounted
@@ -102,9 +108,50 @@ finalize_module_lustre()
                 fs_name=${temp//\/}
                 #Here, fs_name has the name that the user sees in the different filesystems
                 #Right now we just print this. I'll finish this tomorrow
-                echo $fs_name
+                #echo $fs_name
+                is_new=0
+                if [[ " ${filesystems[*]} " == *" $fs_name "* ]]; then
+                    is_new=0
+                else
+                    filesystems+=($fs_name)
+                    is_new=1
+                    #echo ${filesystems[*]}
+                fi
                 break
             fi
+        done
+        idx=0
+        while IFS='' read -r line || [[ -n "$line" ]]; do
+            idx=$((idx+1))
+            if [ $idx == 1 ]; then
+                continue
+            fi
+            local timestamp=`echo $line | awk '{print $1;}'`
+            local counter=`echo $line | awk '{print $2;}'`
+            #echo "COUNTER: $counter"
+            if [ "$is_new" == "1" ]; then
+                matrix[$fs_name,$idx]=$counter
+                timestamps[$fs_name]=$idx
+            else
+                local prev_val=`printf "%d" ${matrix[$fs_name,$idx]}`
+                #echo "Previous value $prev_val"
+                matrix[$fs_name,$idx]=$((prev_val + counter))
+            fi
+            #printf "Matrix[$fs_name, $idx] val: %d\n" ${matrix[$fs_name,$idx]}
+        done < "$FILE"
+    done
+    for fs in "${filesystems[@]}"
+    do
+        local ts=`printf "%d" ${timestamps[$fs]}`
+        #echo "FS: $fs --- timestamps: $ts"
+        idx=1
+        local output_name=`echo $2/load-fs$fs-$1.txt`
+        #echo "Output: $output_name"
+        while [ $idx -le $ts ] ; do
+            local counter=`printf "%d" ${matrix[$fs,$idx]}`
+            echo $counter >> $output_name
+            #printf "Matrix[$fs, $idx] val: %d\n" ${matrix[$fs,$idx]}
+            idx=$((idx+1))
         done
     done
 }
