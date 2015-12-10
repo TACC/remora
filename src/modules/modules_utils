@@ -33,6 +33,7 @@ remora_configure_modules()
 {
    for MODULE in "${REMORA_MODULES[@]}"
    do
+      source $REMORA_BIN/modules/$MODULE
       init_module_$MODULE $1 $2
    done
 }

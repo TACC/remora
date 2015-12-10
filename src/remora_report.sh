@@ -31,6 +31,7 @@ REMORA_MODE=$5
 REMORA_CUDA=$6
 REMORA_PARALLEL=$7
 REMORA_VERBOSE=$8
+REMORA_BIN=$9
 
 
 #Source the script that has the modules' functionality

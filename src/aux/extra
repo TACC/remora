@@ -84,9 +84,10 @@ parse_arguments() {
 
 parse_environment() {
     # Check if verbose output is required
-    REMORA_VERBOSE=0
-    if [ "x$REMORA_REMORA_VERBOSE" == "x1" ]; then
-        REMORA_VERBOSE=1
+    if [ -z "$REMORA_VERBOSE" ]; then
+        export REMORA_VERBOSE=0
+    fi
+    if [ "x$REMORA_VERBOSE" == "x1" ]; then
         usagefull
     fi
     if [ -z "$REMORA_MODE" ]; then
@@ -115,8 +116,16 @@ is_mpi_job() {
         NODES=`hostname -s`
     fi
 
+    if [ -z $REMORA_PARALLEL ]; then
+        REMORA_PARALLEL=0
+    fi
+
+    if [ -z $REMORA_SYMMETRIC ]; then
+        REMORA_SYMMETRIC=0
+    fi
+
     # Check if this is a sequential, parallel, or symmetric run
-    if [ "x$1" == "xibrun" ]; then
+    if [ "x$1" == "xibrun" ] || [ "x$1" == "xmpirun" ] || [ "x$1" == "mpirun_rsh" ] || [ "x$1" == "xmpiexec" ] || [ "x$1" == "mpiexec.hydra" ]; then
         REMORA_PARALLEL=1
     elif [ "x$1" == "xibrun.symm" ]; then
         REMORA_PARALLEL=1
@@ -133,9 +142,9 @@ check_gpu() {
     gputest=$(nvidia-smi > /dev/null 2> /dev/null || echo "0")
     if [ "$gputest" == "0" ]; then
         if [ "$REMORA_CUDA" == "1" ]; then
-        print_error " Missing GPU driver: disabling GPU collection"
+            print_error " Missing GPU driver: disabling GPU collection"
         fi
-    export REMORA_CUDA=0
+        export REMORA_CUDA=0
     fi
 }
 
@@ -151,10 +160,12 @@ capture_environment() {
     #Text file containing job report environmental variables and start-end timestamp
     date >> $REMORA_OUTDIR/vars.txt
     echo "" >> $REMORA_OUTDIR/vars.txt
-    echo "REMORA_PERIOD  : $REMORA_PERIOD"  >> $REMORA_OUTDIR/vars.txt
-    echo "REMORA_REMORA_VERBOSE : $REMORA_REMORA_VERBOSE" >> $REMORA_OUTDIR/vars.txt
-    echo "REMORA_MODE    : $REMORA_MODE"    >> $REMORA_OUTDIR/vars.txt
-    echo "REMORA_CUDA    : $REMORA_CUDA"    >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_PERIOD  :  $REMORA_PERIOD"    >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_VERBOSE :  $REMORA_VERBOSE"   >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_MODE    :  $REMORA_MODE"      >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_CUDA    :  $REMORA_CUDA"      >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_PARALLEL:  $REMORA_PARALLEL"  >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_SYMMETRIC: $REMORA_SYMMETRIC" >> $REMORA_OUTDIR/vars.txt
 
     #Dump environment during run
     env > $REMORA_OUTDIR/env.txt

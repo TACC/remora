@@ -25,7 +25,7 @@
 #  2.- The full path where the output will be stored/read
 init_module_ib()
 {
-    if [ "$SYMMETRIC" == "0" ]; then
+    if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" = "FULL" ]; then
             packets=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`
         fi
@@ -34,7 +34,7 @@ init_module_ib()
 
 collect_data_ib()
 {
-    if [ "$SYMMETRIC" == "0" ]; then
+    if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" = "FULL" ]; then
             TIMESTAMP=`date +%s`
             newpackets=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`

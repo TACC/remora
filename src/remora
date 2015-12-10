@@ -22,7 +22,7 @@
 #% REMORA_PERIOD  - How often statistics are collected.
 #%                  Default is 10 seconds.
 #%                  Integer values are accepted.
-#% REMORA_REMORA_VERBOSE - Verbose mode will save all information to a file.
+#% REMORA_VERBOSE - Verbose mode will save all information to a file.
 #%                  Default is 0 (off).
 #%                  Values 0 and 1 are accepted.
 #% REMORA_MODE    - How many stats are collected. Possible values:
@@ -103,46 +103,48 @@ LID=()
 
 capture_environment
 
+
 # Start data collection
 idx=0
-for i in $NODES
+for NODE in $NODES
 do
   #This is needed by the network module. We should move it, but I don't know where
   LIDCOMMAND="cat /sys/class/infiniband/mlx4_0/ports/1/lid"
-  LID[$idx]=`ssh -f $i $LIDCOMMAND`
+  LID[$idx]=`ssh -f $NODE $LIDCOMMAND`
 
   #This is the core of REMORA. It connects to all the nodes allocated to this job and runs the remora_report.sh script
   #remora_report.sh will run an infinite loop where, in each iteration of the loop, it calls the different modules
   #that are available (specified in the configuration file)
-  COMMAND="$REMORA_BIN/remora_report.sh $i $REMORA_OUTDIR $REMORA_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_CUDA $REMORA_PARALLEL $REMORA_VERBOSE > .remora_out & echo \$!"
+  COMMAND="$REMORA_BIN/remora_report.sh $NODE $REMORA_OUTDIR $REMORA_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_CUDA $REMORA_PARALLEL $REMORA_VERBOSE $REMORA_BIN > .remora_out & echo \$!"
 
   if [ "$REMORA_VERBOSE" == "1" ]; then
-    echo "ssh -f -n $i $COMMAND"
+    echo ""
+    echo "ssh -f -n $NODE $COMMAND"
+    echo ""
   fi
 
   #We have to capture the PID of the remote process running remora_report.sh
   #Since the script is an inifinite loop, we have to kill the process once the job
   #that we are analyzing has finished
-  PID[$idx]=`ssh -f -n $i $COMMAND | sed -e's/\[.*\]//' `
+  PID[$idx]=`ssh -f -n $NODE $COMMAND | sed -e's/\[.*\]//' `
 
   #Repeat the same for the MIC
   if [ "$REMORA_SYMMETRIC" == "1" ]; then
-    COMMAND="$REMORA_BIN/remora_report_mic.sh ${i}-mic0 $REMORA_OUTDIR $REMORA_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_PARALLEL $REMORA_VERBOSE $REMORA_BIN > .remora_out  &  echo \$! "
+    COMMAND="$REMORA_BIN/remora_report_mic.sh ${NODE}-mic0 $REMORA_OUTDIR $REMORA_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_PARALLEL $REMORA_VERBOSE $REMORA_BIN > .remora_out  &  echo \$! "
     if [ "$REMORA_VERBOSE" == "1" ]; then
-        echo "ssh -q -f -n $i-mic0 $COMMAND"
+        echo "ssh -q -f -n $NODE-mic0 $COMMAND"
     fi
-    PID_MIC[$idx]=`ssh -q -f -n $i-mic0 $COMMAND `
+    PID_MIC[$idx]=`ssh -q -f -n $NODE-mic0 $COMMAND `
   fi
   #Go to the next node
   idx=$((idx+1))
 done
 
-echo ""
 if [ "$REMORA_VERBOSE" == "1" ]; then
-  echo "REMORA: Running command remora $@ "
+  echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+  echo "Running command: $@ "
+  echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 fi
-
-echo ""
 
 #Now that we have the collection of data running on the background, we start the appplication
 START=$(date +%s%N)
