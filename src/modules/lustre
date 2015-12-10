@@ -78,21 +78,31 @@ finalize_module_lustre()
 
     local prefix=$2/lustre_$1_
     local sufix=".txt"
-    for FILE in $2/lustre_$1_*.txt
+    FILES="$2/lustre_$1_*.txt"
+    for FILE in $FILES
     do
+        #Sanity check
+        if [ "$FILE" == "$2/lustre_$1_.txt" ]; then
+            continue
+        fi
+        echo $FILE
         local foo=${FILE#$prefix}
         local DEVICE=${foo%$sufix}
+        DEVICE=${DEVICE//-[OST,MDT]*/}
+        local fs_name=""
         for MOUNT in "${MOUNTS[@]}"
         do
             #Get the line where the given DEVICE is mounted
+            #echo "Checking $MOUNT -- DEVICE $DEVICE"
             local FS=`echo $MOUNT | grep $DEVICE`
             if [ ! -z "$FS" ]; then
                 #get the last column
                 local temp=`echo -e "$FS" | awk '{print $NF}'`
                 #Remove any "/" character
-                local val=${temp//\/}
+                fs_name=${temp//\/}
+                #Here, fs_name has the name that the user sees in the different filesystems
                 #Right now we just print this. I'll finish this tomorrow
-                echo $val
+                echo $fs_name
                 break
             fi
         done
