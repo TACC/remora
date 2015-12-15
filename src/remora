@@ -164,10 +164,12 @@ do
   if [ "$REMORA_SYMMETRIC" == "1" ]; then
     ssh -q -f $i-mic0 'kill '${PID_MIC[$idx]}
   fi
-  COMMAND="$REMORA_BIN/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN > .remora_out  &  echo \$! "
-  echo $COMMAND
-  #Run the postprocessing command on the remote node. Right now it waits for the command to be over,
-  #so it can be quite slow, specially since we have to do the posprocessing of many different files
+  COMMAND="$REMORA_BIN/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE > .remora_out  &  echo \$! "
+  if [ "$REMORA_VERBOSE" == "1" ]; then
+    echo "ssh -q -n $NODE $COMMAND"
+  fi
+  #Right now this is putting the command in the background and continuing (so the remora can finish, therefore epilog might
+  #kill everything! We need to fix it
   ssh -q -n $NODE $COMMAND
   idx=$((idx+1))
 done

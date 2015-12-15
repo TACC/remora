@@ -26,9 +26,11 @@
 REMORA_NODE=$1
 REMORA_OUTDIR=$2
 REMORA_BIN=$3
+REMORA_VERBOSE=$4
 
 
 #Source the script that has the modules' functionality
+echo "source $REMORA_BIN/modules/modules_utils"
 source $REMORA_BIN/modules/modules_utils
 
 #Read the list of active modules from the configuration file
