@@ -55,38 +55,6 @@ echo $COPYRIGHT4 | tee -a $BUILD_LOG
 echo $SEPARATOR  | tee -a $BUILD_LOG
 echo             | tee -a $BUILD_LOG
 
-# Build libraries in extra directory
-echo "Building auxiliary libraries for xltop ..." |  tee -a $BUILD_LOG
-echo "Building CONFUSE library ..."               |  tee -a $BUILD_LOG
-cd $REMORA_BUILD_DIR/extra 
-tar xzf ./confuse*.tar.gz 
-cd confuse* 
-./configure --prefix=$REMORA_DIR                    | tee -a $BUILD_LOG
-make                                                | tee -a $BUILD_LOG
-echo "Installing auxiliary libraries for xltop ..." | tee -a $INSTALL_LOG
-echo "Installing CONFUSE library ..."               | tee -a $INSTALL_LOG
-make install                                        | tee -a $INSTALL_LOG
-
-echo "Building LIBEV library ..."                   |  tee -a $BUILD_LOG
-cd $REMORA_BUILD_DIR/extra
-tar xzf ./libev*.tar.gz
-cd libev*
-./configure --prefix=$REMORA_DIR                    | tee -a $BUILD_LOG
-make                                                | tee -a $BUILD_LOG
-echo "Installing auxiliary libraries for xltop ..." | tee -a $INSTALL_LOG
-echo "Installing LIBEV library ..."                 | tee -a $INSTALL_LOG
-make install                                        | tee -a $INSTALL_LOG
-
-
-echo "Building XLTOP library ..."                   |  tee -a $BUILD_LOG
-cd $REMORA_BUILD_DIR/extra/xltop/source
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$REMORA_DIR/lib
-./autogen.sh
-./configure CFLAGS="-I$REMORA_DIR/include" LDFLAGS="-L$REMORA_DIR/lib -lev -lconfuse" --prefix=$REMORA_DIR | tee -a $BUILD_LOG
-make                         | tee -a $BUILD_LOG
-echo "Installing XLTOP ..."  | tee -a $INSTALL_LOG
-make install                 | tee -a $INSTALL_LOG
-
 #Now build mpstat
 echo "Building mpstat ..." | tee -a $BUILD_LOG
 cd $REMORA_BUILD_DIR/extra
