@@ -264,68 +264,35 @@ def is_number(s):
     return False
 
 
-def plot_xltop(file):
-  """ Plot the results from xltop.
-      The format of this file is (there might be empty lines, or lines with less columns):
-        Time      System    WR_MB/S   RD_MB/S   REQS/S    System    WR_MB/S   RD_MB/S   REQS/S    System    WR_MB/S   RD_MB/S   REQS/S    
-        45987123  stampede-scratch  0.709539  0.327415  101.872656  stampede-home 0.001095  0.001956  7.059975  stockyard-work  0.000000  0.000000  0.149000
+def plot_lustre(file):
+  """ The format of this file is as follows"
+      work       scratch       home1
+      5368950       1917334       524528
+      5368992       1917334       524560
+      5369034       1917334       524560
+      5369076       1917334       524590
   """
 
   if not os.path.isfile (file):
     return
 
-  xltop = {}
+  fig, ax = plt.subplots()
+  values = np.genfromtxt(file, names=True)
+  labels = values.dtype.names
+  xvalues = xrange(0, len(values[labels[0]])) #np.array (values[labels[0]])
 
-  filesystems=["SCRATCH", "WORK", "HOME"]
-  ops=[" WR", " RD", " REQS"]
-  labels = [ f+o for f in filesystems for o in ops ]
-  #Plot xltop values
-  with open(file) as f:
-    lines = f.readlines()[1:] #Skip the first line (header)
+  color=cm.rainbow(np.linspace(0,1,len(labels)+1))
+  for i in xrange (len(labels)):
+    ax.plot (xvalues, values[labels[i]], linestyle=line_styles[0], label=labels[i], lw=0.5, c=color[i])
 
-  for label in labels:
-      xltop[label] = []
-#  xltop = { l:[] for l in labels }
-  xvalues = np.empty(0, dtype=np.int)
-  #Only process non-empty lines
-  lines = (l for l in lines if bool(l.strip()))
-  numelements=0
-  initval=0
-  for l in lines:
-    numelements+=1
-    for idx in labels:
-      xltop[idx].append(0.0)
-
-    parts = l.split()
-    for idx, value in enumerate(parts):
-      if idx==0:
-        if len(xvalues)==0:
-          xvalues = np.append(xvalues, 0)
-          initval = int(value)
-        else:
-          xvalues = np.append(xvalues, int(value)-initval)
-      if is_number(value):
-        continue
-      for f in filesystems:
-        if f.lower() in value:
-          for ci, o in enumerate(ops):
-            xltop[f + o][-1] = float(parts[idx+ci+1])
-
-  #xvalues = np.array(range(numelements))*period
-  ax = plt.subplot(111)
-  color=cm.rainbow(np.linspace(0,1,len(labels)))
-  for idx, l in enumerate (labels):
-    ax.plot (xvalues, xltop[l], label=l, linestyle=line_styles[(len(ops)-1)-idx%(len(ops))], c=color[idx])
+  ax.set_title('Lustre Load')
   box = ax.get_position()
-  box = ax.get_position()
-  ax.set_title('Filesystem Requests')
-  ax.set_xlabel('Execution Time (s)')
-  ax.set_ylabel('Reqs/s')
-  ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-  ax.legend(loc='center left', bbox_to_anchor=(1,0.5), prop={'size':10})
-  plt.savefig (file.replace("txt","png"))
-  #Clean the plot
-  plt.clf ()
+  ax.set_position([box.x0+box.width*0.25, box.y0, box.width * 0.6, box.height])
+  ax.set_xlabel('Execution Time (Timestamps)')
+  ax.legend(loc='center left', bbox_to_anchor=(-0.65,0.5), prop={'size':9})
+  plt.savefig (file.replace("txt", "png"))
+  plt.clf()
+
 
 
 def plot_lnstats(file):
@@ -396,9 +363,9 @@ def plot_stats(folder):
       tacc_log.print_error (" While processing file %s: %s" %(file, e))
 
   try:
-    plot_xltop (folder+"/xltop.txt")
+    plot_lustre (folder+"/fs_lustre_total.txt")
   except Exception, e:
-    tacc_log.print_error (" While processing file %s: %s" %(folder+"/xltop.txt", e))
+    tacc_log.print_error (" While processing file %s: %s" %(folder+"/fs_lustre_total.txt", e))
 
   ibxmit_files = glob.glob(folder+"/ib_xmit*txt")
   for file in ibxmit_files:
