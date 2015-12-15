@@ -165,6 +165,7 @@ do
     ssh -q -f $i-mic0 'kill '${PID_MIC[$idx]}
   fi
   COMMAND="$REMORA_BIN/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN > .remora_out  &  echo \$! "
+  echo $COMMAND
   #Run the postprocessing command on the remote node. Right now it waits for the command to be over,
   #so it can be quite slow, specially since we have to do the posprocessing of many different files
   ssh -q -n $NODE $COMMAND

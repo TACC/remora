@@ -22,39 +22,51 @@
 
 remora_read_active_modules()
 {
-   fileItemString=$(cat $REMORA_BIN/config/modules | tr "\n" " ")
+    fileItemString=$(cat $REMORA_BIN/config/modules | tr "\n" " ")
 
-   REMORA_MODULES=($fileItemString)
-   REMORA_ACTIVE_MODS=${#REMORA_MODULES[@]}
+    REMORA_MODULES=($fileItemString)
+    REMORA_ACTIVE_MODS=${#REMORA_MODULES[@]}
+    if [ "$REMORA_VERBOSE" == "1" ]; then
+    for MODULE in "${REMORA_MODULES[@]}"
+    do
+        echo "Module $MODULE is active"
+    done
+    fi
 }
 
 #Call the init_module function of each active module
 remora_configure_modules()
 {
-   for MODULE in "${REMORA_MODULES[@]}"
-   do
-      source $REMORA_BIN/modules/$MODULE
-      init_module_$MODULE $1 $2
-   done
+    for MODULE in "${REMORA_MODULES[@]}"
+    do
+        source $REMORA_BIN/modules/$MODULE
+        if [ "$REMORA_VERBOSE" == "1" ]; then
+            echo init_module_$MODULE $1 $2
+        fi
+        init_module_$MODULE $1 $2
+    done
 }
 
 #Call the execute_module_function of each active module
 remora_execute_modules()
 {
-   for MODULE in "${REMORA_MODULES[@]}"
-   do
+    for MODULE in "${REMORA_MODULES[@]}"
+    do
         if [ "$REMORA_VERBOSE" == "1" ]; then
             echo collect_data_$MODULE $1 $2
         fi
         collect_data_$MODULE $1 $2
-   done
+    done
 }
 
 #Call the finalize_module function of each active module
 remora_finalize_modules()
 {
-   for MODULE in "${REMORA_MODULES[@]}"
-   do
-      finalize_module_$MODULE $1 $2
-   done
+    for MODULE in "${REMORA_MODULES[@]}"
+    do
+        if [ "$REMORA_VERBOSE" == "1" ]; then
+            echo finalize_module_$MODULE $1 $2
+        fi
+        finalize_module_$MODULE $1 $2
+    done
 }
