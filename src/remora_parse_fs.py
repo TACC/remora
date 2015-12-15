@@ -11,66 +11,97 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 0.1
+#-      version     REMORA 1.4
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
 #
 #========================================================================
 #  HISTORY
-#	2015/09/09: Python implementation, handles heterogeneous file
+#       2015/12/15: Doesn't use xltop. Instead, Remora creates a file
+#                   for each node with the filesystem load
+#       2015/09/09: Python implementation, handles heterogeneous file
 #                   system entries in xltop.txt correctly
 #       2015/08/12: Initial version
 #========================================================================
 
-import os.path
+import glob
 import sys
+from collections import defaultdict
 
-if not os.path.isfile("xltop.txt"):
-    sys.exit(0)
+if (len(sys.argv) != 2):
+    print "Error: invalid number of parameters"
+    print "This script needs the name of a folder as argument"
+    sys.exit()
 
-# Define the file system names
-hfs = "stampede-home"
-sfs = "stampede-scratch"
-wfs = "stockyard-work"
-# File header
-hdr = "#TIME(S)\tWR_MB/S\t\tRD_MB/S\t\tREQS/S\n"
-# To begin with, we have no reported activity on any FS
-fs_present = [0, 0, 0]
-fs_max     = [0.0, 0.0, 0.0]
-fs_loc     = [20,20,20]
-# Available Lustre file systems and associated output file names
-fs      = [hfs, sfs, wfs]
-fs_name = ['home.txt', 'scratch.txt', 'work.txt']
-# Placeholder for the actual files
-fs_file = [1,2,3]
+initialized=False
+results=defaultdict(list)
+header=list()
+for filename in glob.iglob(sys.argv[1]+'/lustre_*'):
+    with open(filename) as f:
+        idx = 0
+        for line in f:
+            idx += 1
+            if "TIMESTAMP" in line:
+                #Only process the first line for the firs file that
+                #is processed
+                #This is how we collect the different filesystems in
+                #the sytem
+                if initialized:
+                    continue
+                initialized = True
+                parts = line.split()
+                for i in parts:
+                    #We don't need the TIMESTAMP name
+                    if "TIMESTAMP" in i:
+                        continue
+                    #Everything that it's not TIMESTAMP in the first
+                    #line of the first file, is a filesystem. We append
+                    #all the filesystems into the header list
+                    header.append(i)
+                continue
+            parts = line.split()
+            idx2=0
+            #We now process each line. We have to skip the first
+            #column (the timestamp)
+            for i in parts:
+                if (idx2==0):
+                    idx2 += 1
+                    continue
+                #Now, add or append each value read to the appropriate
+                #item in a list. 'results' is a dictionary, where the key
+                #is the name of the filesystem (that's why use 'header[i]'
+                #to access each element of the dictionary) and the elements
+                #are lists
+                if ((idx-2)>=len(results[header[idx2-1]])):
+                    results[header[idx2-1]].append(int(i))
+                else:
+                    results[header[idx2-1]][idx-2] += int(i)
+                idx2 += 1
 
-# process IO file line by line
-with open("xltop.txt","r") as file:
-    for line in file:
-        columns = line.split()
-        for i in range(0,len(fs)):
-            fs_loc[i] = 20
-            for idx in range( 0, len(columns) ):
-                if columns[idx] == fs[i]:
-                    fs_loc[i] = idx
-            if fs_loc[i] < 20:
-                if fs_present[i] == 0:
-                    fs_file[i] = open( fs_name[i], "a" )
-                    fs_file[i].write( hdr )
-                    fs_present[i] = 1
-                fs_str = "%s\t%s\t%s\t%s\n" % (columns[0],columns[fs_loc[i]+1],columns[fs_loc[i]+2],columns[fs_loc[i]+3])
-                fs_file[i].write( fs_str )
-                if float(columns[fs_loc[i]+3]) > fs_max[i]:
-                    fs_max[i] = float(columns[fs_loc[i]+3])
+#Now we simply format the matrix for a pretty output
+out_header=""
+numvals=0
+max_load=list()
+for i in results:
+    out_header = out_header + i + "       "
+    numvals=len(results[i])
+    temp_max=0
+    for j in xrange(numvals):
+        if results[i][j] > temp_max:
+            temp_max = results[i][j]
+    max_load.append(temp_max)
 
-# Close the files
-for i in range(0,len(fs)):
-	if fs_present[i] == 1:
-		fs_file[i].close()
-		fs_max[i] = "%4.2f" % float(fs_max[i])
-	else:
-		fs_max[i] = "-.--"
+fout = open(sys.argv[1]+"/fs_lustre_total.txt", "w")
+fout.write(out_header+"\n")
+for j in xrange(numvals):
+    out_vals = ""
+    for i in results:
+        out_vals = out_vals + str(results[i][j]) + "       "
+    fout.write(out_vals +"\n")
+fout.close()
 
-# Report max IOPS values
-print "REMORA: MDS Load (IO REQ/S)      : %s (HOME) / %s (WORK) / %s (SCRATCH)" % (fs_max[0],fs_max[2],fs_max[1])
+idx=0
+for i in results:
+    print "REMORA: MAX load in %10s: %10d" % (i, max_load[idx])
+    idx += 1

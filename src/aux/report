@@ -73,7 +73,7 @@ show_final_report() {
 
     #Show Maximum IO Requests/S to all MDS servers (H-Home, S-Scratch, W-Work)
     if [ "$REMORA_MODE" == "FULL" ]; then
-        cd $REMORA_OUTDIR; $REMORA_BIN/remora_parse_fs.py; cd ../
+        $REMORA_BIN/remora_parse_fs.py $REMORA_OUTDIR
     fi
 
     echo "------------------------------------------------------------------------------"
