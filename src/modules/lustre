@@ -45,6 +45,11 @@ init_module_lustre()
 
 collect_data_lustre()
 {
+    #We could use this command:
+    # cat /proc/fs/lustre/{mdc,osc}/scratch*/stats | grep waittime | awk '{print $2;}' | paste -sd+ | bc
+    # cat /proc/fs/lustre/{mdc,osc}/home*/stats | grep waittime | awk '{print $2;}' | paste -sd+ | bc
+    # cat /proc/fs/lustre/{mdc,osc}/gsfs*/stats | grep waittime | awk '{print $2;}' | paste -sd+ | bc
+    # The values scratch, home, gsfs come from "df --type=lustre"
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" = "FULL" ]; then
             local LUSTRE_DIR_PATH=/proc/fs/lustre
