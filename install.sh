@@ -12,9 +12,6 @@
 # installation directory: use $REMORA_INSTALL_PREFIX if defined, current directory if not
 export REMORA_DIR=${REMORA_INSTALL_PREFIX:-$PWD}
 
-#Please change this value to a valid port for XLTOP
-export XLTOP_PORT=XXXX
-
 export PHI_BUILD=0
 
 # Do not change anything below this line
