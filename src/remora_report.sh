@@ -46,7 +46,8 @@ remora_configure_modules $REMORA_NODE $REMORA_OUTDIR
 while [ 1 ]
 do
     remora_execute_modules $REMORA_NODE $REMORA_OUTDIR
-
-  sleep $REMORA_PERIOD
-
+    if [ "$REMORA_VERBOSE" == "1" ]; then
+        echo "sleep $REMORA_PERIOD"
+    fi
+    sleep $REMORA_PERIOD
 done
