@@ -23,6 +23,11 @@
 #       2015/08/12: Initial version
 #========================================================================
 
+import os.path
+
+if not os.path.isfile("xltop.txt"):
+    return 0
+
 # Define the file system names
 hfs = "stampede-home"
 sfs = "stampede-scratch"
