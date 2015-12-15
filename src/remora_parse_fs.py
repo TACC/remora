@@ -97,7 +97,10 @@ fout.write(out_header+"\n")
 for j in xrange(numvals):
     out_vals = ""
     for i in results:
-        out_vals = out_vals + str(results[i][j]) + "       "
+        if (j==0):
+            out_vals = out_vals + " 0        "
+        else:
+            out_vals = out_vals + str(results[i][j]-results[i][j-1]) + "       "
     fout.write(out_vals +"\n")
 fout.close()
 
