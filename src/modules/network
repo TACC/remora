@@ -71,7 +71,7 @@ process_data_network()
   :
 }
 
-finalize_module_memory()
+finalize_module_network()
 {
   :
 }

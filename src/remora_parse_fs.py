@@ -24,9 +24,10 @@
 #========================================================================
 
 import os.path
+import sys
 
 if not os.path.isfile("xltop.txt"):
-    return 0
+    sys.exit(0)
 
 # Define the file system names
 hfs = "stampede-home"

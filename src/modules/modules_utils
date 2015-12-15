@@ -30,6 +30,7 @@ remora_read_active_modules()
     for MODULE in "${REMORA_MODULES[@]}"
     do
         echo "Module $MODULE is active"
+        source $REMORA_BIN/modules/$MODULE
     done
     fi
 }
@@ -39,7 +40,6 @@ remora_configure_modules()
 {
     for MODULE in "${REMORA_MODULES[@]}"
     do
-        source $REMORA_BIN/modules/$MODULE
         if [ "$REMORA_VERBOSE" == "1" ]; then
             echo init_module_$MODULE $1 $2
         fi
