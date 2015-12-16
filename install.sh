@@ -4,10 +4,10 @@
 # Change CC, MPICC and the corresponding flags to match your own compiler in
 # file "Makefile.in". You should not have to edit this file at all.
 #
-# v1.0 (2015-08-25)  Carlos Rosales-Fernandez
+# v1.4 (2015-12-16)  Carlos Rosales-Fernandez
 #                    Antonio Gomez-Iglesias
 #
-# Thanks to Kenneth Hoste, from HPC-UGent, for the input
+# Thanks to Kenneth Hoste, from HPC-UGent, for his input
 
 # installation directory: use $REMORA_INSTALL_PREFIX if defined, current directory if not
 export REMORA_DIR=${REMORA_INSTALL_PREFIX:-$PWD}
@@ -25,7 +25,7 @@ mkdir -p $REMORA_DIR/python
 
 REMORA_BUILD_DIR=$PWD
 
-VERSION=1.3.1
+VERSION=1.4
 COPYRIGHT1="Copyright 2015 The University of Texas at Austin."
 COPYRIGHT2="License: MIT <http://opensource.org/licenses/MIT>"
 COPYRIGHT3="This is free software: you are free to change and redistribute it."
