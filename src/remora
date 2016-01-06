@@ -105,17 +105,31 @@ capture_environment
 
 
 # Start data collection
+#This is needed by the network module. We should move it, but I don't know where
+idx=0
+for NODE in $NODES; do
+  LIDCOMMAND="cat /sys/class/infiniband/mlx4_0/ports/1/lid"
+  LID[$idx]=`ssh -f $NODE $LIDCOMMAND`
+  if [ "$REMORA_VERBOSE" == "1" ]; then
+    echo "ssh -f $NODE $LIDCOMMAND"
+  fi
+done
+net_node_cnt=0
+for i in $NODES; do net_node_cnt=$(( net_node_cnt + 1 )); done
+idx=1
+while [  $idx -lt $net_node_cnt ]; do
+  ibtracert ${LID[0]} ${LID[$idx]} >> $REMORA_OUTDIR/trace_network.txt
+  echo "_____________" >> $REMORA_OUTDIR/trace_network.txt
+  idx=$((idx+1))
+done
+
 idx=0
 for NODE in $NODES
 do
-  #This is needed by the network module. We should move it, but I don't know where
-  LIDCOMMAND="cat /sys/class/infiniband/mlx4_0/ports/1/lid"
-  LID[$idx]=`ssh -f $NODE $LIDCOMMAND`
-
   #This is the core of REMORA. It connects to all the nodes allocated to this job and runs the remora_report.sh script
   #remora_report.sh will run an infinite loop where, in each iteration of the loop, it calls the different modules
   #that are available (specified in the configuration file)
-  COMMAND="$REMORA_BIN/remora_report.sh $NODE $REMORA_OUTDIR $REMORA_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_CUDA $REMORA_PARALLEL $REMORA_VERBOSE $REMORA_BIN > .remora_out & echo \$!"
+  COMMAND="$REMORA_BIN/remora_report.sh $NODE $REMORA_OUTDIR $REMORA_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_CUDA $REMORA_PARALLEL $REMORA_VERBOSE $REMORA_BIN > $REMORA_OUTDIR/.remora_out_$NODE & echo \$!"
 
   if [ "$REMORA_VERBOSE" == "1" ]; then
     echo ""
