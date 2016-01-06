@@ -110,9 +110,7 @@ idx=0
 for NODE in $NODES; do
   LIDCOMMAND="cat /sys/class/infiniband/mlx4_0/ports/1/lid"
   LID[$idx]=`ssh -f $NODE $LIDCOMMAND`
-  if [ "$REMORA_VERBOSE" == "1" ]; then
-    echo "ssh -f $NODE $LIDCOMMAND"
-  fi
+  idx=$((idx+1))
 done
 net_node_cnt=0
 for i in $NODES; do net_node_cnt=$(( net_node_cnt + 1 )); done
