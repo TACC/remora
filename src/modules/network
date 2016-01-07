@@ -25,6 +25,9 @@
 #  2.- The full path where the output will be stored/read
 init_module_network()
 {
+
+:
+
     # Need to check that the hostlist is not empty
 #    if [ "$REMORA_MODE" == "FULL" ]; then
 #        if [ "$REMORA_PARALLEL" == "1" ]; then
