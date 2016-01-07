@@ -11,7 +11,6 @@
 
 # installation directory: use $REMORA_INSTALL_PREFIX if defined, current directory if not
 export REMORA_DIR=${REMORA_INSTALL_PREFIX:-$PWD}
-
 export PHI_BUILD=0
 
 # Do not change anything below this line
