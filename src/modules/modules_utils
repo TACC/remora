@@ -29,8 +29,8 @@ remora_read_active_modules()
     if [ "$REMORA_VERBOSE" == "1" ]; then
     for MODULE in "${REMORA_MODULES[@]}"
     do
-        echo "Module $MODULE is active"
         source $REMORA_BIN/modules/$MODULE
+        echo "Module $MODULE is active"
     done
     fi
 }
@@ -65,8 +65,8 @@ remora_finalize_modules()
     for MODULE in "${REMORA_MODULES[@]}"
     do
         if [ "$REMORA_VERBOSE" == "1" ]; then
-            echo finalize_module_$MODULE $1 $2
+            echo finalize_module_$MODULE $1 $2 $3
         fi
-        finalize_module_$MODULE $1 $2
+        finalize_module_$MODULE $1 $2 $3
     done
 }
