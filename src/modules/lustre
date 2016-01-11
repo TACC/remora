@@ -90,6 +90,7 @@ process_data_lustre()
 finalize_module_lustre()
 {
   REMORA_NODE_ID=$3
+  echo "My remora node id is: $REMORA_NODE_ID"
   if [ "$REMORA_NODE_ID" == "0" ]; then 
     FSS=`df --type=lustre -P`
     local idx=0
@@ -103,25 +104,45 @@ finalize_module_lustre()
       idx=$((idx+1))
     done <<< "$FSS"
 
-    # Generate a single file per lustre file 
-    # system and node
-    for file in `cd $2; ls lustre_*.txt`; do
-      fs_col=2
-      cat $2/$file | tr -s ' ' | cut -d ' ' -f 1  > $2/snapshot.txt
+    # Identify shortest entry
+    min_len=0
+    for file in `ls $2/lustre_*.txt`; do
+       fs_col=2; len=0
+       for FS in "${IFSNAMES[@]}"; do
+         len=`cat $file | tr -s ' ' | cut -d ' ' -f $fs_col | wc -l | awk '{print $1}'`
+         if [ "$min_len" -eq "0" ] || [ "$len" -lt "$min_len" ]; then 
+           min_len=$len
+         fi
+         fs_col=$((fs_col+1))
+       done
+     done
+
+    # Generate single file for a given time step
+    for i in `seq 2 $min_len`; do 
+      for file in `ls $2/lustre_*.txt`; do
+        sed "${i}q;d" $file >> $2/lustre.tmp
+      done
+      col_id=2
+      time_stamp=`head -n 1 $2/lustre.tmp | awk '{print $1}'`
       for FS in "${IFSNAMES[@]}"; do
-        cat $2/$file | tr -s ' ' | cut -d ' ' -f $fs_col  > $2/$file.$FS
-        fs_col=$((fs_col+1))
+        cat $2/lustre.tmp | tr -s ' ' | cut -d ' ' -f $col_id | awk -v ts="$time_stamp" '{sum+=$1} END {print ts " " sum}' >> $2/lustre.$FS
+        col_id=$((col_id+1))
+      done
+      rm $2/lustre.tmp
+    done
+
+    # Calculate actual data rates from raw counters
+    min_len=$((min_len-1))
+    for file in `ls $2/lustre.*`; do
+      for i in `seq 1 $min_len`; do
+        next=$((i+1))
+        t1=`sed "${i}q;d" $file | awk '{ print $1 }'`
+        d1=`sed "${i}q;d" $file | awk '{ print $2 }'`
+        t2=`sed "${next}q;d" $file | awk '{ print $1 }'`
+        d2=`sed "${next}q;d" $file | awk '{ print $2 }'`
+        value=`echo "scale=4; ( $d2 - $d1 ) / ( $t2 - $t1 )" | bc`
+        printf "%-17d %-17f\n" $t1 $value >> $file.iops
       done
     done
-
-    # Merge data from all nodes and each lustre file system
-    local idx=0
-    for FS in "${IFSNAMES[@]}"; do
-      paste $2/snapshot.txt $2/lustre_*.txt.$FS > $2/merged.$FS
-      awk '{ sum=sum+$2 } END {print $1 "\t" sum}' $2/merged.$FS > $2/total.$FS
-      idx=$((idx+1))
-      #rm -q ./*.$FS 
-    done
-
   fi
 }
