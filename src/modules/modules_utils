@@ -26,11 +26,12 @@ remora_read_active_modules()
 
     REMORA_MODULES=($fileItemString)
     REMORA_ACTIVE_MODS=${#REMORA_MODULES[@]}
-    if [ "$REMORA_VERBOSE" == "1" ]; then
     for MODULE in "${REMORA_MODULES[@]}"
     do
-        source $REMORA_BIN/modules/$MODULE
+      source $REMORA_BIN/modules/$MODULE
+      if [ "$REMORA_VERBOSE" == "1" ]; then
         echo "Module $MODULE is active"
+      fi
     done
     fi
 }
