@@ -69,6 +69,7 @@ fi
 #process (REMORA_TOP_PID)
 trap "exit 1" TERM
 export REMORA_TOP_PID=$$
+export REMORA_MASTER=1
 
 SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
 SCRIPT_NAME="$(basename ${0})"
@@ -142,7 +143,7 @@ do
 
   #Repeat the same for the MIC
   if [ "$REMORA_SYMMETRIC" == "1" ]; then
-    COMMAND="$REMORA_BIN/remora_report_mic.sh ${NODE}-mic0 $REMORA_OUTDIR $REMORA_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_PARALLEL $REMORA_VERBOSE $REMORA_BIN > .remora_out  &  echo \$! "
+    COMMAND="$REMORA_BIN/remora_report_mic.sh ${NODE}-mic0 $REMORA_OUTDIR $REMORA_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_PARALLEL $REMORA_VERBOSE $REMORA_BIN > $REMORA_OUTDIR/.remora_out_$NODE-mic0  &  echo \$! "
     if [ "$REMORA_VERBOSE" == "1" ]; then
         echo "ssh -q -f -n $NODE-mic0 $COMMAND"
     fi
@@ -170,13 +171,14 @@ END=$(date +%s%N)
 
 # Kill memory usage collection process
 idx=0
-for i in $NODES
+for NODE in $NODES
 do
-  ssh -f $i 'kill '${PID[$idx]}
+  REMORA_NODE_ID=$idx
+  ssh -f $NODE 'kill '${PID[$idx]}
   if [ "$REMORA_SYMMETRIC" == "1" ]; then
-    ssh -q -f $i-mic0 'kill '${PID_MIC[$idx]}
+    ssh -q -f $NODE-mic0 'kill '${PID_MIC[$idx]}
   fi
-  COMMAND="$REMORA_BIN/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE > .remora_out  &  echo \$! "
+  COMMAND="$REMORA_BIN/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE $REMORA_NODE_ID >> $REMORA_OUTDIR/.remora_out_$NODE  &  echo \$! "
   if [ "$REMORA_VERBOSE" == "1" ]; then
     echo "ssh -q -n $NODE $COMMAND"
   fi
