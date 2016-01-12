@@ -33,7 +33,6 @@ remora_read_active_modules()
         echo "Module $MODULE is active"
       fi
     done
-    fi
 }
 
 #Call the init_module function of each active module
