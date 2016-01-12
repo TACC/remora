@@ -170,7 +170,7 @@ do
   fi
   #Right now this is putting the command in the background and continuing (so the remora can finish, therefore epilog might
   #kill everything! We need to fix it
-  ssh -q -n $NODE $COMMAND
+  FINAL_PID=`ssh -q -n $NODE $COMMAND`
   idx=$((idx+1))
 done
 
