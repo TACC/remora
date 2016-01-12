@@ -32,12 +32,13 @@ collect_data_gpu()
 {
     # Get GPU utilization data
     if [ "$REMORA_CUDA" == "1" ]; then
+        current_time=`date +%s`
         gpumem=$(nvidia-smi | grep MiB | awk '{print $9}'); gpumem=${gpumem::-3}
         gpumax=$(nvidia-smi | grep MiB | awk '{print $11}'); gpumax=${gpumax::-3}
         gpumem=$(echo $gpumem | awk '{print $1/1000}')
         gpumax=$(echo $gpumax | awk '{print $1/1000}')
         gpufree=$(echo "$gpumax $gpumem" | awk '{ print $1-$2 }')
-        echo "$current_time $gpumem $gpufree" >> $2/mem_stats_$1-gpu.txt
+        printf "%-17d %-17f %-17f\n" $current_time $gpumem $gpufree >> $2/mem_stats_$1-gpu.txt
     fi
 }
 # This function might perform some processing on the data.

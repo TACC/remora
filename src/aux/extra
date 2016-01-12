@@ -51,7 +51,7 @@ function show_time () {
   else
     ((sec=num))
   fi
-  echo "REMORA: Total Elapsed Time       : "$day"d "$hour"h "$min"m "$sec"s "$milisec"ms"
+  printf "%-36s %-1s %d%s %d%s %d%s %d%s %d%s\n" "REMORA: Total Elapsed Time" ":" $day "d" $hour "h" $min "m" $sec "s" $milisec "ms"
 }
 
 

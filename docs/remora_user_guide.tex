@@ -73,10 +73,10 @@
 \verb+ +
 \vspace{1em}
 \begin{flushright}
-\huge\bf REMORA v1.3.1\\
+\huge\bf REMORA v1.4.0\\
 \rule{\textwidth}{4pt}
 \large{\bf REsource MOnitoring for Remote Applications\\
-Document Revision 1.0\\
+Document Revision 1.1\\
 \today}
 \end{flushright}
 
@@ -98,7 +98,7 @@ Copyright 2015 The University of Texas at Austin.
 
 \begin{abstract}
 
-REMORA is a tool to monitor runtime resource utilization in HPC environments. As of version 1.3.1 the suite contains code designed to test:
+REMORA is a modular tool to monitor runtime resource utilization in HPC environments. As of version 1.4.0 the suite contains code designed to test:
 
 \begin{itemize}
 \item Memory utilization in CPUs, Xeon Phi co-processors, and NVIDIA GPUs
@@ -114,9 +114,9 @@ Throughout the text we have used text boxes to highlight important information. 
 
 Our intention is to create a simple runtime resource monitoring tool that provides both simple to understand high level information to the user, as well as detailed statistics for in-depth analysis. We welcome all feedback. Feedback that includes suggestions for improvement in the usability, reliability, and accuracy of this tool is particularly welcome. 
 
-Version 1.3.1 is a micro release where the \verb+remora_post+ executable has been modified to work with versions of Python older than 2.7.
+Version 1.4.0 is a new release that adds a modular design that allows to easily configure the functionality available on each site as well as a simple addition of new functionality to the tool.
 
-If you use REMORA, you can cite it:
+Remora is an open-source project. Funding to keep researchers working on Remora depends on the value of this tool to the scientific community. We would appreciate if you could include the following citation in your scientific articles:
 
 C. Rosales, A. G\'{o}mez-Iglesias, A. Predoehl. ``REMORA: a Resource Monitoring Tool for Everyone''. HUST2015 November 15-20, 2015, Austin, TX, USA. DOI: 10.1145/2834996.2834999 \cite{remora}
 
@@ -127,19 +127,19 @@ C. Rosales, A. G\'{o}mez-Iglesias, A. Predoehl. ``REMORA: a Resource Monitoring 
 \chapter{Installation}
 Remora is simple to install. In order to use all of its features you will need GNU Make and a C compiler. If testing the Xeon Phi you will also need a compiler with support for compilation of native code for the Xeon Phi - currently limited to Intel 13+ compilers.
 
-First of all obtain the latest version tarball, currently remora-1.3.1.tar.gz \footnote{\href{https://github.com/TACC/remora/archive/v1.3.1.tar.gz}{https://github.com/TACC/remora/archive/v1.3.1.tar.gz}}, and expand it in a convenient location in your system:
+First of all obtain the latest version tarball, currently remora-1.4.tar.gz \footnote{\href{https://github.com/TACC/remora/archive/v1.4.0.tar.gz}{https://github.com/TACC/remora/archive/v1.4.0.tar.gz}}, and expand it in a convenient location in your system:
 
 \begin{verbatim}
-    tar xzvf ./remora-1.3.1.tar.gz
+    tar xzvf ./remora-1.4.0.tar.gz
 \end{verbatim}
 
-Alternatively clone the git repository with the latest development version:
+Alternatively clone the git repository with the latest development version (not recommended):
 
 \begin{verbatim}
     git clone https://github.com/TACC/remora
 \end{verbatim}
 
-This will create a top level directory called \verb+remora+, with subdirectories \verb+/docs+ and \verb+extra+. Change directory to the top level of remora and edit \verb+install.sh+ to reflect your choice of installation directory, build type, and xltop configuration. The variables to modify are:
+This will create a top level directory called \verb+remora+, with subdirectories \verb+/docs+ and \verb+extra+. Change directory to the top level of remora and edit \verb+install.sh+ to reflect your choice of installation directory, build type, and modules configuration. The variables to modify are:
 
 \begin{table}[h]
 \centering
@@ -148,10 +148,11 @@ This will create a top level directory called \verb+remora+, with subdirectories
 \hline
 \bf{Variable}	& \bf{Description}                          & \bf{Default}\\\hline
 REMORA\_DIR     & Absolute path to installation directory   & . \\\hline
-XLTOP\_PORT     & Port number that xltop is listening in    & xxxx \\\hline
 PHI\_BUILD      & Enable (1) or disable (0) Xeon Phi build  & 0 \\\hline
 \end{tabular}
 \end{table}
+
+The modules are configured in the \verb+src\config\modules+ file. Simply remove any modules that you don't want to be available in your system. Also, you can create your own modules and add them into this file (see Section \ref{expand-remora} for more information about how to expand Remora's functionality).
 
 Once these variables are set the tool can be installed by using:
 
@@ -185,13 +186,13 @@ REMORA collects a set of statistics that are useful in many different scenarios 
 \item Network information (topology and InfiniBand traffic).
 \end{itemize}
 
-Dynamic information is collected every REMORA\_PERIOD seconds. The following describes the data collected in more detail. 
+Dynamic information is collected every \texttt{REMORA\_PERIOD} seconds. The following describes the data collected in more detail. 
 
 \paragraph{CPU}
-The application reports the average CPU usage of the last second (independently of the value specified for REMORA\_PERIOD). This information is very important for applications that use OpenMP, where it is possible to easily analyze how the cores are being used. It also allows to check for a correct pinning of threads to the cores: not pinning processes could lead to threads floating between cores, which will be show up in this report. MPI applications can also benefit from this information.
+The application reports the average CPU usage of the last second (independently of the value specified for \texttt{REMORA\_PERIOD}). This information is very important for applications that use OpenMP, where it is possible to easily analyze how the cores are being used. It also allows to check for a correct pinning of threads to the cores: not pinning processes could lead to threads floating between cores, which will be show up in this report. MPI applications can also benefit from this information.
 
 \paragraph{Memory}
-One of the most recurring questions for HPC users is "how can I know how much memory my job is using?". Trying to answer that question, REMORA collects the most relevant statistics regarding memory usage every REMORA\_PERIOD seconds:
+One of the most recurring questions for HPC users is "how can I know how much memory my job is using?". Trying to answer that question, REMORA collects the most relevant statistics regarding memory usage every \texttt{REMORA\_PERIOD} seconds (more information in Section \ref{customize}):
 
 \begin{itemize}
 \item Virtual Memory (and Max Virtual Memory): this is a very important value as the OOM (out of memory) killer will use it to kill the application if needed.
@@ -205,7 +206,7 @@ Data is collected from /proc/\textless pid\textgreater /status for all of these 
 When Xeon Phi co-processors are used as part of a symmetric execution model, each Xeon Phi is treated as a separate node and the same memory information is collected from Phi and from host CPU. Individual files are maintained for each node and Phi and the per node aggregated summary is provided individually for nodes and Xeon Phi devices, since their available memory tends to be different.
 
 \paragraph{NUMA}
-As it is well known, NUMA (Non-Uniform Memory Access) can have a large impact on the overall performance of an application. Sometimes small changes in the code can lead to large improvements once it has been discovered that NUMA was imposing a penalty over the application. Our tool reports how memory is being used in each socket and it also collects the number of NUMA hits and misses. The information is extracted from the numastat tool: numastat is called only once on each collecting period; the output of numastat is then analyzed and several different fields are used for the statistics:
+As it is well known, NUMA (Non-Uniform Memory Access) can have a large impact on the overall performance of an application. Sometimes small changes in the code can lead to large improvements once it has been discovered that NUMA was imposing a penalty over the application. Our tool reports how memory is being used in each socket and it also collects the number of NUMA hits and misses. The information is extracted from the \texttt{numastat} tool: \texttt{numastat} is called only once on each collecting period; the output of \texttt{numastat} is then analyzed and several different fields are used for the statistics:
 
 \begin{itemize}
 	\item Number of hits: total number of memory access hits. 
@@ -216,9 +217,13 @@ As it is well known, NUMA (Non-Uniform Memory Access) can have a large impact on
 \end{itemize}
 
 
-\paragraph{xltop} \cite{xltop}. xltop is a Lustre monitor developed at TACC that can be freely downloaded and installed. It provides statistics about file system utilization, including I/O requests per second and read and write volumes in MB/s. Originally, xltop was a continuous monitoring client that connects to other tools (xltop-master, xltop-servd, and xltop-clusd) to retrieve the information statistics from every MDS (metadata server) and OSS (Object Storage Server). This is a tool used by administrators to specifically look for very heavy I/O applications that can damage the stability of the file system. We have modified the original xltop code so that it can be invoked by any user to only check for the Lustre I/O statistics of the job being analyzed. Also, while xltop originally used ncurses to show the results, we have now implemented a version that collects the statistics in a file in order to simplify the analysis of the results.
+\paragraph{Lustre} 
 
-\paragraph{Lustre Stats}
+A new Lustre module was included in Remora 1.4.0. This module looks at the content of the files located in /proc/fs/lustre/{mdc,osc}/*/ . In particular, it looks for the content of the stats file. In order to generate a more user-friendly data, and it extracts the name of the filesystems and the different lustre mounts from the \texttt{df} command.
+
+
+
+\paragraph{LNET Stats}
 Our tool collects information regarding the data transferred by Lustre on each node used by the job while running. Normally, these statistics do not provide much information to the users. However, they are very useful if there was a problem in the file system while the job was being analyzed, as the number of messages dropped will significantly increase. The following Lustre information is collected:
 
 \begin{itemize}
@@ -241,27 +246,95 @@ After making sure the remora \verb+bin+ directory is in your \verb+PATH+ and the
 \section{Post-Processing}
 All the data is collected in a set of files with the statistics organized in columns. Users can take those files and run any postprocessing tool that they develop. However, for simplicity, REMORA already provides a plotting script called \verb+remora_post+ that takes all the statistics generated during collection and generates a number of plots. These plots show the most relevant information previously collected and represent a visual alternative while analyzing the results. This is a Python script that requires Numpy, matplotlib and blockdiag. The script can be called from the batch script or from the login nodes after the job has finished. In this second scenario, the script requires the id of the job to be analyzed as argument.
 
-\section{Execution Customization}
+\section{Execution Customization}\label{customize}
 
 REMORA is configurable in terms of the amount and type of data collected, but sensible defaults are provided to simplify its use. By default the statistics are collected every ten seconds.
 
 REMORA provides two different running modes and it also allows the users to specify how frequently the data is collected. A verbose mode is provided mostly for troubleshooting and should not be used by default. The behavior of the application is controlled via three environment variables:
 
+\IntroBox{
 \begin{itemize}
-	\item REMORA\_PERIOD: Time in seconds between consecutive data records. This is the time from the end of a collection event until the start of the next collection event. Depending on the platform where the tool is running, the overhead introduced by the application can make the duration of the collection event to vary, in which case there will be less data points in the collected results than expected. However, in the systems that we have tested the overhead of the application is small enough that the total number of collection points (CP) is almost equal to $CP = ET/RP$ where ET is the execution time (in seconds) and RP is the period (in seconds).
+	\item \texttt{REMORA\_PERIOD}: Time in seconds between consecutive data records. This is the time from the end of a collection event until the start of the next collection event. Depending on the platform where the tool is running, the overhead introduced by the application can make the duration of the collection event to vary, in which case there will be less data points in the collected results than expected. However, in the systems that we have tested the overhead of the application is small enough that the total number of collection points (CP) is almost equal to $CP = ET/RP$ where ET is the execution time (in seconds) and RP is the period (in seconds).
 
-	\item REMORA\_MODE: this variable accepts two possible values (FULL and BASIC). The FULL mode runs all the tests that the tool allows. The BASIC mode only reports memory and cpu usage. This is the recommended mode when the users now that the application of interest does not create problems in the distributed file system. The tool that checks for the file system load \cite{xltop} is the main contributor to the small overhead introduced by the tool. When this report is not required, the overall overhead of the tool is very small.
+	\item \texttt{REMORA\_MODE}: this variable accepts two possible values (FULL and BASIC). The FULL mode runs all the tests that the tool allows. The BASIC mode only reports memory and cpu usage. This is the recommended mode when the users now that the application of interest does not create problems in the distributed file system.
 	
-	\item REMORA\_VERBOSE: Enable (1) or disable (0) verbose mode. Default is disabled.
+	\item \texttt{REMORA\_VERBOSE}: Enable (1) or disable (0) verbose mode. Default is disabled.
 \end{itemize}
+}
+
+\section{Expanding Remora's Functionality}\label{expand-remora}
+
+Since version 1.4.0, Remora allows system administrators to easily change the functionality provided by Remora and extend its capabilities. The configuration file \verb+src\config\modules+ defines the modules used by Remora. Each module provides a specific capability in terms of data collection. By default, these are the modules available in Remora:
+
+\begin{itemize}
+\item cpu
+\item memory
+\item numa
+\item lustre
+\item lnet
+\item ib
+\item gpu
+\item network
+\end{itemize}
+
+These modules are currently specified in the configuration file. At runtime, Remora will read this file and execute all the modules listed on it.
+
+\IntroBox{If you are installing Remora system-wide, you can modify the configuration file before installing it. If you have Remora installed in your user account, you can modify this file at any time.}
+
+\subsection{Structure of Modules}
+
+All the modules are located in the \verb+src/modules/+ folder. They are all bash scripts that have to implement, at least, the following functions:
+
+\begin{itemize}
+	\item \texttt{init\_module\_modulename()}: this function is called only once to initialize the environment or files that are required by each specific module.
+	\item \texttt{collect\_data\_modulename()}: main function of the module. This is the function called each \texttt{REMORA\_PERIOD} seconds. Depending on the module, different statistics will be collected in this function. This function can include some postprocessing.
+	\item \texttt{process\_data\_modulename()}: currently unused.
+	\item \texttt{finalize\_module\_modulename()}: this function is also called only once, when the application of interest has finished. Any heavy postprocessing method can go in this function.
+\end{itemize}
+
+All these functions take two, and only two, arguments:
+\begin{itemize}
+	\item Name of the compute node where the function is going to run.
+	\item Full path to the output folder.
+\end{itemize}
+
+The \texttt{modulename} is exactly the same name specified in the configuration file and also the filename of the bash script. This means that, if we have a module called \texttt{cpu} in the configuration file, there will be a file named \texttt{cpu} in the modules folder. And, inside that file, the required functions will be called:
+
+\begin{itemize}
+	\item \texttt{init\_module\_cpu()}
+	\item \texttt{collect\_data\_cpu()}
+	\item \texttt{process\_data\_cpu()}
+	\item \texttt{finalize\_module\_cpu()}
+\end{itemize}
+
+
+\subsection{Creating a New Module}
+
+Remora has been designed so that expanding its functionality is very simple. If you want to create a new module, let's call it \texttt{newmodule}, you will need to follow these steps:
+
+\begin{enumerate}
+	\item Add a new line to the configuration line with the string \texttt{newmodule}.
+	\item Create a new file in the \verb+src/modules+ folder called \texttt{newmodule}.
+	\item Inside this new file, define the following functions:
+		\begin{itemize}
+			\item \texttt{init\_module\_newmodule()}
+			\item \texttt{collect\_data\_newmodule()}
+			\item \texttt{process\_data\_newmodule()}
+			\item \texttt{finalize\_module\_newmodule()}
+		\end{itemize}
+	\item Implement the functionality that \texttt{newmodule} requires in those functions.
+\end{enumerate}
+
+At runtime, Remora will find the new module specified in the configuration file and call the different functions at runtime.
+
+\IntroBox{It is very important to make sure that all the functions contain exactly the same name of the module included in the configuration file and used as filename for the module.}
+
 
 \FloatBarrier
 \addcontentsline{toc}{section}{\bf References}
 \begin{thebibliography}{00}
 
 \bibitem{remora} C. Rosales, A. G\'{o}mez-Iglesias, A. Predoehl. ``REMORA: a Resource Monitoring Tool for Everyone''. HUST2015 November 15-20, 2015, Austin, TX, USA. DOI: \href{http://dx.doi.org/10.1145/2834996.2834999}{10.1145/2834996.2834999}
-
-\bibitem{xltop}xltop is a continuous Lustre monitor with batch scheduler intergation: \href{https://github.com/jhammond/xltop}{https://github.com/jhammond/xltop}
 
 
 \end{thebibliography}

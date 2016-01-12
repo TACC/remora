@@ -72,7 +72,7 @@ collect_data_lustre()
                     echo "cat /proc/fs/lustre/{mdc,osc}/$fs*/stats | grep req_waittime | awk '{print \$2;}' | paste -sd+ | bc"
                 fi
                 COUNTER[$idx]=`cat /proc/fs/lustre/{mdc,osc}/$fs*/stats | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc`
-                idx=$((idx+1))
+				idx=$((idx+1))
             done
             printf "%-17d %-17d" $TIMESTAMP "${COUNTER[@]}" >> $2/lustre_$1.txt
             printf "\n"  >> $2/lustre_$1.txt
@@ -89,5 +89,58 @@ process_data_lustre()
 
 finalize_module_lustre()
 {
-  :
+  REMORA_NODE_ID=$3
+  if [ "$REMORA_NODE_ID" == "0" ]; then 
+    # Get names from lustre.txt file headers
+    FSNAMES=()
+    idx=0
+    file=$(ls $REMORA_OUTDIR/lustre_*.txt | awk '{print $1}' | head -n 1)
+    for fs in `head -n 1 $file`; do
+      if [ "$fs" != "TIMESTAMP" ]; then
+        FSNAMES[$idx]=$fs
+        idx=$((idx+1))
+      fi
+    done
+
+    # Identify shortest entry
+    min_len=0
+    for file in `ls $2/lustre_*.txt`; do
+       fs_col=2; len=0
+       for FS in "${FSNAMES[@]}"; do
+         len=`cat $file | tr -s ' ' | cut -d ' ' -f $fs_col | wc -l | awk '{print $1}'`
+         if [ "$min_len" -eq "0" ] || [ "$len" -lt "$min_len" ]; then 
+           min_len=$len
+         fi
+         fs_col=$((fs_col+1))
+       done
+     done
+
+    # Generate single file for a given time step
+    for i in `seq 2 $min_len`; do 
+      for file in `ls $2/lustre_*.txt`; do
+        sed "${i}q;d" $file >> $2/lustre.tmp
+      done
+      col_id=2
+      time_stamp=`head -n 1 $2/lustre.tmp | awk '{print $1}'`
+      for FS in "${FSNAMES[@]}"; do
+        cat $2/lustre.tmp | tr -s ' ' | cut -d ' ' -f $col_id | awk -v ts="$time_stamp" '{sum+=$1} END {print ts " " sum}' >> $2/lustre.$FS
+        col_id=$((col_id+1))
+      done
+      rm $2/lustre.tmp
+    done
+
+    # Calculate actual data rates from raw counters
+    min_len=$((min_len-1))
+    for file in `ls $2/lustre.*`; do
+      for i in `seq 1 $min_len`; do
+        next=$((i+1))
+        t1=`sed "${i}q;d" $file | awk '{ print $1 }'`
+        d1=`sed "${i}q;d" $file | awk '{ print $2 }'`
+        t2=`sed "${next}q;d" $file | awk '{ print $1 }'`
+        d2=`sed "${next}q;d" $file | awk '{ print $2 }'`
+        value=`echo "scale=4; ( $d2 - $d1 ) / ( $t2 - $t1 )" | bc`
+        printf "%-17d %-17f\n" $t1 $value >> $file.iops
+      done
+    done
+  fi
 }
