@@ -66,16 +66,26 @@ collect_data_lustre()
             local TIMESTAMP=`date +%s`
             local idx=0
             local COUNTER=()
+            local READS=()
+            local WRITES=()
             for fs in "${IFSNAMES[@]}"
             do
                 if [ "$REMORA_VERBOSE" == "1" ]; then
                     echo "cat /proc/fs/lustre/{mdc,osc}/$fs*/stats | grep req_waittime | awk '{print \$2;}' | paste -sd+ | bc"
+                    echo "cat /proc/fs/lustre/llite/$fs*/stats | grep osc_read | awk '{print $2;}' | paste -sd+ | bc"
+                    echo "cat /proc/fs/lustre/llite/$fs*/stats | grep osc_write | awk '{print $2;}' | paste -sd+ | bc"
                 fi
                 COUNTER[$idx]=`cat /proc/fs/lustre/{mdc,osc}/$fs*/stats | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc`
+                READS[$idx]=`cat /proc/fs/lustre/llite/$fs*/stats | grep osc_read | awk '{print $2;}' | paste -sd+ | bc`
+                WRITES[$idx]=`cat /proc/fs/lustre/llite/$fs*/stats | grep osc_write | awk '{print $2;}' | paste -sd+ | bc`
 				idx=$((idx+1))
             done
-            printf "%-17d %-17d" $TIMESTAMP "${COUNTER[@]}" >> $2/lustre_$1.txt
-            printf "\n"  >> $2/lustre_$1.txt
+            printf "%-17d %-17d" $TIMESTAMP "${COUNTER[@]}" >> $2/lustre_io_$1.txt
+            printf "\n"  >> $2/lustre_io_$1.txt
+            printf "%-17d %-17d" $TIMESTAMP "${READS[@]}" >> $2/lustre_rd_$1.txt
+            printf "\n"  >> $2/lustre_rd_$1.txt
+            printf "%-17d %-17d" $TIMESTAMP "${WRITES[@]}" >> $2/lustre_wr_$1.txt
+            printf "\n"  >> $2/lustre_wr_$1.txt
         fi
     fi
 }
@@ -103,6 +113,7 @@ finalize_module_lustre()
     done
 
     # Identify shortest entry
+    # Checks all of io, rd and wr files
     min_len=0
     for file in `ls $2/lustre_*.txt`; do
        fs_col=2; len=0
@@ -116,30 +127,39 @@ finalize_module_lustre()
      done
 
     # Generate single file for a given time step
-    for i in `seq 2 $min_len`; do 
-      for file in `ls $2/lustre_*.txt`; do
-        sed "${i}q;d" $file >> $2/lustre.tmp
+    for op in io rd wr; do
+      for i in `seq 2 $min_len`; do 
+        for file in `ls $2/lustre_${op}_*.txt`; do
+          sed "${i}q;d" $file >> $2/lustre.tmp
+        done
+        col_id=2
+        time_stamp=`head -n 1 $2/lustre.tmp | awk '{print $1}'`
+        for FS in "${FSNAMES[@]}"; do
+          cat $2/lustre.tmp | tr -s ' ' | cut -d ' ' -f $col_id | awk -v ts="$time_stamp" '{sum+=$1} END {print ts " " sum}' >> $2/lustre_${op}.$FS
+          col_id=$((col_id+1))
+        done
+        rm $2/lustre.tmp
       done
-      col_id=2
-      time_stamp=`head -n 1 $2/lustre.tmp | awk '{print $1}'`
-      for FS in "${FSNAMES[@]}"; do
-        cat $2/lustre.tmp | tr -s ' ' | cut -d ' ' -f $col_id | awk -v ts="$time_stamp" '{sum+=$1} END {print ts " " sum}' >> $2/lustre.$FS
-        col_id=$((col_id+1))
-      done
-      rm $2/lustre.tmp
     done
 
     # Calculate actual data rates from raw counters
     min_len=$((min_len-1))
-    for file in `ls $2/lustre.*`; do
-      for i in `seq 1 $min_len`; do
-        next=$((i+1))
-        t1=`sed "${i}q;d" $file | awk '{ print $1 }'`
-        d1=`sed "${i}q;d" $file | awk '{ print $2 }'`
-        t2=`sed "${next}q;d" $file | awk '{ print $1 }'`
-        d2=`sed "${next}q;d" $file | awk '{ print $2 }'`
-        value=`echo "scale=4; ( $d2 - $d1 ) / ( $t2 - $t1 )" | bc`
-        printf "%-17d %-17f\n" $t1 $value >> $file.iops
+    for op in io rd wr; do
+      for file in `ls $2/lustre_${op}.*`; do
+        for i in `seq 1 $min_len`; do
+          next=$((i+1))
+          t1=`sed "${i}q;d" $file | awk '{ print $1 }'`
+          d1=`sed "${i}q;d" $file | awk '{ print $2 }'`
+          t2=`sed "${next}q;d" $file | awk '{ print $1 }'`
+          d2=`sed "${next}q;d" $file | awk '{ print $2 }'`
+          # NOTE 1/0 if t2=t1
+          if [ "$op" == "io" ]; then
+            value=`echo "scale=4; ( $d2 - $d1 ) / ( $t2 - $t1 )" | bc`
+          else
+            value=`echo "scale=4; ( $d2 - $d1 ) / ( 1000000* ( $t2 - $t1 ) )" | bc`
+          fi
+          printf "%-17d %-17f\n" $t1 $value >> $file.rate
+        done
       done
     done
   fi

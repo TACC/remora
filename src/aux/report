@@ -89,11 +89,13 @@ show_final_report() {
       file=$(ls $REMORA_OUTDIR/lustre_*.txt | awk '{print $1}' | head -n 1)
       for fs in `head -n 1 $file`; do
         if [ "$fs" != "TIMESTAMP" ]; then
-          if [ ! -r $REMORA_OUTDIR/lustre.$fs.iops ]; then
+          if [ ! -r $REMORA_OUTDIR/lustre_io.${fs}.rate ] || [ ! -r $REMORA_OUTDIR/lustre_rd.${fs}.rate ] || [ ! -r $REMORA_OUTDIR/lustre_wr.${fs}.rate ]; then
             sleep 5
           fi
-          fsiops=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print max}' $REMORA_OUTDIR/lustre.$fs.iops)         
-          printf "%-22s %-13s %-1s %-4.2f IO REQ/S\n" "REMORA: Max IO Load in" $fs ":" $fsiops
+          fsio=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print max}' $REMORA_OUTDIR/lustre_io.${fs}.rate)         
+          fsrd=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print max}' $REMORA_OUTDIR/lustre_rd.${fs}.rate)
+          fswr=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print max}' $REMORA_OUTDIR/lustre_wr.${fs}.rate)
+          printf "%-22s %-13s %-1s %-4.2f IO(REQ/S) %-4.2f RD(MB/S) %-4.2f WR(MB/S)\n" "REMORA: Max Load in" $fs ":" $fsio $fsrd $fswr
         fi
       done
     fi
