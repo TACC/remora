@@ -49,8 +49,10 @@ init_module_lustre()
                 idx=$((idx+1))
             done <<< "$FSS"
 
-            printf "%-17s %-17s" TIMESTAMP "${FSNAMES[@]}" >> $2/lustre_$1.txt
-            printf "\n"  >> $2/lustre_$1.txt
+            for op in io rd wr; do
+              printf "%-17s %-17s" TIMESTAMP "${FSNAMES[@]}" >> $2/lustre_${op}_$1.txt
+              printf "\n"  >> $2/lustre_${op}_$1.txt
+            done
         fi
     fi
 }
@@ -71,13 +73,13 @@ collect_data_lustre()
             for fs in "${IFSNAMES[@]}"
             do
                 if [ "$REMORA_VERBOSE" == "1" ]; then
-                    echo "cat /proc/fs/lustre/{mdc,osc}/$fs*/stats | grep req_waittime | awk '{print \$2;}' | paste -sd+ | bc"
+                    echo "cat /proc/fs/lustre/{mdc,osc}/$fs*/stats | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc"
                     echo "cat /proc/fs/lustre/llite/$fs*/stats | grep osc_read | awk '{print $2;}' | paste -sd+ | bc"
                     echo "cat /proc/fs/lustre/llite/$fs*/stats | grep osc_write | awk '{print $2;}' | paste -sd+ | bc"
                 fi
-                COUNTER[$idx]=`cat /proc/fs/lustre/{mdc,osc}/$fs*/stats | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc`
-                READS[$idx]=`cat /proc/fs/lustre/llite/$fs*/stats | grep osc_read | awk '{print $2;}' | paste -sd+ | bc`
-                WRITES[$idx]=`cat /proc/fs/lustre/llite/$fs*/stats | grep osc_write | awk '{print $2;}' | paste -sd+ | bc`
+                COUNTER[$idx]=`cat /proc/fs/lustre/{mdc,osc}/$fs*/stats | grep req_waittime | awk '{print $7;}' | paste -sd+ | bc`
+                READS[$idx]=`cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes | awk '{print $7;}' | paste -sd+ | bc`
+                WRITES[$idx]=`cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes | awk '{print $7;}' | paste -sd+ | bc`
 				idx=$((idx+1))
             done
             printf "%-17d %-17d" $TIMESTAMP "${COUNTER[@]}" >> $2/lustre_io_$1.txt
@@ -125,10 +127,10 @@ finalize_module_lustre()
          fs_col=$((fs_col+1))
        done
      done
-
+    
     # Generate single file for a given time step
     for op in io rd wr; do
-      for i in `seq 2 $min_len`; do 
+      for i in `seq 2 $min_len`; do
         for file in `ls $2/lustre_${op}_*.txt`; do
           sed "${i}q;d" $file >> $2/lustre.tmp
         done
@@ -146,6 +148,7 @@ finalize_module_lustre()
     min_len=$((min_len-1))
     for op in io rd wr; do
       for file in `ls $2/lustre_${op}.*`; do
+        echo "file=$file"
         for i in `seq 1 $min_len`; do
           next=$((i+1))
           t1=`sed "${i}q;d" $file | awk '{ print $1 }'`
@@ -153,11 +156,7 @@ finalize_module_lustre()
           t2=`sed "${next}q;d" $file | awk '{ print $1 }'`
           d2=`sed "${next}q;d" $file | awk '{ print $2 }'`
           # NOTE 1/0 if t2=t1
-          if [ "$op" == "io" ]; then
-            value=`echo "scale=4; ( $d2 - $d1 ) / ( $t2 - $t1 )" | bc`
-          else
-            value=`echo "scale=4; ( $d2 - $d1 ) / ( 1000000* ( $t2 - $t1 ) )" | bc`
-          fi
+          value=`echo "scale=6; ( $d2 - $d1 ) / ( 1000000.0 * ( $t2 - $t1 ) )" | bc`
           printf "%-17d %-17f\n" $t1 $value >> $file.rate
         done
       done
