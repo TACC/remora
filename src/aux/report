@@ -53,7 +53,7 @@ show_final_report() {
         low_mem=$(echo "$free_min_cpu < 2.0" | bc)        
         printf "%-32 %-1s %-4.2f GB\n" "REMORA: Max Memory Used Per Node" ":" $max_mem_used
         if [ "$low_mem" -eq "1" ]; then
-          printf "%-s %-4.2f GB\n" "REMORA: WARNING - Free memory per node close to zero ( %4.2f GB )\n" $free_min_cpu
+          printf "%-s %-4.2f GB\n" "REMORA: WARNING - Free memory per node close to zero" $free_min_cpu
         fi
         sed -i '1i #HOST     VIRT_MAX  RES_MAX  FREE_MIN' $REMORA_OUTDIR/mem_all_nodes.txt
     fi
@@ -65,7 +65,7 @@ show_final_report() {
         low_mem=$(echo "$free_min_mic < 1.0" | bc)
         printf "%-32s %-1s %-4.2f GB\n" "REMORA: Max Memory Used Per Phi" ":" $max_mem_used
         if [ "$low_mem" -eq "1" ]; then
-          printf "%-s %-4.2f GB\n" "REMORA: WARNING - Free memory per Phi close to zero ( %4.2f GB )\n" $free_min_mic
+          printf "%-s %-4.2f GB\n" "REMORA: WARNING - Free memory per Phi close to zero" $free_min_mic
         fi
         sed -i '1i #HOST     VIRT_MAX  RES_MAX  FREE_MIN' $REMORA_OUTDIR/mem_all_nodes_mic.txt
     fi
@@ -76,7 +76,7 @@ show_final_report() {
         low_mem=$(echo "$free_min_gpu < 1.0" | bc)  
         printf "%-32s %-1s %-4.2f GB\n" "REMORA: Max Memory Used Per GPU" ":" $max_mem_used
         if [ "$low_mem" -eq "1" ]; then
-          printf "%-s %-4.2f GB\n" "REMORA: WARNING - Free memory per GPU close to zero ( %4.2f GB )\n" $free_min_gpu
+          printf "%-s %-4.2f GB\n" "REMORA: WARNING - Free memory per GPU close to zero" $free_min_gpu
         fi
         sed -i '1i #HOST     MAX  FREE_MIN' $REMORA_OUTDIR/mem_all_nodes_gpu.txt
     fi
