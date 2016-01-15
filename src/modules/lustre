@@ -105,7 +105,6 @@ finalize_module_lustre()
 {
   REMORA_NODE_ID=$3
   if [ "$REMORA_NODE_ID" == "0" ]; then 
-    time1=`date +%s`
     # Get names from lustre.txt file headers
     FSS=`df --type=lustre -P`
     local idx=0
@@ -132,24 +131,15 @@ finalize_module_lustre()
          fs_col=$((fs_col+3))
        done
      done
-    
-    # Generate single file for a given time step
-    for i in `seq 2 $min_len`; do
-      for file in `ls $2/lustre_*.txt`; do
-        #sed "${i}q;d" $file >> $2/lustre.tmp
-        sed "${i}q;d" $file >> /dev/shm/lustre.tmp
-      done
-      col_id=2
-      #time_stamp=`head -n 1 $2/lustre.tmp | awk '{print $1}'`
-      time_stamp=`head -n 1 /dev/shm/lustre.tmp | awk '{print $1}'`
-      for FS in "${FSNAMES[@]}"; do
-        #cat $2/lustre.tmp | tr -s ' ' | cut -d ' ' -f $col_id,$((col_id+1)),$((col_id+2)) | awk -v ts="$time_stamp" '{iops+=$1; rd+=$2; wr+=$3} END {print ts " " iops " " rd " " wr}' >> $2/lustre.$FS
-        cat /dev/shm/lustre.tmp | tr -s ' ' | cut -d ' ' -f $col_id,$((col_id+1)),$((col_id+2)) | awk -v ts="$time_stamp" '{iops+=$1; rd+=$2; wr+=$3} END {print ts " " iops " " rd " " wr}' >> $2/lustre.$FS
-        col_id=$((col_id+3))
-      done
-      #rm $2/lustre.tmp
-      rm /dev/shm/lustre.tmp
+   
+    # Generate file with aggregate counts from all nodes
+    awk '{NR>1; a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=1; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $2/lustre_*.txt > $2/lustre.tmp
+    col_id=2
+    for FS in "${FSNAMES[@]}"; do
+      cut -d ' ' -f 1,$col_id,$((col_id+1)),$((col_id+2)) $2/lustre.tmp > $2/lustre.$FS
+      col_id=$((col_id+3))
     done
+    rm $2/lustre.tmp
 
     # Calculate actual data rates from raw counters
     # $1 = time; $2 = iopsi (usec); $3 = read (bytes); $4 = write (bytes)
@@ -166,7 +156,5 @@ finalize_module_lustre()
         printf "%-17d %-17f %-17f %-17f\n" ${d1[0]} $fsio $fsrd $fswr >> $file.rate
       done
     done
-    time2=`date +%s`
-    echo "luster processing took $((time2-time1)) seconds"
   fi
 }
