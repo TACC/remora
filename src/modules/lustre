@@ -32,9 +32,12 @@ init_module_lustre()
             #and the names of the mounts (FSNAMES)
             FSS=`df --type=lustre -P`
             local MOUNTS=()
-            local idx=0
+            local idx=0; local hdx=0
             IFSNAMES=()
             FSNAMES=()
+            HEADER=()
+            HEADER[$hdx]=`echo TIMESTAMP`
+            hdx=$((hdx+1))
             while read -r line; do
                 if [ $idx == 0 ]; then
                     idx=$((idx+1))
@@ -43,16 +46,18 @@ init_module_lustre()
                 IFSNAMES[$idx-1]=`echo $line  | sed 's/.*:\///' | awk '{print $1;}'`
                 local TEMP=`echo $line | sed 's/.*:\///' | awk '{print $6;}'`
                 FSNAMES[$idx-1]=`echo "${TEMP////}"`
+                HEADER[$hdx]=`echo "${FSNAMES[$idx-1]}-RQ"`
+                HEADER[$hdx+1]=`echo "${FSNAMES[$idx-1]}-RD"`
+                HEADER[$hdx+2]=`echo "${FSNAMES[$idx-1]}-WR"`
                 if [ "$REMORA_VERBOSE" == "1" ]; then
                     echo ${IFSNAMES[$idx-1]} ${FSNAMES[$idx-1]}
                 fi
                 idx=$((idx+1))
+                hdx=$((hdx+3))
             done <<< "$FSS"
 
-            for op in io rd wr; do
-              printf "%-17s %-17s" TIMESTAMP "${FSNAMES[@]}" >> $2/lustre_${op}_$1.txt
-              printf "\n"  >> $2/lustre_${op}_$1.txt
-            done
+            printf "%-17s"  "${HEADER[@]}" >> $2/lustre_$1.txt
+            printf "\n"  >> $2/lustre_$1.txt
         fi
     fi
 }
@@ -68,26 +73,23 @@ collect_data_lustre()
             local TIMESTAMP=`date +%s`
             local idx=0
             local COUNTER=()
-            local READS=()
-            local WRITES=()
+            col_id=0
             for fs in "${IFSNAMES[@]}"
             do
                 if [ "$REMORA_VERBOSE" == "1" ]; then
-                    echo "cat /proc/fs/lustre/{mdc,osc}/$fs*/stats | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc"
-                    echo "cat /proc/fs/lustre/llite/$fs*/stats | grep osc_read | awk '{print $2;}' | paste -sd+ | bc"
-                    echo "cat /proc/fs/lustre/llite/$fs*/stats | grep osc_write | awk '{print $2;}' | paste -sd+ | bc"
+                    echo "cat /proc/fs/lustre/{mdc,osc}/$fs*/stats | grep req_waittime | awk '{print $7;}' | paste -sd+ | bc"
+                    echo "cat /proc/fs/lustre/llite/$fs*/stats | grep osc_read | awk '{print $7;}' | paste -sd+ | bc"
+                    echo "cat /proc/fs/lustre/llite/$fs*/stats | grep osc_write | awk '{print $7;}' | paste -sd+ | bc"
                 fi
-                COUNTER[$idx]=`cat /proc/fs/lustre/{mdc,osc}/$fs*/stats | grep req_waittime | awk '{print $7;}' | paste -sd+ | bc`
-                READS[$idx]=`cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes | awk '{print $7;}' | paste -sd+ | bc`
-                WRITES[$idx]=`cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes | awk '{print $7;}' | paste -sd+ | bc`
-				idx=$((idx+1))
+                COUNTER[$col_id]=`cat /proc/fs/lustre/{mdc,osc}/$fs*/stats | grep req_waittime | awk '{print $7;}' | paste -sd+ | bc`
+                COUNTER[$((col_id+1))]=`cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes | awk '{print $7;}' | paste -sd+ | bc`
+                COUNTER[$((col_id+2))]=`cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes | awk '{print $7;}' | paste -sd+ | bc`
+				col_id=$((col_id+3))
             done
-            printf "%-17d %-17d" $TIMESTAMP "${COUNTER[@]}" >> $2/lustre_io_$1.txt
-            printf "\n"  >> $2/lustre_io_$1.txt
-            printf "%-17d %-17d" $TIMESTAMP "${READS[@]}" >> $2/lustre_rd_$1.txt
-            printf "\n"  >> $2/lustre_rd_$1.txt
-            printf "%-17d %-17d" $TIMESTAMP "${WRITES[@]}" >> $2/lustre_wr_$1.txt
-            printf "\n"  >> $2/lustre_wr_$1.txt
+            # This will have TIMESTAMP FS1_IOPS FS1_READ FS1_WRITE FS2_IOPS FS2_READ FS2_WRITE ....
+            # in raw counters, not rates
+            printf "%-17d %-17d" $TIMESTAMP "${COUNTER[@]}" >> $2/lustre_$1.txt
+            printf "\n"  >> $2/lustre_$1.txt
         fi
     fi
 }
@@ -103,19 +105,22 @@ finalize_module_lustre()
 {
   REMORA_NODE_ID=$3
   if [ "$REMORA_NODE_ID" == "0" ]; then 
+    time1=`date +%s`
     # Get names from lustre.txt file headers
+    FSS=`df --type=lustre -P`
+    local idx=0
     FSNAMES=()
-    idx=0
-    file=$(ls $REMORA_OUTDIR/lustre_*.txt | awk '{print $1}' | head -n 1)
-    for fs in `head -n 1 $file`; do
-      if [ "$fs" != "TIMESTAMP" ]; then
-        FSNAMES[$idx]=$fs
+    while read -r line; do
+      if [ $idx == 0 ]; then
         idx=$((idx+1))
-      fi
-    done
+        continue
+      fi  
+      local TEMP=`echo $line | sed 's/.*:\///' | awk '{print $6;}'`
+      FSNAMES[$idx-1]=`echo "${TEMP////}"`
+      idx=$((idx+1))
+    done <<< "$FSS"
 
     # Identify shortest entry
-    # Checks all of io, rd and wr files
     min_len=0
     for file in `ls $2/lustre_*.txt`; do
        fs_col=2; len=0
@@ -124,42 +129,44 @@ finalize_module_lustre()
          if [ "$min_len" -eq "0" ] || [ "$len" -lt "$min_len" ]; then 
            min_len=$len
          fi
-         fs_col=$((fs_col+1))
+         fs_col=$((fs_col+3))
        done
      done
     
     # Generate single file for a given time step
-    for op in io rd wr; do
-      for i in `seq 2 $min_len`; do
-        for file in `ls $2/lustre_${op}_*.txt`; do
-          sed "${i}q;d" $file >> $2/lustre.tmp
-        done
-        col_id=2
-        time_stamp=`head -n 1 $2/lustre.tmp | awk '{print $1}'`
-        for FS in "${FSNAMES[@]}"; do
-          cat $2/lustre.tmp | tr -s ' ' | cut -d ' ' -f $col_id | awk -v ts="$time_stamp" '{sum+=$1} END {print ts " " sum}' >> $2/lustre_${op}.$FS
-          col_id=$((col_id+1))
-        done
-        rm $2/lustre.tmp
+    for i in `seq 2 $min_len`; do
+      for file in `ls $2/lustre_*.txt`; do
+        #sed "${i}q;d" $file >> $2/lustre.tmp
+        sed "${i}q;d" $file >> /dev/shm/lustre.tmp
       done
+      col_id=2
+      #time_stamp=`head -n 1 $2/lustre.tmp | awk '{print $1}'`
+      time_stamp=`head -n 1 /dev/shm/lustre.tmp | awk '{print $1}'`
+      for FS in "${FSNAMES[@]}"; do
+        #cat $2/lustre.tmp | tr -s ' ' | cut -d ' ' -f $col_id,$((col_id+1)),$((col_id+2)) | awk -v ts="$time_stamp" '{iops+=$1; rd+=$2; wr+=$3} END {print ts " " iops " " rd " " wr}' >> $2/lustre.$FS
+        cat /dev/shm/lustre.tmp | tr -s ' ' | cut -d ' ' -f $col_id,$((col_id+1)),$((col_id+2)) | awk -v ts="$time_stamp" '{iops+=$1; rd+=$2; wr+=$3} END {print ts " " iops " " rd " " wr}' >> $2/lustre.$FS
+        col_id=$((col_id+3))
+      done
+      #rm $2/lustre.tmp
+      rm /dev/shm/lustre.tmp
     done
 
     # Calculate actual data rates from raw counters
+    # $1 = time; $2 = iopsi (usec); $3 = read (bytes); $4 = write (bytes)
     min_len=$((min_len-1))
-    for op in io rd wr; do
-      for file in `ls $2/lustre_${op}.*`; do
-        echo "file=$file"
-        for i in `seq 1 $min_len`; do
-          next=$((i+1))
-          t1=`sed "${i}q;d" $file | awk '{ print $1 }'`
-          d1=`sed "${i}q;d" $file | awk '{ print $2 }'`
-          t2=`sed "${next}q;d" $file | awk '{ print $1 }'`
-          d2=`sed "${next}q;d" $file | awk '{ print $2 }'`
-          # NOTE 1/0 if t2=t1
-          value=`echo "scale=6; ( $d2 - $d1 ) / ( 1000000.0 * ( $t2 - $t1 ) )" | bc`
-          printf "%-17d %-17f\n" $t1 $value >> $file.rate
-        done
+    local d1=(); local d2=()
+    for file in `ls $2/lustre.*`; do
+      for i in `seq 1 $min_len`; do
+        next=$((i+1))
+        d1=(`sed "${i}q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4}'`)
+        d2=(`sed "${next}q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4 }'`)
+        fsio=`echo "scale=6; ( ${d2[1]} - ${d1[1]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
+        fsrd=`echo "scale=6; ( ${d2[2]} - ${d1[2]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
+        fswr=`echo "scale=6; ( ${d2[3]} - ${d1[3]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
+        printf "%-17d %-17f %-17f %-17f\n" ${d1[0]} $fsio $fsrd $fswr >> $file.rate
       done
     done
+    time2=`date +%s`
+    echo "luster processing took $((time2-time1)) seconds"
   fi
 }
