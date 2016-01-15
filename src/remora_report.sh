@@ -33,8 +33,6 @@ REMORA_PARALLEL=$7
 REMORA_VERBOSE=$8
 REMORA_BIN=$9
 
-echo "PERIOD=$REMORA_EFFECTIVE_PERIOD"
-
 #Source the script that has the modules' functionality
 source $REMORA_BIN/modules/modules_utils
 
