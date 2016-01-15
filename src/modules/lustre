@@ -64,8 +64,23 @@ init_module_lustre()
 
 collect_data_lustre()
 {
-    # cat /proc/fs/lustre/{mdc,osc}/scratch*/stats | grep waittime | awk '{print $2;}' | paste -sd+ | bc
-    # The values scratch, home, gsfs come from "df --type=lustre"
+# Here we use lustre stat files, which are user-readable
+# We use req_waittime rather than req_active becasue empirical testing 
+# indicates that IOPS are more accurately reported by this counter.
+#
+# Most entries are like this:
+# {name of statistic} {count of events} samples [{units}] {minimum value} {maximum value} {sum of values}
+# But some include an extra element:
+# {name of statistic} {count of events} samples [{units}] {minimum value} {maximum value} {sum of values} {sum of value squared}
+#
+# cat /proc/fs/lustre/mdc/home*/stats
+# snapshot_time             1452890000.568766 secs.usecs
+# req_waittime              3851885 samples [usec] 37 49056921 800336413 2410726275303557
+#
+# cat /proc/fs/lustre/llite/home*/stats
+# snapshot_time             1452890065.50567 secs.usecs
+# read_bytes                1364393 samples [bytes] 1 4194304 336228258590
+# write_bytes               7771 samples [bytes] 1 315502 5346139
 
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" = "FULL" ]; then
@@ -78,8 +93,8 @@ collect_data_lustre()
             do
                 if [ "$REMORA_VERBOSE" == "1" ]; then
                     echo "cat /proc/fs/lustre/{mdc,osc}/$fs*/stats | grep req_waittime | awk '{print $7;}' | paste -sd+ | bc"
-                    echo "cat /proc/fs/lustre/llite/$fs*/stats | grep osc_read | awk '{print $7;}' | paste -sd+ | bc"
-                    echo "cat /proc/fs/lustre/llite/$fs*/stats | grep osc_write | awk '{print $7;}' | paste -sd+ | bc"
+                    echo "cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes | awk '{print $7;}' | paste -sd+ | bc"
+                    echo "cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes | awk '{print $7;}' | paste -sd+ | bc"
                 fi
                 COUNTER[$col_id]=`cat /proc/fs/lustre/{mdc,osc}/$fs*/stats | grep req_waittime | awk '{print $7;}' | paste -sd+ | bc`
                 COUNTER[$((col_id+1))]=`cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes | awk '{print $7;}' | paste -sd+ | bc`
