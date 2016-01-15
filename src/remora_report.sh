@@ -25,7 +25,7 @@
 #Initialize variables specific to certain modules here
 REMORA_NODE=$1
 REMORA_OUTDIR=$2
-REMORA_PERIOD=$3
+REMORA_EFFECTIVE_PERIOD=$3
 REMORA_SYMMETRIC=$4
 REMORA_MODE=$5
 REMORA_CUDA=$6
@@ -33,6 +33,7 @@ REMORA_PARALLEL=$7
 REMORA_VERBOSE=$8
 REMORA_BIN=$9
 
+echo "PERIOD=$REMORA_EFFECTIVE_PERIOD"
 
 #Source the script that has the modules' functionality
 source $REMORA_BIN/modules/modules_utils
@@ -49,5 +50,5 @@ do
     if [ "$REMORA_VERBOSE" == "1" ]; then
         echo "sleep $REMORA_PERIOD"
     fi
-    sleep $REMORA_PERIOD
+    sleep $REMORA_EFFECTIVE_PERIOD
 done

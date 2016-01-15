@@ -24,7 +24,7 @@
 #Initialize variables specific to certain modules here
 REMORA_MIC=$1
 REMORA_OUTDIR=$2
-REMORA_PERIOD=$3
+REMORA_EFFECTIVE_PERIOD=$3
 REMORA_SYMMETRIC=$4
 REMORA_MODE=$5
 REMORA_PARALLEL=$6
@@ -75,6 +75,6 @@ do
 
 	echo $current_time $vmem_max $vmem $rmem_max $rmem $shmem $mem_free $tmem_max >> $REMORA_OUTDIR/mem_stats_$REMORA_MIC.txt
 
-  sleep $REMORA_PERIOD
+  sleep $REMORA_EFFECTIVE_PERIOD
 
 done

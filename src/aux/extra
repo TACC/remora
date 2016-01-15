@@ -51,7 +51,7 @@ function show_time () {
   else
     ((sec=num))
   fi
-  printf "%-36s %-1s %d%s %d%s %d%s %d%s %d%s\n" "REMORA: Total Elapsed Time" ":" $day "d" $hour "h" $min "m" $sec "s" $milisec "ms"
+  printf "%-32s %-1s %d%s %d%s %d%s %d%s %d%s\n" "REMORA: Total Elapsed Time" ":" $day "d" $hour "h" $min "m" $sec "s" $milisec "ms"
 }
 
 
@@ -146,6 +146,15 @@ check_gpu() {
         fi
         export REMORA_CUDA=0
     fi
+}
+
+check_cpu() {
+# Check if CPU module is active
+  if [ `grep cpu $REMORA_BIN/config/modules` ]; then 
+    export REMORA_EFFECTIVE_PERIOD=$((REMORA_PERIOD-1))
+  else
+    export REMORA_EFFECTIVE_PERIOD=$REMORA_PERIOD
+  fi
 }
 
 init_folders() {

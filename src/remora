@@ -69,7 +69,6 @@ fi
 #process (REMORA_TOP_PID)
 trap "exit 1" TERM
 export REMORA_TOP_PID=$$
-export REMORA_MASTER=1
 
 SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
 SCRIPT_NAME="$(basename ${0})"
@@ -104,6 +103,7 @@ LID=()
 
 capture_environment
 
+check_cpu
 
 # Start data collection
 #This is needed by the network module. We should move it, but I don't know where
@@ -128,7 +128,7 @@ do
   #This is the core of REMORA. It connects to all the nodes allocated to this job and runs the remora_report.sh script
   #remora_report.sh will run an infinite loop where, in each iteration of the loop, it calls the different modules
   #that are available (specified in the configuration file)
-  COMMAND="$REMORA_BIN/remora_report.sh $NODE $REMORA_OUTDIR $REMORA_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_CUDA $REMORA_PARALLEL $REMORA_VERBOSE $REMORA_BIN > $REMORA_OUTDIR/.remora_out_$NODE & echo \$!"
+  COMMAND="$REMORA_BIN/remora_report.sh $NODE $REMORA_OUTDIR $REMORA_EFFECTIVE_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_CUDA $REMORA_PARALLEL $REMORA_VERBOSE $REMORA_BIN > $REMORA_OUTDIR/.remora_out_$NODE & echo \$!"
 
   if [ "$REMORA_VERBOSE" == "1" ]; then
     echo ""
@@ -143,7 +143,7 @@ do
 
   #Repeat the same for the MIC
   if [ "$REMORA_SYMMETRIC" == "1" ]; then
-    COMMAND="$REMORA_BIN/remora_report_mic.sh ${NODE}-mic0 $REMORA_OUTDIR $REMORA_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_PARALLEL $REMORA_VERBOSE $REMORA_BIN > $REMORA_OUTDIR/.remora_out_$NODE-mic0  &  echo \$! "
+    COMMAND="$REMORA_BIN/remora_report_mic.sh ${NODE}-mic0 $REMORA_OUTDIR $REMORA_EFFECTIVE_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_PARALLEL $REMORA_VERBOSE $REMORA_BIN > $REMORA_OUTDIR/.remora_out_$NODE-mic0  &  echo \$! "
     if [ "$REMORA_VERBOSE" == "1" ]; then
         echo "ssh -q -f -n $NODE-mic0 $COMMAND"
     fi
