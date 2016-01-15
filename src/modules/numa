@@ -31,22 +31,22 @@ init_module_numa()
 collect_data_numa()
 {
     #Get a timestamp in seconds for this data sample
-    TIMESTAMP=`date +%s`
+    local TIMESTAMP=`date +%s`
     # NUMA statistics
-    numStat=`numastat -c`
-    node0_numahit=`echo $numStat | awk '{ print $17; }'` #Memory successfully allocated on this node as intended
-    node1_numahit=`echo $numStat | awk '{ print $16; }'`
-    node0_numamiss=`echo $numStat | awk '{ print $19; }'` #Memory allocated on this node, although the process preferred another
-    node1_numamiss=`echo $numStat | awk '{ print $20; }'`
-    node0_numalocal=`echo $numStat | awk '{ print $31; }'` #Memory allocated on this node while the process was running on it
-    node1_numalocal=`echo $numStat | awk '{ print $32; }'`
-    node0_numaother=`echo $numStat | awk '{ print $35; }'` #Memory allocated on this node while the process was running on another node
-    node1_numaother=`echo $numStat | awk '{ print $36; }'`
-    numMem=`numastat -m | grep Mem`
-    node0_memfree=`echo $numMem | awk '{ print $6; }'`  #Memory available on this node
-    node1_memfree=`echo $numMem | awk '{ print $7; }'`
-    node0_memused=`echo $numMem | awk '{ print $10; }'` #Memory used on this node
-    node1_memused=`echo $numMem | awk '{ print $11; }'`
+    local numStat=`numastat -c`
+    local node0_numahit=`echo $numStat | awk '{ print $17; }'` #Memory successfully allocated on this node as intended
+    local node1_numahit=`echo $numStat | awk '{ print $16; }'`
+    local node0_numamiss=`echo $numStat | awk '{ print $19; }'` #Memory allocated on this node, although the process preferred another
+    local node1_numamiss=`echo $numStat | awk '{ print $20; }'`
+    local node0_numalocal=`echo $numStat | awk '{ print $31; }'` #Memory allocated on this node while the process was running on it
+    local node1_numalocal=`echo $numStat | awk '{ print $32; }'`
+    local node0_numaother=`echo $numStat | awk '{ print $35; }'` #Memory allocated on this node while the process was running on another node
+    local node1_numaother=`echo $numStat | awk '{ print $36; }'`
+    local numMem=`numastat -m | grep Mem`
+    local node0_memfree=`echo $numMem | awk '{ print $6; }'`  #Memory available on this node
+    local node1_memfree=`echo $numMem | awk '{ print $7; }'`
+    local node0_memused=`echo $numMem | awk '{ print $10; }'` #Memory used on this node
+    local node1_memused=`echo $numMem | awk '{ print $11; }'`
     printf "%-17d %-17d %-17d %-17d %-17d %-17f %-17f %-17d %-17d %-17d %-17d %-17f %-17f\n" $TIMESTAMP $node0_numahit $node0_numamiss $node0_numalocal $node0_numaother $node0_memfree $node0_memused $node1_numahit $node1_numamiss $node1_numalocal $node1_numaother $node1_memfree $node1_memused >> $2/numa_stats_$1.txt
 }
 

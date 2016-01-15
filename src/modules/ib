@@ -27,7 +27,7 @@ init_module_ib()
 {
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" = "FULL" ]; then
-            packets=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`
+            remora_ib_packets=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`
         fi
     fi
 }
@@ -36,10 +36,10 @@ collect_data_ib()
 {
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" = "FULL" ]; then
-            TIMESTAMP=`date +%s`
-            newpackets=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`
-            printf "%d %10d\n" $TIMESTAMP $((newpackets-packets)) >> $2/ib_xmit_packets-$1.txt
-            packets=$newpackets
+            local TIMESTAMP=`date +%s`
+            local newpack=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`
+            printf "%d %10d\n" $TIMESTAMP $((newpack-remora_ib_packets)) >> $2/ib_xmit_packets-$1.txt
+            remora_ib_packets=$newpack
         fi
     fi
 }

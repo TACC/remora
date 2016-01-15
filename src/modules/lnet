@@ -32,8 +32,8 @@ init_module_lnet()
 
 collect_data_lnet()
 {
-    TIMESTAMP=`date +%s`
-    lnetstats=`cat /proc/sys/lnet/stats`
+    local TIMESTAMP=`date +%s`
+    local lnetstats=`cat /proc/sys/lnet/stats`
     printf "%-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d\n" $TIMESTAMP $lnetstats >> $2/lnet_counters-$1.txt
 }
 
