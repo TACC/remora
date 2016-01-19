@@ -86,7 +86,7 @@ show_final_report() {
 
     #Show Maximum IO Requests/S to all MDS servers (H-Home, S-Scratch, W-Work)
     if [ "$REMORA_MODE" == "FULL" ]; then
-      file=$(ls $REMORA_OUTDIR/lustre_*.txt | awk '{print $1}' | head -n 1)
+      file=$(ls $REMORA_OUTDIR/lustre_*.txt | awk '{print $1}' )
       idx=2
       for i in `head -n 1 $file`; do 
         idx=$((idx+1)); isfs=$(echo "$idx % 3" | bc); 

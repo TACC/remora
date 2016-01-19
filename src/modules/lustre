@@ -148,7 +148,7 @@ finalize_module_lustre()
      done
    
     # Generate file with aggregate counts from all nodes
-    awk '{NR>1; a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=1; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $2/lustre_*.txt > $2/lustre.tmp
+    awk 'FNR>1 {a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=2; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $2/lustre_*.txt > $2/lustre.tmp
     col_id=2
     for FS in "${FSNAMES[@]}"; do
       cut -d ' ' -f 1,$col_id,$((col_id+1)),$((col_id+2)) $2/lustre.tmp > $2/lustre.$FS
