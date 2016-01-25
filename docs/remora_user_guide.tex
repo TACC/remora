@@ -114,7 +114,7 @@ Throughout the text we have used text boxes to highlight important information. 
 
 Our intention is to create a simple runtime resource monitoring tool that provides both simple to understand high level information to the user, as well as detailed statistics for in-depth analysis. We welcome all feedback. Feedback that includes suggestions for improvement in the usability, reliability, and accuracy of this tool is particularly welcome. 
 
-Version 1.4.0 is a new release that adds a modular design that allows to easily configure the functionality available on each site as well as a simple addition of new functionality to the tool.
+Version 1.4.0 is a new release that adds a modular design that allows to easily configure the functionality available on each site as well as a simple addition of new functionality to the tool. In this release REMORA has also become independent of XLTOP, so Lustre IO data may be captured without the need to install and run third party tools.
 
 Remora is an open-source project. Funding to keep researchers working on Remora depends on the value of this tool to the scientific community. We would appreciate if you could include the following citation in your scientific articles:
 
@@ -236,6 +236,61 @@ Our tool collects information regarding the data transferred by Lustre on each n
 
 \paragraph{InfiniBand Packets}
 Number of packets transmitted using InfiniBand. This data can be used to get extra information regarding how the communication in parallel applications takes place. In particular, the time series can be used to correlate high network activity levels with sections of the code, and those sections can be revised for possible optimization.
+
+\FloatBarrier
+\section{Modular Design}
+REMORA presents a modular design that makes it easy to modify and extend the functionality 
+provided by the tool. For example, currently REMORA supports
+the Lustre file system, but there are HPC systems that use other types of file systems.
+Data collection for those file systems can be incorporated into REMORA in a straightforward
+manner due to its modular design.
+
+This design allows the automatic discovery of new functionality by means of a configuration
+file that is read during REMORA startup. This configuration file contains
+a list of module names to activate. Typically, each of these modules collects a 
+different type of statistic. The tool will read each line and will load a
+script file with the same name specified in the configuration file. The script file needs
+to implement at least four functions: initialization, data collection, post-processing, and 
+finalization.
+
+Developers of new modules may define other functions,
+but they will have to be called from one of the four required functions. The initialization,
+post-processing and finalization functions are called only once during the execution of the
+tool, while the data collection method will be called by REMORA on each time step.
+
+If the default configuration file includes, for example, a line with the text \textit{cpu}.
+This line indicates there will be a script with the file name \textit{cpu}. This script
+is responsible for collecting the data regarding CPU utilization on each one of the
+nodes used by the application. The script defines the following functions:
+
+\begin{itemize}
+	\item init\_module\_cpu
+	\item collect\_data\_cpu
+	\item process\_data\_cpu
+	\item finalize\_module\_cpu
+\end{itemize}
+
+Developing a new module following this model is a task that can be performed without understanding 
+the infrastructure that calls the different modules.
+This makes it simple to extend REMORAS's functionality to
+support additional data collection and processing. If a new module is being developed with 
+name \textit{new\_module}, a file named \textit{new\_module} will need to be created with at 
+least the following functions:
+
+\begin{itemize}
+	\item init\_module\_new\_module
+	\item collect\_data\_new\_module
+	\item process\_data\_new\_module
+	\item finalize\_module\_new\_module
+\end{itemize}
+
+In order to activate \emph{new\_module}, the configuration file will need to include a line
+with the text \textit{new\_module}. Functions may be left empty. Typically, the majority of 
+a module's functionality will be implemented in the data collection module.
+
+This design also makes it straightforward to deactivate existing modules.
+Simply by not including a module name in the configuration file will de-activate the module at runtime
+
 
 \FloatBarrier
 \chapter{Using Remora}

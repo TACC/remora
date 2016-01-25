@@ -1,6 +1,6 @@
 # Change Log
 
-## [Unreleased 1.4.0]
+## [1.4.0] - 2016-01-25
 
 Improved the format of the output files. The columns have a fixed width so that they are easier to read.
 Implemented a modular design, where all the data captured by REMORA is done by independent scripts in the
