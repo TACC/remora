@@ -11,7 +11,7 @@
 #% remora_remote_post.sh NODE_NAME OUTDIR REMORA_BIN
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.4
+#-      version     REMORA 1.5
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
@@ -20,6 +20,7 @@
 #  HISTORY
 #       2015/08/12: Initial version
 #       2015/12/08: Version 1.4. Modular design.
+#       2016/01/24: Version 1.5. Separate dir for tmp files.
 #========================================================================
 
 #Initialize variables specific to certain modules here

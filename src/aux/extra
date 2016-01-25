@@ -11,7 +11,7 @@
 #% This script provides extra functionality used by REMORA
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.4
+#-      version     REMORA 1.5
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
@@ -163,18 +163,23 @@ init_folders() {
     REMORA_OUTDIR=$CWD/remora_$REMORA_JOB_ID
     mkdir -p $REMORA_OUTDIR
     rm -rf $REMORA_OUTDIR/*
+    # Determine directory for temporary files
+    if [ -z "$REMORA_TMPDIR" ]; then
+        export REMORA_TMPDIR=$REMORA_OUTDIR
+    fi
 }
 
 capture_environment() {
     #Text file containing job report environmental variables and start-end timestamp
     date >> $REMORA_OUTDIR/vars.txt
     echo "" >> $REMORA_OUTDIR/vars.txt
-    echo "REMORA_PERIOD  :  $REMORA_PERIOD"    >> $REMORA_OUTDIR/vars.txt
-    echo "REMORA_VERBOSE :  $REMORA_VERBOSE"   >> $REMORA_OUTDIR/vars.txt
-    echo "REMORA_MODE    :  $REMORA_MODE"      >> $REMORA_OUTDIR/vars.txt
-    echo "REMORA_CUDA    :  $REMORA_CUDA"      >> $REMORA_OUTDIR/vars.txt
-    echo "REMORA_PARALLEL:  $REMORA_PARALLEL"  >> $REMORA_OUTDIR/vars.txt
-    echo "REMORA_SYMMETRIC: $REMORA_SYMMETRIC" >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_TMPDIR    : $REMORA_TMPDIR"    >> $REMORA_OUTDIR/vars.txt 
+    echo "REMORA_PERIOD    : $REMORA_PERIOD"    >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_VERBOSE   : $REMORA_VERBOSE"   >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_MODE      : $REMORA_MODE"      >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_CUDA      : $REMORA_CUDA"      >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_PARALLEL  : $REMORA_PARALLEL"  >> $REMORA_OUTDIR/vars.txt
+    echo "REMORA_SYMMETRIC : $REMORA_SYMMETRIC" >> $REMORA_OUTDIR/vars.txt
 
     #Dump environment during run
     env > $REMORA_OUTDIR/env.txt

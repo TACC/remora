@@ -31,13 +31,14 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.4
+#-      version     REMORA 1.5
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
 #
 #========================================================================
 #  HISTORY
+#		2016/01/25: Added alternative location for temp files
 #       2015/12/09: Implemented a modular design
 #       2015/11/21: Removing TACC specific data
 #       2015/09/09: Using python parser for file system data
@@ -128,7 +129,7 @@ do
   #This is the core of REMORA. It connects to all the nodes allocated to this job and runs the remora_report.sh script
   #remora_report.sh will run an infinite loop where, in each iteration of the loop, it calls the different modules
   #that are available (specified in the configuration file)
-  COMMAND="$REMORA_BIN/remora_report.sh $NODE $REMORA_OUTDIR $REMORA_EFFECTIVE_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_CUDA $REMORA_PARALLEL $REMORA_VERBOSE $REMORA_BIN > $REMORA_OUTDIR/.remora_out_$NODE & echo \$!"
+  COMMAND="$REMORA_BIN/remora_report.sh $NODE $REMORA_TMPDIR $REMORA_EFFECTIVE_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_CUDA $REMORA_PARALLEL $REMORA_VERBOSE $REMORA_BIN > $REMORA_OUTDIR/.remora_out_$NODE & echo \$!"
 
   if [ "$REMORA_VERBOSE" == "1" ]; then
     echo ""
@@ -168,6 +169,10 @@ END=$(date +%s%N)
 
 #Once the application has finished, we have to kill the background remora_report and
 #remora_report_mic that are running on all the nodes
+for NODE in $NODES
+do
+  scp $NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR
+done
 
 # Kill memory usage collection process
 idx=0
