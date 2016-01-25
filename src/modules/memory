@@ -28,6 +28,7 @@ init_module_memory()
     vmem_max_global=0
     rmem_max_global=0
     tmem_max_global=0
+    rm -f $2/mem*
     printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "#TIME" "VMEM_MAX" "VMEM" "RMEM_MAX" "RMEM" "SHMEM" "MEM_FREE" "TMEM_MAX"> $2/mem_stats_$1.txt
 }
 
@@ -39,11 +40,11 @@ collect_data_memory()
     shmem_used=`du /dev/shm 2>/dev/null | tail -n 1 | awk '{print $1} '`
     shmem=$(echo "scale=4; $shmem_used/(1024*1024)" | bc)
 
-    for i in `ps -u $USER | awk 'NR > 1 {print $1}'`; do cat /proc/$i/status 2> /dev/null 1>> $2/remora.mem; done
-    vmem_max=$(grep VmPeak /tmp/remora.mem | awk '{sum+=$2} END {print sum/1024/1024}')
-    rmem_max=$(grep VmHWM /tmp/remora.mem  | awk '{sum+=$2} END {print sum/1024/1024}')
-    vmem=$(grep VmSize /tmp/remora.mem | awk '{sum+=$2} END {print sum/1024/1024}')
-    rmem=$(grep VmRSS /tmp/remora.mem  | awk '{sum+=$2} END {print sum/1024/1024}')
+    for i in `ps -u $USER | awk 'NR > 1 {print $1}'`; do cat /proc/$i/status 2> /dev/null 1>> $2/mem_$1.tmp; done
+    vmem_max=$(grep VmPeak $2/mem_$1.tmp | awk '{sum+=$2} END {print sum/1024/1024}')
+    rmem_max=$(grep VmHWM  $2/mem_$1.tmp  | awk '{sum+=$2} END {print sum/1024/1024}')
+    vmem=$(grep VmSize $2/mem_$1.tmp | awk '{sum+=$2} END {print sum/1024/1024}')
+    rmem=$(grep VmRSS  $2/mem_$1.tmp  | awk '{sum+=$2} END {print sum/1024/1024}')
     mem_free=`grep MemFree /proc/meminfo | awk '{ print $2/1024/1024 }'`
     tmem=$(echo "$rmem + $shmem" | bc)
     if [ $(echo "$vmem_max > $vmem_max_global" | bc) -eq 1 ]; then
@@ -56,7 +57,7 @@ collect_data_memory()
         tmem_max_global=$tmem
     fi
     printf "%-17d %-17f %-17f %-17f %-17f %-17f %-17f %-17f\n" $TIMESTAMP $vmem_max_global $vmem $rmem_max_global $rmem $shmem $mem_free $tmem_max_global >> $2/mem_stats_$1.txt
-    rm $2/remora.mem
+    rm $2/mem_$1.tmp
 }
 
 # This function might perform some processing on the data.

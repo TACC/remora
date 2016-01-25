@@ -26,7 +26,7 @@
 
 init_module_cpu()
 {
-  :
+  rm -f $2/cpu*
 }
 
 collect_data_cpu()

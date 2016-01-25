@@ -171,6 +171,9 @@ END=$(date +%s%N)
 #remora_report_mic that are running on all the nodes
 for NODE in $NODES
 do
+  if [ "$REMORA_VERBOSE" == "1" ]; then
+    echo "$NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR"
+  fi
   scp $NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR
 done
 
