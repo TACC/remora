@@ -35,25 +35,28 @@ show_final_report() {
     # Write time the run ended
     echo "" >> $REMORA_OUTDIR/vars.txt; date >> $REMORA_OUTDIR/vars.txt
 
-    echo "=============================================================================="
+    local bar="------------------------------------------------------------------------------"
+    local dbar="=============================================================================="
+
+    echo "=============================== REMORA SUMMARY ===============================" | tee -a $REMORA_OUTDIR/summary.txt
 # Print memory usage to stdout
 #I can't think of a case were virtual would be less than resident, so let's report only virtual in stdout (which triggers OOM killer)..
     if [ "$REMORA_CUDA" == "0" ]; then
         max_mem_used=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print max}' $REMORA_OUTDIR/mem_all_nodes.txt)
         free_min_cpu=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print 32.0-max}' $REMORA_OUTDIR/mem_all_nodes.txt)
         low_mem=$(echo "$free_min_cpu < 2.0" | bc)
-        printf "%-32s %-1s %-4.2f GB\n" "REMORA: Max Memory Used Per Node" ":" $max_mem_used 
+        printf "%-29s %-1s %-4.2f GB\n" " Max Memory Used Per Node" ":" $max_mem_used  | tee -a $REMORA_OUTDIR/summary.txt
         if [ "$low_mem" -eq "1" ]; then
-          printf "%-s %-4.2f GB\n" "REMORA: WARNING - Free memory per node close to zero: " $free_min_cpu
+          printf "%-s %-4.2f GB\n" " WARNING - Free memory per node close to zero: " $free_min_cpu | tee -a $REMORA_OUTDIR/summary.txt
         fi
         sed -i '1i #HOST     VIRT_MAX  RES_MAX  FREE_MIN' $REMORA_OUTDIR/mem_all_nodes.txt
     else
         max_mem_used=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {print max}' $REMORA_OUTDIR/mem_all_nodes.txt)
         free_min_cpu=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {print 32.0-max}' $REMORA_OUTDIR/mem_all_nodes.txt)
         low_mem=$(echo "$free_min_cpu < 2.0" | bc)        
-        printf "%-32 %-1s %-4.2f GB\n" "REMORA: Max Memory Used Per Node" ":" $max_mem_used
+        printf "%-29 %-1s %-4.2f GB\n" " Max Memory Used Per Node" ":" $max_mem_used | tee -a $REMORA_OUTDIR/summary.txt
         if [ "$low_mem" -eq "1" ]; then
-          printf "%-s %-4.2f GB\n" "REMORA: WARNING - Free memory per node close to zero: " $free_min_cpu
+          printf "%-s %-4.2f GB\n" " WARNING - Free memory per node close to zero: " $free_min_cpu | tee -a $REMORA_OUTDIR/summary.txt
         fi
         sed -i '1i #HOST     VIRT_MAX  RES_MAX  FREE_MIN' $REMORA_OUTDIR/mem_all_nodes.txt
     fi
@@ -63,9 +66,9 @@ show_final_report() {
         max_mem_used=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {print max}' $REMORA_OUTDIR/mem_all_nodes_mic.txt)
         free_min_mic=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {print 7.0-max}' $REMORA_OUTDIR/mem_all_nodes_mic.txt)
         low_mem=$(echo "$free_min_mic < 1.0" | bc)
-        printf "%-32s %-1s %-4.2f GB\n" "REMORA: Max Memory Used Per Phi" ":" $max_mem_used
+        printf "%-29s %-1s %-4.2f GB\n" " Max Memory Used Per Phi" ":" $max_mem_used | tee -a $REMORA_OUTDIR/summary.txt
         if [ "$low_mem" -eq "1" ]; then
-          printf "%-s %-4.2f GB\n" "REMORA: WARNING - Free memory per Phi close to zero: " $free_min_mic
+          printf "%-s %-4.2f GB\n" " WARNING - Free memory per Phi close to zero: " $free_min_mic | tee -a $REMORA_OUTDIR/summary.txt
         fi
         sed -i '1i #HOST     VIRT_MAX  RES_MAX  FREE_MIN' $REMORA_OUTDIR/mem_all_nodes_mic.txt
     fi
@@ -74,9 +77,9 @@ show_final_report() {
         max_mem_used=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print max}' $REMORA_OUTDIR/mem_all_nodes_gpu.txt)
         free_min_gpu=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 < min {min=$3} END {print min}' $REMORA_OUTDIR/mem_all_nodes_gpu.txt)
         low_mem=$(echo "$free_min_gpu < 1.0" | bc)  
-        printf "%-32s %-1s %-4.2f GB\n" "REMORA: Max Memory Used Per GPU" ":" $max_mem_used
+        printf "%-29s %-1s %-4.2f GB\n" " Max Memory Used Per GPU" ":" $max_mem_used | tee -a $REMORA_OUTDIR/summary.txt
         if [ "$low_mem" -eq "1" ]; then
-          printf "%-s %-4.2f GB\n" "REMORA: WARNING - Free memory per GPU close to zero: " $free_min_gpu
+          printf "%-s %-4.2f GB\n" " WARNING - Free memory per GPU close to zero: " $free_min_gpu | tee -a $REMORA_OUTDIR/summary.txt
         fi
         sed -i '1i #HOST     MAX  FREE_MIN' $REMORA_OUTDIR/mem_all_nodes_gpu.txt
     fi
@@ -86,6 +89,7 @@ show_final_report() {
 
     #Show Maximum IO Requests/S to all MDS servers (H-Home, S-Scratch, W-Work)
     if [ "$REMORA_MODE" == "FULL" ]; then
+      printf "%s\n" $bar | tee -a $REMORA_OUTDIR/summary.txt
       file=$(ls $REMORA_OUTDIR/lustre_*.txt | awk '{print $1}' | tail -n 1)
       idx=2
       for i in `head -n 1 $file`; do
@@ -98,21 +102,20 @@ show_final_report() {
               sleep 2
               waiting=$((waiting+1))
             done
-            printf "Time to get to files: %d seconds\n" $((waiting*2))
+            printf "WARNING - Slow file system response - Time to get to files: %d seconds\n" $((waiting*2))
           fi
           fsio=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print max}' $REMORA_OUTDIR/lustre.${fs}.rate)         
           fsrd=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {print max}' $REMORA_OUTDIR/lustre.${fs}.rate)
           fswr=$(awk ' NR == 1 {max=$4; min=$4} NR > 1 && $4 > max {max=$4} END {print max}' $REMORA_OUTDIR/lustre.${fs}.rate)
-          printf "%-19s %-12s %-1s %6.0f IOPS %6.0f RD(MB/S) %6.0f WR(MB/S)\n" "REMORA: Max Load in" $fs ":" $fsio $fsrd $fswr
+          printf "%-14s %-14s %-1s %7.0f IOPS %7.0f RD(MB/S) %7.0f WR(MB/S)\n" " Max IO Load /" $fs ":" $fsio $fsrd $fswr | tee -a $REMORA_OUTDIR/summary.txt
         fi
         idx=$((idx+1))
       done
     fi
 
-    echo "------------------------------------------------------------------------------"
-    printf "%-32s %-1s %-d %-7s\n" "REMORA: Sampling Period" ":" $REMORA_PERIOD "seconds"
-    printf "%-32s %-1s %-s\n" "REMORA: Complete Report Data" ":" $REMORA_OUTDIR
-    echo "=============================================================================="
-    # Add some headers
+    printf "%s\n" $dbar | tee -a $REMORA_OUTDIR/summary.txt
+    printf "%-29s %-1s %-d %-7s\n" " Sampling Period" ":" $REMORA_PERIOD "seconds" | tee -a $REMORA_OUTDIR/summary.txt
+    printf "%-29s %-1s %-s\n" " Complete Report Data" ":" $REMORA_OUTDIR           | tee -a $REMORA_OUTDIR/summary.txt
+    printf "%s\n" $dbar | tee -a $REMORA_OUTDIR/summary.txt
     echo ""
 }
