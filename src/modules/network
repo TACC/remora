@@ -42,5 +42,22 @@ process_data_network()
 
 finalize_module_network()
 {
-  :
+  REMORA_NODE_ID=$3
+  if [ "$REMORA_NODE_ID" -eq "0" ]; then
+    local idx=0
+    local LID=()
+    local NODES=`cat $REMORA_OUTDIR/remora_nodes.txt`
+    for NODE in $NODES; do
+      LIDCOMMAND="cat /sys/class/infiniband/mlx4_0/ports/1/lid"
+      LID[$idx]=`ssh -f $NODE $LIDCOMMAND`
+      idx=$((idx+1))
+    done
+    net_node_cnt=0; for NODE in $NODES; do net_node_cnt=$((net_node_cnt+1)); done
+    idx=1
+    while [  $idx -lt $net_node_cnt ]; do
+      ibtracert ${LID[0]} ${LID[$idx]} >> $REMORA_OUTDIR/trace_network.txt
+      echo "_____________" >> $REMORA_OUTDIR/trace_network.txt
+      idx=$((idx+1))
+    done
+  fi
 }

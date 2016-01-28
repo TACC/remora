@@ -39,6 +39,15 @@ get_node_list()
     fi
 }
 
+write_node_list()
+{
+    echo "export REMORA_SCHEDULER=$REMORA_SCHEDULER" >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_JOB_ID=$REMORA_JOB_ID"       >> $REMORA_OUTDIR/remora_env.txt
+    for node in $NODES; do
+      echo $node >> $REMORA_OUTDIR/remora_nodes.txt
+    done
+}
+
 
 # Need to check that the hostlist is not empty
 check_hostlist_empty()
