@@ -51,7 +51,7 @@ function show_time () {
   else
     ((sec=num))
   fi
-  printf "%-29s %-1s %d%s %d%s %d%s %d%s %d%s\n" " Total Elapsed Time" ":" $day "d" $hour "h" $min "m" $sec "s" $milisec "ms" | tee -a $REMORA_OUTDIR/remora_summary.txt
+  printf "%-29s %-1s %d%s %d%s %d%s %d%s %d%s\n" " Total Elapsed Time" ":" $day "d" $hour "h" $min "m" $sec "s" $milisec "ms" | tee -a $REMORA_OUTDIR/summary.txt
 }
 
 
@@ -107,21 +107,14 @@ parse_environment() {
     if [ "$REMORA_PERIOD" -lt "1" ]; then
         export REMORA_PERIOD=1
     fi
-
-    echo "export REMORA_VERBOSE=$REMORA_VERBOSE" >> $REMORA_OUTDIR/remora_env.txt
-    echo "export REMORA_MODE=$REMORA_MODE"       >> $REMORA_OUTDIR/remora_env.txt
-    echo "export REMORA_PERIOD=$REMORA_PERIOD"   >> $REMORA_OUTDIR/remora_env.txt
-
 }
 
 is_mpi_job() {
     # Doing this here because we want slurm hostlist check to run
     # to make sure we are in a compute node
-# CRF 2016.01.27 - Why do we need this? We always get the hostlist from
-#                  the scheduler, even for serial jobs...
-#    if [ "$REMORA_PARALLEL" == "0" ]; then
-#        NODES=`hostname -s`
-#    fi
+    if [ "$REMORA_PARALLEL" == "0" ]; then
+        NODES=`hostname -s`
+    fi
 
     if [ -z $REMORA_PARALLEL ]; then
         REMORA_PARALLEL=0
@@ -138,8 +131,6 @@ is_mpi_job() {
         REMORA_PARALLEL=1
         REMORA_SYMMETRIC=1
     fi
-    echo "export REMORA_PARALLEL=$REMORA_PARALLEL"   >> $REMORA_OUTDIR/remora_env.txt
-    echo "export REMORA_SYMMETRIC=$REMORA_SYMMETRIC" >> $REMORA_OUTDIR/remora_env.txt
 }
 
 check_gpu() {
@@ -155,7 +146,6 @@ check_gpu() {
         fi
         export REMORA_CUDA=0
     fi
-    echo "export REMORA_CUDA=$REMORA_CUDA" >> $REMORA_OUTDIR/remora_env.txt    
 }
 
 check_cpu() {
@@ -165,7 +155,6 @@ check_cpu() {
   else
     export REMORA_EFFECTIVE_PERIOD=$REMORA_PERIOD
   fi
-  echo "export REMORA_EFFECTIVE_PERIOD=$REMORA_EFFECTIVE_PERIOD" >> $REMORA_OUTDIR/remora_env.txt
 }
 
 init_folders() {
@@ -178,16 +167,8 @@ init_folders() {
     if [ -z "$REMORA_TMPDIR" ]; then
         export REMORA_TMPDIR=$REMORA_OUTDIR
     fi
-    # Setup output subdirectories
-    mkdir $REMORA_OUTDIR/CPU
-    mkdir $REMORA_OUTDIR/IO
-    mkdir $REMORA_OUTDIR/MEMORY
-    mkdir $REMORA_OUTDIR/NETWORK
-    mkdir $REMORA_OUTDIR/NUMA
     echo "export REMORA_OUTDIR=$REMORA_OUTDIR"  > $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_TMPDIR=$REMORA_TMPDIR" >> $REMORA_OUTDIR/remora_env.txt
-    # Pass output directory name to parent remora script
-    echo $REMORA_OUTDIR
 }
 
 capture_environment() {

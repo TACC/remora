@@ -5,7 +5,6 @@
 
 #Source the auxiliary scripts
 source $REMORA_BIN/aux/extra
-source $REMORA_BIN/aux/report
 source $REMORA_BIN/aux/scheduler
 source $REMORA_BIN/aux/sql_functions
 

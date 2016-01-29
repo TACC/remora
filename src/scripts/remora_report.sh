@@ -34,9 +34,9 @@ REMORA_PARALLEL=$7
 REMORA_VERBOSE=$8
 REMORA_BIN=$9
 
-# Create intermediate file directory if needed
+# Remove any temporary data and perform data collation
 mkdir -p $REMORA_TMPDIR
-rm -rf $REMORA_TMPDIR/*
+#rm -rf $REMORA_TMPDIR/*
 
 #Source the script that has the modules' functionality
 source $REMORA_BIN/modules/modules_utils

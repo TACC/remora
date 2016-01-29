@@ -77,24 +77,24 @@ SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
 SCRIPT_NAME="$(basename ${0})"
 
 # Parse input and setup data collection
-REMORA_OUTDIR=$($REMORA_BIN/remora_init.sh "$@")
+REMORA_OUTDIR=$($REMORA_BIN/scripts/remora_init.sh "$@")
 export NODES=`cat $REMORA_OUTDIR/remora_nodes.txt`
 source $REMORA_OUTDIR/remora_env.txt
 
-./remora_collect.sh "$@"
+$REMORA_BIN/scripts/remora_collect.sh "$@"
 
+# Now that we are collecting data in the background
+# We can start he actual application
 if [ "$REMORA_VERBOSE" == "1" ]; then
   echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
   echo "REMORA: Running command: $@ "
   echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 fi
-# Now that we are collecting data in the background
-# We can start he actual application
 START=$(date +%s%N)
 $@
 END=$(date +%s%N)
 
-./remora_finalize.sh $END $START
+$REMORA_BIN/scripts/remora_finalize.sh $END $START
 
 
 

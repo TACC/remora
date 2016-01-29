@@ -26,7 +26,6 @@
 
 init_module_lnet()
 {
-    rm -f $2/lnet*
     #Lustre counters
     printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "time" "msgs_alloc" "msgs_max" "errors" "send_count" "recv_count" "route_count" "drop_count" "send_length" "recv_length" "route_length" "drop_length" > $2/lnet_counters-$1.txt
 }

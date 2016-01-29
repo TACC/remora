@@ -35,6 +35,7 @@ if [ "$REMORA_VERBOSE" == "1" ]; then
   echo "source $REMORA_BIN/modules/modules_utils"
 fi
 source $REMORA_BIN/modules/modules_utils
+source $REMORA_OUTDIR/remora_env.txt
 
 #Read the list of active modules from the configuration file
 remora_read_active_modules

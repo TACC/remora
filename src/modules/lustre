@@ -26,10 +26,9 @@
 
 init_module_lustre()
 {
+    rm -f $2/lustre*
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" = "FULL" ]; then
-            # Remove any data collecte previously
-            rm -f $2/lustre* 
             #Capture the "internal" names (IFSNAMES) of the lustre filesystems
             #and the names of the mounts (FSNAMES)
             FSS=`df --type=lustre -P`
