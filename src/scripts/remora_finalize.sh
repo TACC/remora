@@ -56,7 +56,7 @@ fi
 show_final_report $END $START
 
 # Should write name-based loop
-mv $REMORA_OUTDIR/remora* $REMORA_OUTDIR/INFO
+mv $REMORA_OUTDIR/{remora*,runtime*} $REMORA_OUTDIR/INFO
 mv $REMORA_OUTDIR/cpu* $REMORA_OUTDIR/CPU/
 mv $REMORA_OUTDIR/{lustre*,lnet*} $REMORA_OUTDIR/IO
 mv $REMORA_OUTDIR/mem* $REMORA_OUTDIR/MEMORY

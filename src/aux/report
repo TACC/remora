@@ -31,7 +31,8 @@ show_final_report() {
     local bar="------------------------------------------------------------------------------"
     local dbar="=============================================================================="
 
-    echo "\n=============================== REMORA SUMMARY ===============================" | tee -a $REMORA_OUTDIR/remora_summary.txt
+    echo ""
+    echo "=============================== REMORA SUMMARY ===============================" | tee -a $REMORA_OUTDIR/remora_summary.txt
 # Print memory usage to stdout
 #I can't think of a case were virtual would be less than resident, so let's report only virtual in stdout (which triggers OOM killer)..
     if [ "$REMORA_CUDA" == "0" ]; then
