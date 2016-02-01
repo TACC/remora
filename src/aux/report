@@ -26,12 +26,12 @@ show_final_report() {
     START=$2
 
     # Write time the run ended
-    echo "" >> $REMORA_OUTDIR/vars.txt; date >> $REMORA_OUTDIR/vars.txt
+    date >> $REMORA_OUTDIR/remora_timestamp.txt
 
     local bar="------------------------------------------------------------------------------"
     local dbar="=============================================================================="
 
-    echo "=============================== REMORA SUMMARY ===============================" | tee -a $REMORA_OUTDIR/remora_summary.txt
+    echo "\n=============================== REMORA SUMMARY ===============================" | tee -a $REMORA_OUTDIR/remora_summary.txt
 # Print memory usage to stdout
 #I can't think of a case were virtual would be less than resident, so let's report only virtual in stdout (which triggers OOM killer)..
     if [ "$REMORA_CUDA" == "0" ]; then
@@ -39,7 +39,7 @@ show_final_report() {
         free_min_cpu=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print 32.0-max}' $REMORA_OUTDIR/mem_all_nodes.txt)
         low_mem=$(echo "$free_min_cpu < 2.0" | bc)
         printf "%-29s %-1s %-4.2f GB\n" " Max Memory Used Per Node" ":" $max_mem_used  | tee -a $REMORA_OUTDIR/remora_summary.txt
-        if [ "$low_mem" -eq "1" ]; then
+        if [ "$low_mem" -eq "1" ] && [ "$REMORA_WARNING" -gt "0" ]; then
           printf "%-s %-4.2f GB\n" "*** REMORA: WARNING - Free memory per node close to zero: " $free_min_cpu | tee -a $REMORA_OUTDIR/remora_summary.txt
         fi
         sed -i '1i #HOST     VIRT_MAX  RES_MAX  FREE_MIN' $REMORA_OUTDIR/mem_all_nodes.txt
@@ -48,7 +48,7 @@ show_final_report() {
         free_min_cpu=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {print 32.0-max}' $REMORA_OUTDIR/mem_all_nodes.txt)
         low_mem=$(echo "$free_min_cpu < 2.0" | bc)        
         printf "%-29 %-1s %-4.2f GB\n" " Max Memory Used Per Node" ":" $max_mem_used | tee -a $REMORA_OUTDIR/remora_summary.txt
-        if [ "$low_mem" -eq "1" ]; then
+        if [ "$low_mem" -eq "1" ] && [ "$REMORA_WARNING" -gt "0" ]; then
           printf "%-s %-4.2f GB\n" "*** REMORA: WARNING - Free memory per node close to zero: " $free_min_cpu | tee -a $REMORA_OUTDIR/remora_summary.txt
         fi
         sed -i '1i #HOST     VIRT_MAX  RES_MAX  FREE_MIN' $REMORA_OUTDIR/mem_all_nodes.txt
@@ -60,7 +60,7 @@ show_final_report() {
         free_min_mic=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {print 7.0-max}' $REMORA_OUTDIR/mem_all_nodes_mic.txt)
         low_mem=$(echo "$free_min_mic < 1.0" | bc)
         printf "%-29s %-1s %-4.2f GB\n" " Max Memory Used Per Phi" ":" $max_mem_used | tee -a $REMORA_OUTDIR/remora_summary.txt
-        if [ "$low_mem" -eq "1" ]; then
+        if [ "$low_mem" -eq "1" ] && [ "$REMORA_WARNING" -gt "0" ]; then
           printf "%-s %-4.2f GB\n" "*** REMORA:  WARNING - Free memory per Phi close to zero: " $free_min_mic | tee -a $REMORA_OUTDIR/remora_summary.txt
         fi
         sed -i '1i #HOST     VIRT_MAX  RES_MAX  FREE_MIN' $REMORA_OUTDIR/mem_all_nodes_mic.txt
@@ -71,7 +71,7 @@ show_final_report() {
         free_min_gpu=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 < min {min=$3} END {print min}' $REMORA_OUTDIR/mem_all_nodes_gpu.txt)
         low_mem=$(echo "$free_min_gpu < 1.0" | bc)  
         printf "%-29s %-1s %-4.2f GB\n" " Max Memory Used Per GPU" ":" $max_mem_used | tee -a $REMORA_OUTDIR/remora_summary.txt
-        if [ "$low_mem" -eq "1" ]; then
+        if [ "$low_mem" -eq "1" ] && [ "$REMORA_WARNING" -gt "0" ]; then
           printf "%-s %-4.2f GB\n" "*** REMORA: WARNING - Free memory per GPU close to zero: " $free_min_gpu | tee -a $REMORA_OUTDIR/remora_summary.txt
         fi
         sed -i '1i #HOST     MAX  FREE_MIN' $REMORA_OUTDIR/mem_all_nodes_gpu.txt
@@ -90,11 +90,11 @@ show_final_report() {
         if [ "$isfs" -eq "0" ]; then
           fs=`basename $i "-RQ"`
           waiting=1
-          if [ ! -r $REMORA_OUTDIR/lustre.${fs}.rate ]; then
-            while [ "$waiting" -lt "10" ] && [ ! -r $REMORA_OUTDIR/lustre.${fs}.rate ]; do
-              sleep 2
-              waiting=$((waiting+1))
-            done
+          while [ "$waiting" -lt "10" ] && [ ! -r $REMORA_OUTDIR/lustre.${fs}.rate ]; do
+            sleep 2
+            waiting=$((waiting+1))
+          done
+          if [ "$waiting" -gt "1" ] && [ "$REMORA_WARNING" -gt "1" ]; then
             printf "*** REMORA: WARNING - Slow file system response.\n"
             printf "*** REMORA: WARNING - It took %d seconds to reach the output files.\n" $((waiting*2))
           fi

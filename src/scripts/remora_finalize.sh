@@ -44,18 +44,19 @@ done
 rm $REMORA_OUTDIR/remora_pid.txt
 rm $REMORA_OUTDIR/remora_pid_mic.txt
 waiting=1
-if [ ! -r $REMORA_OUTDIR/trace_network.txt ]; then
-    while [ "$waiting" -lt "10" ] && [ ! -r $REMORA_OUTDIR/trace_network.txt ]; do
-      sleep 2
-      waiting=$((waiting+1))
-    done
-    printf "*** REMORA: WARNING - Slow file system response.\n"
-    printf "*** REMORA: WARNING - It took %d seconds to reach the output files.\n" $((waiting*2))
+while [ "$waiting" -lt "10" ] && [ ! -r $REMORA_OUTDIR/trace_network.txt ]; do
+  sleep 2
+  waiting=$((waiting+1))
+done
+if [ "$waiting" -gt "1" ] && [ "$REMORA_WARNING" -gt "1" ]; then
+  printf "*** REMORA: WARNING - Slow file system response.\n"
+  printf "*** REMORA: WARNING - It took %d seconds to reach the output files.\n" $((waiting*2))
 fi
 
 show_final_report $END $START
 
 # Should write name-based loop
+mv $REMORA_OUTDIR/remora* $REMORA_OUTDIR/INFO
 mv $REMORA_OUTDIR/cpu* $REMORA_OUTDIR/CPU/
 mv $REMORA_OUTDIR/{lustre*,lnet*} $REMORA_OUTDIR/IO
 mv $REMORA_OUTDIR/mem* $REMORA_OUTDIR/MEMORY

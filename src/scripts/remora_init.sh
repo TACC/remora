@@ -39,6 +39,7 @@ is_mpi_job "$@"
 check_gpu
 
 # Save REMORA specific environmental variables to a file
+# Also capture runtime environment
 capture_environment
 
 # If CPU module is runnign we reduce sleep by 1 second
