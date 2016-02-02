@@ -59,16 +59,16 @@ check_db_exists()
 create_database()
 {
     sqlite3 $REMORADB "CREATE TABLE remora_info (version INTEGER, date INTEGER)";
-    sqlite3 $REMORADB "INSERT INTO remora_info VALUES ($REMORAVERSION, `date +'%s'`)";
+    sqlite3 $REMORADB "INSERT INTO remora_info VALUES ($REMORADB_VERSION, `date +'%s'`)";
     sqlite3 $REMORADB "CREATE TABLE jobs (id INTEGER PRIMARY KEY, time_start INTEGER, time_end INTEGER, commmand TEXT, path TEXT, nodes TEXT)";
-    sqlite3 $REMORADB "CREATE TABLE memory_usage (FOREIGN KEY(job_id) REFERENCES jobs(id), timestamp INTEGER, shmem TEXT, virtual TEXT, resident TEXT)";
-    sqlite3 $REMORADB "CREATE TABLE cpu_usage (FOREIGN KEY(job_id) REFERENCES jobs(id), timestamp INTEGER PRIMARY KEY, cpu_id INTEGER PRIMARY KEY, usage REAL)";
-    sqlite3 $REMORADB "CREATE TABLE filesystem (FOREIGN KEY(job_id) REFERENCES jobs(id), timestamp INTEGER, fs_name TEXT, requests INTEGER, read as INTEGER, write as INTEGER)";
+    sqlite3 $REMORADB "CREATE TABLE memory_usage (jobid INTEGER, timestamp INTEGER, shmem TEXT, virtual TEXT, resident TEXT, FOREIGN KEY(jobid) REFERENCES jobs(id))";
+    sqlite3 $REMORADB "CREATE TABLE cpu_usage (jobid INTEGER, timestamp INTEGER, cpuid INTEGER, usage REAL, FOREIGN KEY(jobid) REFERENCES jobs(id), PRIMARY KEY(timestamp, cpuid))" ;
+    sqlite3 $REMORADB "CREATE TABLE filesystem (jobid INTEGER, timestamp INTEGER, fs_name TEXT, requests INTEGER, read INTEGER, write INTEGER, FOREIGN KEY(jobid) REFERENCES jobs(id))";
     # Do we want to have a table with all the nodes in the system?
     # And with all the switches?
-    sqlite3 $REMORADB "CREATE TABLE network (FOREIGN KEY(job_id) REFERENCES jobs(id))"; # Finish this
-    sqlite3 $REMORADB "CREATE TABLE ib (FOREIGN KEY(job_id) REFERENCES jobs(id))";  # Finish this
-    sqlite3 $REMORADB "CREATE TABLE numa_usage (FOREIGN KEY(job_id) REFERENCES jobs(id), timestamp INTEGER PRIMARY KEY, node_id INTEGER PRIMARY KEY, local_mem REAL, remote_mem REAL, local_miss REAL, remote_miss REAL)";
+    sqlite3 $REMORADB "CREATE TABLE network (jobid INTEGER, FOREIGN KEY(jobid) REFERENCES jobs(id))"; # Finish this
+    sqlite3 $REMORADB "CREATE TABLE ib (jobid INTEGER, FOREIGN KEY(jobid) REFERENCES jobs(id))";  # Finish this
+    sqlite3 $REMORADB "CREATE TABLE numa_usage (jobid INTEGER, timestamp INTEGER, nodeid INTEGER, local_mem REAL, remote_mem REAL, local_miss REAL, remote_miss REAL, FOREIGN KEY(jobid) REFERENCES jobs(id), PRIMARY KEY(timestamp, nodeid))";
 }
 
 # This functions takes as arguments the following values:
