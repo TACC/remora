@@ -1,66 +1,29 @@
-# REMORA: REsource MOnitoring for Remote Applications
+# REMORA
+REMORA: REsource MOnitoring for Remote Applications
 
 Remora is a tool to monitor runtime resource utilization:
-  * Memory (CPU, Xeon Phi, GPU)
-  * CPU utilization
-  * Lustre usage
-  * NUMA memory
-  * Network topology
+  - Memory
+  - CPU utilization
+  - Lustre usage
+  - NUMA memory
+  - Network topology
 
-To use the tool, modify your batch script and include 'remora' before your script, 
-executable, or MPI launcher.
+To use the tool, modify your batch script and include 'remora' before your script, executable, or MPI launcher.
 
-## Use examples
+Download and use
+-------------------
+Please, do not try to use the version available in the master branch. We regularly change the code and it might contain bugs. If you want to download and use remora, have a look at the different tags. [The most recent release can be found here] (https://github.com/TACC/remora/tree/v1.5.0).
 
-Examples for utilization in Stampede @ TACC (after "module load remora"):
+Why name it Remora?
+-------------------
+Apart from a pretty cool acronym, this tools behaves a bit like the remora fish. It attaches to a larger fish (user proces) and travels with it wherever it goes, while offering very little in the way of resistance to the motion (overhead) as well as providing some benefits (resource usage information).
 
-1. Parallel execution
+Do you use Remora?
+-------------------
+Remora is an open-source project. Funding to keep researchers working on Remora depends on the value of this tool to the scientific community. We would appreciate if you could include the following citation in your scientific articles:
 
-    ...  
-    \#SBATCH -n 16  
-    \#SBATCH -A my_project  
-    remora ibrun my_parallel_program [arguments]
+C. Rosales, A. Gómez-Iglesias, A. Predoehl. "REMORA: a Resource Monitoring Tool for Everyone". HUST2015 November 15-20, 2015, Austin, TX, USA. DOI: 10.1145/2834996.2834999
 
-2. Sequential execution (may be threaded)
-
-    ...  
-    \#SBATCH -n 1  
-    \#SBATCH -A my_project  
-    remora ./my_program [arguments]
-
-Remora will create a folder with a number of files that contain the values for the 
-resources indicated above.
-
-It is also possible to get plots of those files for an easier analysis. Use the tool
-'remora_post'. Within the batch script, 'remora_post' does not need any parameter.
-From the login node, you can cd to the location that contains the remora_JOBID folder, 
-and once there execute 'remora_post -j JOBID'.
-
-The following environment variables control the behavior of the tool:
-
-  * REMORA_PERIOD  - How often memory usage is checked. Default is 10 seconds.
-  * REMORA_VERBOSE - Verbose mode will save all information to a file. Default is 0 (off).
-  * REMORA_MODE    - FULL (default) for all stats, BASIC for memory and cpu only.
-
-## Installation
-
-If you intend to install remora outside TACC, please keep in mind that we are still 
-working on its portability. Remora depends on a modified version of xltop that writes 
-output directly to a file in order to collect IO data.
-
-Use the provided install.sh script to install REMORA. Modify the variables
-XLTOP_PORT, REMORA_DIR and PHI_BUILD at the top of the script so that they 
-point to the port xltop should be listening in, to the installation directory, 
-and select if a Xeon Phi build is necessary (1) or not (0).
-
-The installation script will create build and log files that you can check
-in case anything fails during hte installation process.
-
-## Authors 
-
-Carlos Rosales-Fernandez | carlos@tacc.utexas.edu  
-Antonio Gomez-Iglesias   | agomez@tacc.utexas.edu
-
-## Cite REMORA
-
-C. Rosales, A. Gomez-Iglesias, A. Predoehl. "REMORA: a Resource Monitoring Tool for Everyone". HUST2015 November 15-20, 2015, Austin, TX, USA. DOI: 10.1145/2834996.2834999
+Comments? Suggestions?
+-------------------
+Fell free to create new issues here in GitHub. You can also send us an email.

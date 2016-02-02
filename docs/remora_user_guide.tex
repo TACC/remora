@@ -73,10 +73,10 @@
 \verb+ +
 \vspace{1em}
 \begin{flushright}
-\huge\bf REMORA v1.4.0\\
+\huge\bf REMORA v1.5.0\\
 \rule{\textwidth}{4pt}
 \large{\bf REsource MOnitoring for Remote Applications\\
-Document Revision 1.1\\
+Document Revision 1.0\\
 \today}
 \end{flushright}
 
@@ -91,14 +91,14 @@ High Performance Computing \\
 Texas Advanced Computing Center\\
 The University of Texas at Austin\\
 \vspace{1cm}
-Copyright 2015 The University of Texas at Austin.
+Copyright 2016 The University of Texas at Austin.
 \end{flushleft}
 \newpage
 \end{titlepage}
 
 \begin{abstract}
 
-REMORA is a modular tool to monitor runtime resource utilization in HPC environments. As of version 1.4.0 the suite contains code designed to test:
+REMORA is a modular tool to monitor runtime resource utilization in HPC environments. As of version 1.5.0 the suite contains code designed to test:
 
 \begin{itemize}
 \item Memory utilization in CPUs, Xeon Phi co-processors, and NVIDIA GPUs
@@ -114,7 +114,7 @@ Throughout the text we have used text boxes to highlight important information. 
 
 Our intention is to create a simple runtime resource monitoring tool that provides both simple to understand high level information to the user, as well as detailed statistics for in-depth analysis. We welcome all feedback. Feedback that includes suggestions for improvement in the usability, reliability, and accuracy of this tool is particularly welcome. 
 
-Version 1.4.0 is a new release that adds a modular design that allows to easily configure the functionality available on each site as well as a simple addition of new functionality to the tool. In this release REMORA has also become independent of XLTOP, so Lustre IO data may be captured without the need to install and run third party tools.
+Version 1.5.0 is a new release that adds a modular design that allows to easily configure the functionality available on each site as well as a simple addition of new functionality to the tool. In this release REMORA has also become independent of XLTOP, so Lustre IO data may be captured without the need to install and run third party tools.
 
 Remora is an open-source project. Funding to keep researchers working on Remora depends on the value of this tool to the scientific community. We would appreciate if you could include the following citation in your scientific articles:
 
@@ -127,10 +127,10 @@ C. Rosales, A. G\'{o}mez-Iglesias, A. Predoehl. ``REMORA: a Resource Monitoring 
 \chapter{Installation}
 Remora is simple to install. In order to use all of its features you will need GNU Make and a C compiler. If testing the Xeon Phi you will also need a compiler with support for compilation of native code for the Xeon Phi - currently limited to Intel 13+ compilers.
 
-First of all obtain the latest version tarball, currently remora-1.4.tar.gz \footnote{\href{https://github.com/TACC/remora/archive/v1.4.0.tar.gz}{https://github.com/TACC/remora/archive/v1.4.0.tar.gz}}, and expand it in a convenient location in your system:
+First of all obtain the latest version tarball, currently remora-1.4.tar.gz \footnote{\href{https://github.com/TACC/remora/archive/v1.5.0.tar.gz}{https://github.com/TACC/remora/archive/v1.5.0.tar.gz}}, and expand it in a convenient location in your system:
 
 \begin{verbatim}
-    tar xzvf ./remora-1.4.0.tar.gz
+    tar xzvf ./remora-1.5.0.tar.gz
 \end{verbatim}
 
 Alternatively clone the git repository with the latest development version (not recommended):
@@ -219,7 +219,7 @@ As it is well known, NUMA (Non-Uniform Memory Access) can have a large impact on
 
 \paragraph{Lustre} 
 
-A new Lustre module was included in Remora 1.4.0. This module looks at the content of the files located in /proc/fs/lustre/{mdc,osc}/*/ . In particular, it looks for the content of the stats file. In order to generate a more user-friendly data, and it extracts the name of the filesystems and the different lustre mounts from the \texttt{df} command.
+A new Lustre module was included in Remora 1.5.0. This module looks at the content of the files located in /proc/fs/lustre/{mdc,osc}/*/ . In particular, it looks for the content of the stats file. In order to generate a more user-friendly data, and it extracts the name of the filesystems and the different lustre mounts from the \texttt{df} command.
 
 
 
@@ -319,7 +319,7 @@ REMORA provides two different running modes and it also allows the users to spec
 
 \section{Expanding Remora's Functionality}\label{expand-remora}
 
-Since version 1.4.0, Remora allows system administrators to easily change the functionality provided by Remora and extend its capabilities. The configuration file \verb+src\config\modules+ defines the modules used by Remora. Each module provides a specific capability in terms of data collection. By default, these are the modules available in Remora:
+Since version 1.5.0, Remora allows system administrators to easily change the functionality provided by Remora and extend its capabilities. The configuration file \verb+src\config\modules+ defines the modules used by Remora. Each module provides a specific capability in terms of data collection. By default, these are the modules available in Remora:
 
 \begin{itemize}
 \item cpu

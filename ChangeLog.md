@@ -1,6 +1,14 @@
 # Change Log
 
-## [Unreleased 1.4.0]
+## [1.5.0] - UNRELEASED (2016-02-03)
+
+Improved performance by allowing the use of a separate REMORA_TMPDIR which can be a local file system.
+Simplified "remora" script itself by having a remora_init / remora_collect / remora_finalize scripts.
+New "src/scripts" directory to clean source structure.
+Cleaned up output directory and improved summary formatting.
+Using "remora_env.txt" file in shared location REMORA_OUTDIR to capture remora options during runtime.  
+
+## [1.4.0] - 2016-01-25
 
 Improved the format of the output files. The columns have a fixed width so that they are easier to read.
 Implemented a modular design, where all the data captured by REMORA is done by independent scripts in the
