@@ -11,7 +11,7 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.5
+#-      version     REMORA 1.6
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
@@ -26,7 +26,7 @@
 REMORADB=$HOME/.remora.db
 
 # Current version of the database
-REMORADB_VERSION=1.4
+REMORADB_VERSION=1.6
 
 # Function that returns the version stored in the main table of the database
 check_db_version()
@@ -48,7 +48,7 @@ check_db_exists()
 
 # This function creates the database for REMORA. It assumes that the database doesn't
 # already exist
-# For version 1.4, the tables are the following (this is documented in the REMORA
+# For version 1.6, the tables are the following (this is documented in the REMORA
 # repository (https://github.com/TACC/remora):
 #
 #           remora_info                         jobs
@@ -63,7 +63,7 @@ create_database()
     sqlite3 $REMORADB "CREATE TABLE jobs (id INTEGER PRIMARY KEY, time_start INTEGER, time_end INTEGER, commmand TEXT, path TEXT, nodes TEXT)";
     sqlite3 $REMORADB "CREATE TABLE memory_usage (FOREIGN KEY(job_id) REFERENCES jobs(id), timestamp INTEGER, shmem TEXT, virtual TEXT, resident TEXT)";
     sqlite3 $REMORADB "CREATE TABLE cpu_usage (FOREIGN KEY(job_id) REFERENCES jobs(id), timestamp INTEGER PRIMARY KEY, cpu_id INTEGER PRIMARY KEY, usage REAL)";
-    sqlite3 $REMORADB "CREATE TABLE filesystem (FOREIGN KEY(job_id) REFERENCES jobs(id), timestamp INTEGER, fs_name TEXT, requests INTEGER)";
+    sqlite3 $REMORADB "CREATE TABLE filesystem (FOREIGN KEY(job_id) REFERENCES jobs(id), timestamp INTEGER, fs_name TEXT, requests INTEGER, read as INTEGER, write as INTEGER)";
     # Do we want to have a table with all the nodes in the system?
     # And with all the switches?
     sqlite3 $REMORADB "CREATE TABLE network (FOREIGN KEY(job_id) REFERENCES jobs(id))"; # Finish this
@@ -92,10 +92,10 @@ insert_memory_usage() {
 #   - cpu_id
 #   - usage
 insert_cpu_usage() {
-    if [ "$#" -ne 5 ]; then
+    if [ "$#" -ne 4 ]; then
         print_error " Incorrect syntax: insufficient arguments. "
     else
-        sqlite3 $REMORADB "INSERT INTO cpu_usage (job_id, timestamp, fs_name, cpu_id, usage) VALUES ($1, $2, '$3', '$4', $5)";
+        sqlite3 $REMORADB "INSERT INTO cpu_usage (job_id, timestamp, cpu_id, usage) VALUES ($1, $2, '$3', '$4')";
     fi
 }
 
@@ -104,11 +104,11 @@ insert_cpu_usage() {
 #   - timestamp
 #   - filesystem name (HOME, WORK, SCRATCH,...)
 #   - requests
-insert_memory_usage() {
-    if [ "$#" -ne 4 ]; then
+insert_fs_usage() {
+    if [ "$#" -ne 6 ]; then
         print_error " Incorrect syntax: insufficient arguments. "
     else
-        sqlite3 $REMORADB "INSERT INTO filesystem (job_id, timestamp, fsname, requests) VALUES ($1, $2, '$3', '$4')";
+        sqlite3 $REMORADB "INSERT INTO filesystem (job_id, timestamp, fsname, requests, read, write) VALUES ($1, $2, '$3', '$4', '$5', '$6')";
     fi
 }
 
