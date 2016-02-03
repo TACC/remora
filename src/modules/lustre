@@ -31,7 +31,7 @@ init_module_lustre()
         if [ "$REMORA_MODE" = "FULL" ]; then
             #Capture the "internal" names (IFSNAMES) of the lustre filesystems
             #and the names of the mounts (FSNAMES)
-            FSS=`df --type=lustre -P`
+            FSS=`df --type=lustre -P | uniq`
             local MOUNTS=()
             local idx=0; local hdx=0
             IFSNAMES=()
@@ -97,7 +97,6 @@ collect_data_lustre()
                     echo "cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes | awk '{print $7;}' | paste -sd+ | bc"
                     echo "cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes | awk '{print $7;}' | paste -sd+ | bc"
                 fi
-                #COUNTER[$col_id]=`cat /proc/fs/lustre/{mdc,osc}/$fs*/stats | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc`
                 COUNTER[$col_id]=`cat /proc/fs/lustre/mdc/$fs*/stats | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc`
                 COUNTER[$((col_id+1))]=`cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes | awk '{print $7;}' | paste -sd+ | bc`
                 COUNTER[$((col_id+2))]=`cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes | awk '{print $7;}' | paste -sd+ | bc`
@@ -123,7 +122,7 @@ finalize_module_lustre()
   REMORA_NODE_ID=$3
   if [ "$REMORA_NODE_ID" == "0" ]; then 
     # Get names from lustre.txt file headers
-    FSS=`df --type=lustre -P`
+    FSS=`df --type=lustre -P | uniq`
     local idx=0
     FSNAMES=()
     while read -r line; do
