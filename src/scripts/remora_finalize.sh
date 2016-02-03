@@ -14,7 +14,7 @@ if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
   for NODE in $NODES
   do
     if [ "$REMORA_VERBOSE" == "1" ]; then
-      echo "ssh $NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR"
+      echo "scp $NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR"
     fi  
     scp $NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR 2> /dev/null 1> /dev/null
   done
@@ -28,7 +28,7 @@ idx=0;
 for NODE in $NODES
 do
   REMORA_NODE_ID=$idx
-  ssh -f $NODE 'kill '${PID[$idx]}
+  ssh -f $NODE 'kill '${PID[$idx]} 2> /dev/null
   if [ "$REMORA_SYMMETRIC" == "1" ]; then
     ssh -q -f $NODE-mic0 'kill '${PID_MIC[$idx]}
   fi  
@@ -37,7 +37,7 @@ do
     echo "ssh -q -n $NODE $COMMAND"
   fi  
   #Right now this is putting the command in the background and continuing (so the remora can finish, therefore epilog might  #kill everything! We need to fix it
-  FINAL_PID=`ssh -q -n $NODE $COMMAND`
+  FINAL_PID=`ssh -q -n $NODE $COMMAND 2> /dev/null`
   idx=$((idx+1))
 done  
 

@@ -16,7 +16,7 @@ do
   #We have to capture the PID of the remote process running remora_report.sh
   #Since the script is an inifinite loop, we have to kill the process once the job
   #that we are analyzing has finished
-  PID[$idx]=`ssh -f -n $NODE $COMMAND | sed -e's/\[.*\]//' `
+  PID[$idx]=`ssh -f -n $NODE $COMMAND 2> /dev/null | sed -e's/\[.*\]//' `
 
   #Repeat the same for the MIC
   if [ "$REMORA_SYMMETRIC" == "1" ]; then
