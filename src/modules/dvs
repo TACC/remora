@@ -35,15 +35,22 @@ init_module_dvs()
             FSNAMES=()
             HEADER[0]=`echo TIMESTAMP`
             for i in `ls /proc/fs/dvs/mounts`; do
-                FSNAMES[$idx]=$(basename `grep "remote-path" /proc/fs/dvs/mounts/$i/mount | awk '{print $2}'`)
-                HEADER[$hdx]=`echo "${FSNAMES[$idx]}-RQ"`
-                HEADER[$hdx+1]=`echo "${FSNAMES[$idx]}-RD"`
-                HEADER[$hdx+2]=`echo "${FSNAMES[$idx]}-WR"`
-                if [ "$REMORA_VERBOSE" == "1" ]; then
-                    echo ${FSNAMES[$idx]}
+                isBlacklisted=0
+                currentName=$(basename `grep "remote-path" /proc/fs/dvs/mounts/$i/mount | awk '{print $2}'`)
+                for elem in `cat $REMORA_BIN/config/fs_blacklist`; do
+                    if [ "$currentName" == "$elem" ]; then isBlacklisted=1; fi
+                done
+                if [ "$isBlacklisted" == "0" ]; then
+                    FSNAMES[$idx]=$currentName
+                    HEADER[$hdx]=`echo "${FSNAMES[$idx]}-RQ"`
+                    HEADER[$hdx+1]=`echo "${FSNAMES[$idx]}-RD"`
+                    HEADER[$hdx+2]=`echo "${FSNAMES[$idx]}-WR"`
+                    if [ "$REMORA_VERBOSE" == "1" ]; then
+                        echo ${FSNAMES[$idx]}
+                    fi
+                    idx=$((idx+1))
+                    hdx=$((hdx+3))
                 fi
-                idx=$((idx+1))
-                hdx=$((hdx+3))
             done
             printf "%-17s"  "${HEADER[@]}" >> $2/dvs_$1.txt
             printf "\n"  >> $2/dvs_$1.txt
