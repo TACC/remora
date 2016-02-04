@@ -36,9 +36,9 @@ init_module_dvs()
             HEADER[0]=`echo TIMESTAMP`
             for i in `ls /proc/fs/dvs/mounts`; do
                 FSNAMES[$idx]=$(basename `grep "remote-path" /proc/fs/dvs/mounts/$i/mount | awk '{print $2}'`)
-                HEADER[$hdx]=`echo "${FSNAMES[$idx-1]}-RQ"`
-                HEADER[$hdx+1]=`echo "${FSNAMES[$idx-1]}-RD"`
-                HEADER[$hdx+2]=`echo "${FSNAMES[$idx-1]}-WR"`
+                HEADER[$hdx]=`echo "${FSNAMES[$idx]}-RQ"`
+                HEADER[$hdx+1]=`echo "${FSNAMES[$idx]}-RD"`
+                HEADER[$hdx+2]=`echo "${FSNAMES[$idx]}-WR"`
                 if [ "$REMORA_VERBOSE" == "1" ]; then
                     echo ${FSNAMES[$idx]}
                 fi
