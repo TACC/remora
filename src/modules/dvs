@@ -129,6 +129,7 @@ finalize_module_dvs()
         idx=$((idx+1))
     done
 
+
     # Identify shortest entry
     min_len=0
     for file in `ls $2/dvs_*.txt`; do
@@ -141,6 +142,21 @@ finalize_module_dvs()
          fs_col=$((fs_col+3))
        done
      done
+
+    # Generate aggregate data file headers
+    HEADER=()
+    idx=0
+    for FS in "${FSNAMES[@]}"; do
+        HEADER[0]=`echo TIMESTAMP`
+        HEADER[1]=`echo "${FSNAMES[$idx]}-RQ"`
+        HEADER[2]=`echo "${FSNAMES[$idx]}-RD"`
+        HEADER[3]=`echo "${FSNAMES[$idx]}-WR"`
+        printf "%-17s"  "${HEADER[@]}" > $2/dvs.$FS
+        printf "\n" >> $2/dvs.$FS
+        printf "%-17s"  "${HEADER[@]}" > $2/dvs.$FS.rate
+        printf "\n" >> $2/dvs.$FS.rate
+        idx=$((idx+1))
+    done
    
     # Generate file with aggregate counts from all nodes
     awk 'FNR>1 {a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=2; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $2/dvs_*.txt > $2/dvs.tmp
@@ -156,7 +172,7 @@ finalize_module_dvs()
     min_len=$((min_len-1))
     local d1=(); local d2=()
     for file in `ls $2/dvs.*`; do
-      for i in `seq 1 $min_len`; do
+      for i in `seq 2 $min_len`; do
         next=$((i+1))
         d1=(`sed "${i}q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4}'`)
         d2=(`sed "${next}q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4 }'`)
