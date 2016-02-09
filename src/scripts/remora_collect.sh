@@ -1,3 +1,7 @@
+#!/bin/bash
+
+# -- Collect required data in backgroud
+
 source $REMORA_OUTDIR/remora_env.txt
 
 PID=(); PID_MIC=()

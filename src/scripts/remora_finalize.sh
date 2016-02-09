@@ -1,8 +1,9 @@
-#Show a final report on screen
+#!/bin/bash
+
+# --- Show a final report on screen
+
 source $REMORA_BIN/aux/extra
 source $REMORA_BIN/aux/report
-source $REMORA_BIN/aux/scheduler
-source $REMORA_BIN/aux/sql_functions
 source $REMORA_OUTDIR/remora_env.txt
 
 END=$1
