@@ -38,6 +38,7 @@ remora_read_active_modules()
 #Call the init_module function of each active module
 remora_configure_modules()
 {
+    source $REMORA_OUTDIR/remora_env.txt
     for MODULE in "${REMORA_MODULES[@]}"
     do
         if [ "$REMORA_VERBOSE" == "1" ]; then
@@ -50,6 +51,7 @@ remora_configure_modules()
 #Call the execute_module_function of each active module
 remora_execute_modules()
 {
+    source $REMORA_OUTDIR/remora_env.txt
     for MODULE in "${REMORA_MODULES[@]}"
     do
         if [ "$REMORA_VERBOSE" == "1" ]; then

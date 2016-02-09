@@ -26,9 +26,9 @@
 
 init_module_dvs()
 {
-    rm -f $2/dvs*
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
-        if [ "$REMORA_MODE" = "FULL" ]; then
+        if [ "$REMORA_MODE" = "FULL" ] && [ "$REMORA_DVS" == "1" ]; then
+            rm -f $2/dvs*
             # Capture the names of the mounts (FSNAMES)
             idx=0; hdx=1
             HEADER=()
@@ -82,7 +82,7 @@ collect_data_dvs()
 # ...
 # 
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
-        if [ "$REMORA_MODE" = "FULL" ]; then
+        if [ "$REMORA_MODE" == "FULL" ] && [ "$REMORA_DVS" == "1" ]; then
             local DVS_DIR_PATH=/proc/fs/dvs/mounts
             local TIMESTAMP=`date +%s`
             local idx=0
@@ -117,36 +117,36 @@ process_data_dvs()
 finalize_module_dvs()
 {
   REMORA_NODE_ID=$3
-  if [ "$REMORA_NODE_ID" == "0" ]; then 
-    # Capture the names of the mounts (FSNAMES)
-    idx=0
-    FSNAMES=()
-    for i in `ls /proc/fs/dvs/mounts`; do
+  if [ "$REMORA_NODE_ID" == "0" ] && [ "$REMORA_SYMMETRIC" == "0" ]; then 
+    if [ "$REMORA_MODE" == "FULL" ] && [ "$REMORA_DVS" == "1" ]; then
+
+      # Capture the names of the mounts (FSNAMES)
+      idx=0
+      FSNAMES=()
+      for i in `ls /proc/fs/dvs/mounts`; do
         FSNAMES[$idx]=$(basename `grep "remote-path" /proc/fs/dvs/mounts/$i/mount | awk '{print $2}'`)
         if [ "$REMORA_VERBOSE" == "1" ]; then
             echo ${FSNAMES[$idx]}
         fi
         idx=$((idx+1))
-    done
+      done
 
-
-    # Identify shortest entry
-    min_len=0
-    for file in `ls $2/dvs_*.txt`; do
-       fs_col=2; len=0
-       for FS in "${FSNAMES[@]}"; do
-         len=`cat $file | tr -s ' ' | cut -d ' ' -f $fs_col | wc -l | awk '{print $1}'`
-         if [ "$min_len" -eq "0" ] || [ "$len" -lt "$min_len" ]; then 
-           min_len=$len
-         fi
-         fs_col=$((fs_col+3))
+      # Identify shortest entry
+      min_len=0
+      for file in `ls $2/dvs_*.txt`; do
+         fs_col=2; len=0
+         for FS in "${FSNAMES[@]}"; do
+           len=`cat $file | tr -s ' ' | cut -d ' ' -f $fs_col | wc -l | awk '{print $1}'`
+           if [ "$min_len" -eq "0" ] || [ "$len" -lt "$min_len" ]; then 
+             min_len=$len
+           fi
+           fs_col=$((fs_col+3))
+         done
        done
-     done
 
-    # Generate aggregate data file headers
-    HEADER=()
-    idx=0
-    for FS in "${FSNAMES[@]}"; do
+      # Generate aggregate data file headers
+      idx=0; HEADER=()
+      for FS in "${FSNAMES[@]}"; do
         HEADER[0]=`echo TIMESTAMP`
         HEADER[1]=`echo "${FSNAMES[$idx]}-RQ"`
         HEADER[2]=`echo "${FSNAMES[$idx]}-RD"`
@@ -156,31 +156,32 @@ finalize_module_dvs()
         printf "%-17s"  "${HEADER[@]}" > $2/dvs.$FS.rate
         printf "\n" >> $2/dvs.$FS.rate
         idx=$((idx+1))
-    done
-   
-    # Generate file with aggregate counts from all nodes
-    awk 'FNR>1 {a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=2; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $2/dvs_*.txt > $2/dvs.tmp
-    col_id=2
-    for FS in "${FSNAMES[@]}"; do
-      cut -d ' ' -f 1,$col_id,$((col_id+1)),$((col_id+2)) $2/dvs.tmp > $2/dvs.$FS
-      col_id=$((col_id+3))
-    done
-    rm $2/dvs.tmp
-
-    # Calculate actual data rates from raw counters
-    # $1 = time; $2 = iops (usec); $3 = read (bytes); $4 = write (bytes)
-    min_len=$((min_len-1))
-    local d1=(); local d2=()
-    for file in `ls $2/dvs.*`; do
-      for i in `seq 2 $min_len`; do
-        next=$((i+1))
-        d1=(`sed "${i}q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4}'`)
-        d2=(`sed "${next}q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4 }'`)
-        fsio=`echo "scale=6; ( ${d2[1]} - ${d1[1]} ) / ( ( ${d2[0]} - ${d1[0]} ) )" | bc`
-        fsrd=`echo "scale=6; ( ${d2[2]} - ${d1[2]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
-        fswr=`echo "scale=6; ( ${d2[3]} - ${d1[3]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
-        printf "%-17d %-17f %-17f %-17f\n" ${d1[0]} $fsio $fsrd $fswr >> $file.rate
       done
-    done
+   
+      # Generate file with aggregate counts from all nodes
+      awk 'FNR>1 {a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=2; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $2/dvs_*.txt > $2/dvs.tmp
+      col_id=2
+      for FS in "${FSNAMES[@]}"; do
+        cut -d ' ' -f 1,$col_id,$((col_id+1)),$((col_id+2)) $2/dvs.tmp > $2/dvs.$FS
+        col_id=$((col_id+3))
+      done
+      rm $2/dvs.tmp
+
+      # Calculate actual data rates from raw counters
+      # $1 = time; $2 = iops (usec); $3 = read (bytes); $4 = write (bytes)
+      min_len=$((min_len-1))
+      local d1=(); local d2=()
+      for file in `ls $2/dvs.*`; do
+        for i in `seq 2 $min_len`; do
+          next=$((i+1))
+          d1=(`sed "${i}q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4}'`)
+          d2=(`sed "${next}q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4 }'`)
+          fsio=`echo "scale=6; ( ${d2[1]} - ${d1[1]} ) / ( ( ${d2[0]} - ${d1[0]} ) )" | bc`
+          fsrd=`echo "scale=6; ( ${d2[2]} - ${d1[2]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
+          fswr=`echo "scale=6; ( ${d2[3]} - ${d1[3]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
+          printf "%-17d %-17f %-17f %-17f\n" ${d1[0]} $fsio $fsrd $fswr >> $file.rate
+        done
+      done
+    fi
   fi
 }
