@@ -42,6 +42,9 @@ check_gpu
 # Also capture runtime environment
 capture_environment
 
-# If CPU module is runnign we reduce sleep by 1 second
+# If CPU module is running we reduce sleep by 1 second
 check_cpu
+
+# Check if Lustre / DVS file systems are present
+check_io
 
