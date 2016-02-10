@@ -385,7 +385,7 @@ def plot_stats(folder):
       tacc_log.print_error (" While processing file %s: %s" %(file, e))
 
   #Plot the file with lnet stats
-  lnet_files = glob.glob(folder+'/IO/lustre_counters-*.txt')
+  lnet_files = glob.glob(folder+'/IO/lnet_counters*.txt')
   for file in lnet_files:
     try:
       plot_lnstats (file)
