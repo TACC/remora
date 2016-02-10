@@ -265,6 +265,14 @@ def is_number(s):
 
 
 def plot_lustre(file):
+  """ The new format of this files is as follows"
+      TIMESTAMP fs-IOPS       fs-RD         fs-WR
+      123456    5368950       1917334       524528
+      123457    5368992       1917334       524560
+      123458    5369034       1917334       524560
+  """
+
+
   """ The format of this file is as follows"
       work       scratch       home1
       5368950       1917334       524528
@@ -362,10 +370,12 @@ def plot_stats(folder):
     except Exception, e:
       tacc_log.print_error (" While processing file %s: %s" %(file, e))
 
-  try:
-    plot_lustre (folder+"/IO/fs_lustre_total.txt")
-  except Exception, e:
-    tacc_log.print_error (" While processing file %s: %s" %(folder+"/fs_lustre_total.txt", e))
+  lustre_files = glob.glob(folder+"/IO/lustre*.rate")
+  for file in lustre_files:
+    try:
+      plot_lustre (file)
+    except Exception, e:
+      tacc_log.print_error (" While processing file %s: %s" %(file, e))
 
   ibxmit_files = glob.glob(folder+"/NETWORK/ib_xmit*txt")
   for file in ibxmit_files:
