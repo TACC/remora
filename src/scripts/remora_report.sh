@@ -25,14 +25,17 @@
 
 #Initialize variables specific to certain modules here
 REMORA_NODE=$1
-REMORA_TMPDIR=$2
-REMORA_EFFECTIVE_PERIOD=$3
-REMORA_SYMMETRIC=$4
-REMORA_MODE=$5
-REMORA_CUDA=$6
-REMORA_PARALLEL=$7
-REMORA_VERBOSE=$8
-REMORA_BIN=$9
+#REMORA_TMPDIR=$2
+#REMORA_EFFECTIVE_PERIOD=$3
+#REMORA_SYMMETRIC=$4
+#REMORA_MODE=$5
+#REMORA_CUDA=$6
+#REMORA_PARALLEL=$7
+#REMORA_VERBOSE=$8
+#REMORA_BIN=$9
+REMORA_BIN=$2
+REMORA_OUTDIR=$3
+source $REMORA_OUTDIR/remora_env.txt
 
 # Remove any temporary data and perform data collation
 mkdir -p $REMORA_TMPDIR
@@ -40,6 +43,11 @@ mkdir -p $REMORA_TMPDIR
 
 #Source the script that has the modules' functionality
 source $REMORA_BIN/modules/modules_utils
+
+# DEBUG
+echo "env | grep REMORA"
+env | grep REMORA
+echo "You should have seen that"
 
 #Read the list of active modules from the configuration file
 remora_read_active_modules

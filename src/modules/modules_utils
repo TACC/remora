@@ -62,7 +62,6 @@ remora_execute_modules()
 #Call the finalize_module function of each active module
 remora_finalize_modules()
 {
-    source $REMORA_OUTDIR/remora_env.txt
     for MODULE in "${REMORA_MODULES[@]}"
     do
         if [ "$REMORA_VERBOSE" == "1" ]; then

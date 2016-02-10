@@ -43,7 +43,7 @@ process_data_network()
 finalize_module_network()
 {
   REMORA_NODE_ID=$3
-  if [ "$REMORA_NODE_ID" -eq "0" ]; then
+  if [ "$REMORA_NODE_ID" -eq "0" ] && [ "$REMORA_MODE" == "FULL" ]; then
     local idx=0
     local LID=()
     local NODES=`cat $REMORA_OUTDIR/remora_nodes.txt`

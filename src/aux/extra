@@ -168,13 +168,28 @@ check_gpu() {
 }
 
 check_cpu() {
-# Check if CPU module is active
-  if [ `grep cpu $REMORA_BIN/config/modules` ]; then 
-    export REMORA_EFFECTIVE_PERIOD=$((REMORA_PERIOD-1))
-  else
-    export REMORA_EFFECTIVE_PERIOD=$REMORA_PERIOD
-  fi
-  echo "export REMORA_EFFECTIVE_PERIOD=$REMORA_EFFECTIVE_PERIOD" >> $REMORA_OUTDIR/remora_env.txt
+    # Check if CPU module is active
+    if [ `grep cpu $REMORA_BIN/config/modules` ]; then 
+        export REMORA_EFFECTIVE_PERIOD=$((REMORA_PERIOD-1))
+    else
+        export REMORA_EFFECTIVE_PERIOD=$REMORA_PERIOD
+    fi
+    echo "export REMORA_EFFECTIVE_PERIOD=$REMORA_EFFECTIVE_PERIOD" >> $REMORA_OUTDIR/remora_env.txt
+}
+
+check_io() {
+    # Check if lustre / dvs / other file systems are present
+    REMORA_LUSTRE=0
+    if [ -d /proc/fs/lustre ]; then
+        export REMORA_LUSTRE=1
+    fi
+    echo "export REMORA_LUSTRE=$REMORA_LUSTRE" >> $REMORA_OUTDIR/remora_env.txt
+
+    REMORA_DVS=0
+    if [ -d /proc/fs/dvs ]; then
+        export REMORA_DVS=1
+    fi
+    echo "export REMORA_DVS=$REMORA_DVS" >> $REMORA_OUTDIR/remora_env.txt
 }
 
 init_folders() {

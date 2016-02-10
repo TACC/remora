@@ -1,8 +1,9 @@
-#Show a final report on screen
+#!/bin/bash
+
+# --- Show a final report on screen
+
 source $REMORA_BIN/aux/extra
 source $REMORA_BIN/aux/report
-source $REMORA_BIN/aux/scheduler
-source $REMORA_BIN/aux/sql_functions
 source $REMORA_OUTDIR/remora_env.txt
 
 END=$1
@@ -19,6 +20,8 @@ if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
     scp $NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR 2> /dev/null 1> /dev/null
   done
 fi
+# Give time for metadata to be updated
+sleep 5
 
 # Kill remote remora processes running in the backgroud
 PID=(); PID_MIC=()
@@ -57,8 +60,12 @@ show_final_report $END $START
 
 # Should write name-based loop
 mv $REMORA_OUTDIR/{remora*,runtime*} $REMORA_OUTDIR/INFO
-mv $REMORA_OUTDIR/cpu* $REMORA_OUTDIR/CPU/
-mv $REMORA_OUTDIR/{dvs*,lustre*,lnet*} $REMORA_OUTDIR/IO
+mv $REMORA_OUTDIR/cpu* $REMORA_OUTDIR/CPU
 mv $REMORA_OUTDIR/mem* $REMORA_OUTDIR/MEMORY
-mv $REMORA_OUTDIR/{ib*,trace_*} $REMORA_OUTDIR/NETWORK/
-mv $REMORA_OUTDIR/numa* $REMORA_OUTDIR/NUMA/
+if [ "$REMORA_MODE" == "FULL" ]; then
+  if [ "$REMORA_LUSTRE" == "1" ]; then mv $REMORA_OUTDIR/{lustre*,lnet*} $REMORA_OUTDIR/IO; fi
+  if [ "$REMORA_DVS" == "1" ]; then mv $REMORA_OUTDIR/dvs* $REMORA_OUTDIR/IO; fi
+  mv $REMORA_OUTDIR/{ib*,trace_*} $REMORA_OUTDIR/NETWORK/
+  mv $REMORA_OUTDIR/numa* $REMORA_OUTDIR/NUMA
+fi
+

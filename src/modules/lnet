@@ -26,15 +26,19 @@
 
 init_module_lnet()
 {
-    #Lustre counters
-    printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "time" "msgs_alloc" "msgs_max" "errors" "send_count" "recv_count" "route_count" "drop_count" "send_length" "recv_length" "route_length" "drop_length" > $2/lnet_counters-$1.txt
+    if [ "$REMORA_MODE" == "FULL" ] && [ "$REMORA_LUSTRE" == "1" ]; then
+        #Lustre counters
+        printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "time" "msgs_alloc" "msgs_max" "errors" "send_count" "recv_count" "route_count" "drop_count" "send_length" "recv_length" "route_length" "drop_length" > $2/lnet_counters-$1.txt
+    fi
 }
 
 collect_data_lnet()
 {
-    local TIMESTAMP=`date +%s`
-    local lnetstats=`cat /proc/sys/lnet/stats`
-    printf "%-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d\n" $TIMESTAMP $lnetstats >> $2/lnet_counters-$1.txt
+    if [ "$REMORA_MODE" == "FULL" ] && [ "$REMORA_LUSTRE" == "1" ]; then
+        local TIMESTAMP=`date +%s`
+        local lnetstats=`cat /proc/sys/lnet/stats`
+        printf "%-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d\n" $TIMESTAMP $lnetstats >> $2/lnet_counters-$1.txt
+    fi
 }
 
 # This function might perform some processing on the data.
