@@ -1,4 +1,5 @@
 \documentclass[10pt,a4paper]{report}
+\usepackage[margin=1.25in]{geometry}
 \usepackage[pdftex]{graphicx}
 \usepackage{subfigure}            % Multiple figures per float
 \usepackage{placeins}             % Fix float loactions with \FloatBarrier
@@ -7,11 +8,24 @@
 \usepackage{verbatim}             % Long verbatim sections
 \usepackage{titlesec}             % Easy modification the chapter format
 \usepackage{fancyhdr}             % Easy modification of header and footer
-\usepackage{hyperref}			  % Custom hyperlinks
+\usepackage{hyperref}				% Custom hyperlinks
+\usepackage{tikz}					% Figures and trees
+\usetikzlibrary{arrows,shapes,positioning,shadows,trees}
 
 \renewcommand{\arraystretch}{1.2} % Extra space in tables
 \parindent0mm                     % New paragraphs start without indentation
 \setlength{\parskip}{1em}         % And with a blank line in between
+
+\tikzset{
+  basic/.style  = {draw, text width=2.5cm, drop shadow, font=\sffamily, rectangle},
+  root/.style   = {basic, rounded corners=2pt, thin, align=center,
+                   fill=green!30},
+  level 2/.style = {basic, rounded corners=6pt, thin,align=center, fill=green!60,
+                   text width=10em},
+  level 3/.style = {basic, thin, align=left, fill=blue!30, text width=8em},
+  level 4/.style = {basic, thin, align=left, fill=blue!60, text width=8em},
+  level 5/.style = {basic, thin, align=left, fill=gray!60, text width=10em}
+}
 
 % Redefine chapters to remove the "Chapter" word
 \titleformat{\chapter}
@@ -290,6 +304,61 @@ a module's functionality will be implemented in the data collection module.
 
 This design also makes it straightforward to deactivate existing modules.
 Simply by not including a module name in the configuration file will de-activate the module at runtime
+
+\FloatBarrier
+\section{Code Structure}
+
+\begin{tikzpicture}[level 1/.style={sibling distance=40mm},edge from parent/.style={->,draw},>=latex]
+
+% scripts are level 2, aux is level 3, modules is level 4, bash funcs are level 5
+
+\node[root] { remora }
+  child {node[level 2, xshift=-40pt] (c1) {remora\_init.sh} }
+  child {node[level 2] (c2) {remora\_collect.sh} }
+  child {node[level 2, xshift=40pt] (c3) {remora\_finalize.sh} };
+  
+\node [level 3, below of = c1, xshift=15pt] (c11) {extra};
+\node [level 5, below of = c11, xshift=15pt] (c111) {check\_running\_parallel};
+\node [level 5, below of = c111] (c112) {parse\_arguments};
+\node [level 5, below of = c112] (c113) {init\_folders};
+\node [level 5, below of = c113] (c114) {parse\_environment};
+\node [level 5, below of = c114] (c115) {is\_mpi\_job};
+\node [level 5, below of = c115] (c116) {check\_gpu};
+\node [level 5, below of = c116] (c117) {check\_cpu};
+\node [level 5, below of = c117] (c118) {check\_io};
+
+\node [level 3, below of = c118, xshift=-15pt] (c12) {scheduler};
+\node [level 5, below of = c12, xshift=15pt] (c121) {get\_node\_list};
+\node [level 5, below of = c121] (c122) {write\_node\_list};
+\node [level 5, below of = c122] (c123) {check\_hostlist\_empty};
+
+\node [level 2, below of = c2, xshift=15pt] (c21) {remora\_report.sh};
+\node [level 4, below of = c21, xshift=15pt] (c211) {modules\_utils};
+\node [level 2, below of = c211, xshift=-15pt] (c22) {remora\_report\_mic.sh};
+
+\node [level 3, below of = c3, xshift=15pt] (c31) {extra};
+\node [level 3, below of = c31] (c32) {report};
+\node [level 5, below of = c32, xshift=15pt] (c321) {show\_time};
+\node [level 5, below of = c321] (c322) {show\_final\_report};
+
+
+\foreach \value in {1,2}
+  \draw[-] (c1.185) |- (c1\value.west);
+\foreach \value in {1,2}
+  \draw[-] (c2.185) |- (c2\value.west);
+\foreach \value in {1,2}
+  \draw[-] (c3.185) |- (c3\value.west);
+  
+\foreach \value in {1,...,8}
+  \draw[-] (c11.185) |- (c11\value.west);
+\foreach \value in {1,2,3}
+  \draw[-] (c12.185) |- (c12\value.west);
+\foreach \value in {1}
+  \draw[-] (c21.185) |- (c21\value.west);
+\foreach \value in {1,2}
+  \draw[-] (c32.185) |- (c32\value.west);
+   
+\end{tikzpicture}
 
 
 \FloatBarrier
