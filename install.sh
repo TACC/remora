@@ -4,7 +4,7 @@
 # Change CC, MPICC and the corresponding flags to match your own compiler in
 # file "Makefile.in". You should not have to edit this file at all.
 #
-# v1.5 (2016-02-03)  Carlos Rosales-Fernandez
+# v1.5 (2016-02-16)  Carlos Rosales-Fernandez
 #                    Antonio Gomez-Iglesias
 #
 # Thanks to Kenneth Hoste, from HPC-UGent, for his input
