@@ -31,13 +31,14 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.4
+#-      version     REMORA 1.5
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
 #
 #========================================================================
 #  HISTORY
+#		2016/01/25: Added alternative location for temp files
 #       2015/12/09: Implemented a modular design
 #       2015/11/21: Removing TACC specific data
 #       2015/09/09: Using python parser for file system data
@@ -60,136 +61,40 @@
 # END_OF_HEADER
 #========================================================================
 
+# Abort because we will not find any of the functions
+# if REMORA_BIN is not defined
 if [ -z "$REMORA_BIN" ]; then
     echo "ERROR: REMORA_BIN undefined"
     exit
 fi
 
-#These two lines are here to allow functions in other files to kill the main
-#process (REMORA_TOP_PID)
+# These two lines allow functions in other files to kill the main
+# process (REMORA_TOP_PID)
 trap "exit 1" TERM
 export REMORA_TOP_PID=$$
 
 SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
 SCRIPT_NAME="$(basename ${0})"
 
-#Source the auxiliary scripts
-source $REMORA_BIN/aux/extra
-source $REMORA_BIN/aux/report
-source $REMORA_BIN/aux/scheduler
-source $REMORA_BIN/aux/sql_functions
+# Parse input and setup data collection
+REMORA_OUTDIR=$($REMORA_BIN/scripts/remora_init.sh "$@")
+export NODES=`cat $REMORA_OUTDIR/remora_nodes.txt`
+source $REMORA_OUTDIR/remora_env.txt
 
-check_running_parallel
+$REMORA_BIN/scripts/remora_collect.sh "$@"
 
-parse_arguments "$@"
-
-parse_environment
-
-# Check the scheduler system used and define host list
-get_node_list
-
-# Need to check that the hostlist is not empty
-check_hostlist_empty
-
-is_mpi_job "$@"
-
-check_gpu
-
-init_folders
-
-PID=()
-PID_MIC=()
-LID=()
-
-capture_environment
-
-check_cpu
-
-# Start data collection
-#This is needed by the network module. We should move it, but I don't know where
-idx=0
-for NODE in $NODES; do
-  LIDCOMMAND="cat /sys/class/infiniband/mlx4_0/ports/1/lid"
-  LID[$idx]=`ssh -f $NODE $LIDCOMMAND`
-  idx=$((idx+1))
-done
-net_node_cnt=0
-for i in $NODES; do net_node_cnt=$(( net_node_cnt + 1 )); done
-idx=1
-while [  $idx -lt $net_node_cnt ]; do
-  ibtracert ${LID[0]} ${LID[$idx]} >> $REMORA_OUTDIR/trace_network.txt
-  echo "_____________" >> $REMORA_OUTDIR/trace_network.txt
-  idx=$((idx+1))
-done
-
-idx=0
-for NODE in $NODES
-do
-  #This is the core of REMORA. It connects to all the nodes allocated to this job and runs the remora_report.sh script
-  #remora_report.sh will run an infinite loop where, in each iteration of the loop, it calls the different modules
-  #that are available (specified in the configuration file)
-  COMMAND="$REMORA_BIN/remora_report.sh $NODE $REMORA_OUTDIR $REMORA_EFFECTIVE_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_CUDA $REMORA_PARALLEL $REMORA_VERBOSE $REMORA_BIN > $REMORA_OUTDIR/.remora_out_$NODE & echo \$!"
-
-  if [ "$REMORA_VERBOSE" == "1" ]; then
-    echo ""
-    echo "ssh -f -n $NODE $COMMAND"
-    echo ""
-  fi
-
-  #We have to capture the PID of the remote process running remora_report.sh
-  #Since the script is an inifinite loop, we have to kill the process once the job
-  #that we are analyzing has finished
-  PID[$idx]=`ssh -f -n $NODE $COMMAND | sed -e's/\[.*\]//' `
-
-  #Repeat the same for the MIC
-  if [ "$REMORA_SYMMETRIC" == "1" ]; then
-    COMMAND="$REMORA_BIN/remora_report_mic.sh ${NODE}-mic0 $REMORA_OUTDIR $REMORA_EFFECTIVE_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_PARALLEL $REMORA_VERBOSE $REMORA_BIN > $REMORA_OUTDIR/.remora_out_$NODE-mic0  &  echo \$! "
-    if [ "$REMORA_VERBOSE" == "1" ]; then
-        echo "ssh -q -f -n $NODE-mic0 $COMMAND"
-    fi
-    PID_MIC[$idx]=`ssh -q -f -n $NODE-mic0 $COMMAND `
-  fi
-  #Go to the next node
-  idx=$((idx+1))
-done
-
+# Now that we are collecting data in the background
+# We can start he actual application
 if [ "$REMORA_VERBOSE" == "1" ]; then
   echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-  echo "Running command: $@ "
+  echo "REMORA: Running command: $@ "
   echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 fi
-
-#Now that we have the collection of data running on the background, we start the appplication
 START=$(date +%s%N)
-# Execute original job
 $@
 END=$(date +%s%N)
 
-
-#Once the application has finished, we have to kill the background remora_report and
-#remora_report_mic that are running on all the nodes
-
-# Kill memory usage collection process
-idx=0
-for NODE in $NODES
-do
-  REMORA_NODE_ID=$idx
-  ssh -f $NODE 'kill '${PID[$idx]}
-  if [ "$REMORA_SYMMETRIC" == "1" ]; then
-    ssh -q -f $NODE-mic0 'kill '${PID_MIC[$idx]}
-  fi
-  COMMAND="$REMORA_BIN/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE $REMORA_NODE_ID >> $REMORA_OUTDIR/.remora_out_$NODE  &  echo \$! "
-  if [ "$REMORA_VERBOSE" == "1" ]; then
-    echo "ssh -q -n $NODE $COMMAND"
-  fi
-  #Right now this is putting the command in the background and continuing (so the remora can finish, therefore epilog might
-  #kill everything! We need to fix it
-  FINAL_PID=`ssh -q -n $NODE $COMMAND`
-  idx=$((idx+1))
-done
-
-#Show a final report on screen
-show_final_report $END $START
+$REMORA_BIN/scripts/remora_finalize.sh $END $START
 
 
 

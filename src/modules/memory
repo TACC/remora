@@ -10,7 +10,7 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.4
+#-      version     REMORA 1.5
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
@@ -25,9 +25,10 @@
 #  2.- The full path where the output will be stored/read
 init_module_memory()
 {
-    vmem_max_old=0
-    rmem_max_old=0
-    tmem_max=0
+    vmem_max_global=0
+    rmem_max_global=0
+    tmem_max_global=0
+    rm -f $2/mem*
     printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "#TIME" "VMEM_MAX" "VMEM" "RMEM_MAX" "RMEM" "SHMEM" "MEM_FREE" "TMEM_MAX"> $2/mem_stats_$1.txt
 }
 
@@ -35,31 +36,28 @@ collect_data_memory()
 {
     local TIMESTAMP=`date +%s`
     USER=`whoami`
-    # Memory statistics
-    #Get space used in /dev/shm
+    # Get space used in /dev/shm
     shmem_used=`du /dev/shm 2>/dev/null | tail -n 1 | awk '{print $1} '`
     shmem=$(echo "scale=4; $shmem_used/(1024*1024)" | bc)
 
+    for i in `ps -u $USER | awk 'NR > 1 {print $1}'`; do cat /proc/$i/status 2> /dev/null 1>> $2/mem_$1.tmp; done
+    vmem_max=$(grep VmPeak $2/mem_$1.tmp | awk '{sum+=$2} END {print sum/1024/1024}')
+    rmem_max=$(grep VmHWM $2/mem_$1.tmp  | awk '{sum+=$2} END {print sum/1024/1024}')
+    vmem=$(grep VmSize $2/mem_$1.tmp | awk '{sum+=$2} END {print sum/1024/1024}')
+    rmem=$(grep VmRSS $2/mem_$1.tmp  | awk '{sum+=$2} END {print sum/1024/1024}')
     mem_free=`grep MemFree /proc/meminfo | awk '{ print $2/1024/1024 }'`
-    vmem_max=$(for i in `ps -u $USER | awk 'NR > 1 {print $1}'`; do cat /proc/$i/status 2> /dev/null | grep VmPeak ; done | awk '{sum+=$2} END {print sum/1024/1024}')
-    if [ $(echo " $vmem_max > $vmem_max_old" | bc) -eq 1 ]; then
-      vmem_max_old=$vmem_max
-    fi
-    vmem_max=$vmem_max_old
-    vmem=$(for i in `ps -u $USER | awk 'NR > 1 {print $1}'`; do cat /proc/$i/status 2> /dev/null | grep VmSize ; done | awk '{sum+=$2} END {print sum/1024/1024}')
-    rmem_max=$(for i in `ps -u $USER | awk 'NR > 1 {print $1}'`; do cat /proc/$i/status 2> /dev/null | grep VmHWM ; done | awk '{sum+=$2} END {print sum/1024/1024}')
-    if [ $(echo " $rmem_max > $rmem_max_old" | bc) -eq 1 ]; then
-      rmem_max_old=$rmem_max
-    fi
-    rmem_max=$rmem_max_old
-    rmem=$(for i in `ps -u $USER | awk 'NR > 1 {print $1}'`; do cat /proc/$i/status 2> /dev/null | grep VmRSS ; done | awk '{sum+=$2} END {print sum/1024/1024}')
-
     tmem=$(echo "$rmem + $shmem" | bc)
-    if [ $(echo "$tmem > $tmem_max" | bc) -eq 1 ]; then
-        tmem_max=$tmem
+    if [ $(echo "$vmem_max > $vmem_max_global" | bc) -eq 1 ]; then
+        vmem_max_global=$vmem_max
     fi
-
-    printf "%-17d %-17f %-17f %-17f %-17f %-17f %-17f %-17f\n" $TIMESTAMP $vmem_max $vmem $rmem_max $rmem $shmem $mem_free $tmem_max >> $2/mem_stats_$1.txt
+    if [ $(echo "$rmem_max > $rmem_max_global" | bc) -eq 1 ]; then
+        rmem_max_global=$rmem_max
+    fi
+    if [ $(echo "$tmem > $tmem_max_global" | bc) -eq 1 ]; then
+        tmem_max_global=$tmem
+    fi
+    printf "%-17d %-17f %-17f %-17f %-17f %-17f %-17f %-17f\n" $TIMESTAMP $vmem_max_global $vmem $rmem_max_global $rmem $shmem $mem_free $tmem_max_global >> $2/mem_stats_$1.txt
+    rm $2/mem_$1.tmp
 }
 
 # This function might perform some processing on the data.
@@ -71,5 +69,25 @@ process_data_memory()
 
 finalize_module_memory()
 {
-  :
+currenthost=$1
+vmax_mem=`tail -n 1 $2/mem_stats_$currenthost.txt | awk '{printf "%6.4f\n",$2}'`
+tmax_mem=`tail -n 1 $2/mem_stats_$currenthost.txt | awk '{printf "%6.4f\n",$8}'`
+free_mem=$(awk ' NR == 1 {max=$7; min=$7} NR > 1 && $7 < min {min=$7} END {printf "%6.4f\n",min }' $2/mem_stats_$currenthost.txt)
+echo "$currenthost $vmax_mem $tmax_mem $free_mem" >> $2/mem_all_nodes.txt
+
+if [ "$REMORA_SYMMETRIC" == "1" ]; then
+    currenthost=$1-mic0
+    vmax_mem=`tail -n 1 $2/mem_stats_$currenthost.txt | awk '{printf "%6.4f\n",$2}'`
+    tmax_mem=`tail -n 1 $2/mem_stats_$currenthost.txt | awk '{printf "%6.4f\n",$8}'`
+    free_mem=$(awk ' NR == 1 {max=$7; min=$7} NR > 1 && $7 < min {min=$7} END {printf "%6.4f\n",min }' $2/mem_stats_$currenthost.txt)
+    echo "$currenthost $vmax_mem $tmax_mem $free_mem" >> $2/mem_all_nodes_mic.txt
+fi
+
+if [ "$REMORA_CUDA" == "1" ]; then
+    currenthost=$1-gpu
+    max_mem=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {printf "%6.4f\n",max }' $2/mem_stats_$currenthost.txt)
+    free_mem=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 < min {min=$3} END {printf "%6.4f\n",min }' $2/mem_stats_$currenthost.txt)
+    echo "$currenthost $max_mem $free_mem" >> $2/mem_all_nodes_gpu.txt
+fi
+
 }

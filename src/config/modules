@@ -1,6 +1,7 @@
 cpu
 memory
 numa
+dvs
 lustre
 lnet
 ib

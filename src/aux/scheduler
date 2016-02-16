@@ -12,7 +12,7 @@
 #% the scheduler used by REMORA
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.4
+#-      version     REMORA 1.5
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
@@ -37,6 +37,15 @@ get_node_list()
         print_error "Unknown scheduler - unable to generate host list"
         exit 1
     fi
+}
+
+write_node_list()
+{
+    echo "export REMORA_SCHEDULER=$REMORA_SCHEDULER" >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_JOB_ID=$REMORA_JOB_ID"       >> $REMORA_OUTDIR/remora_env.txt
+    for node in $NODES; do
+      echo $node >> $REMORA_OUTDIR/remora_nodes.txt
+    done
 }
 
 

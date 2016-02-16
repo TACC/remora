@@ -1,4 +1,5 @@
 \documentclass[10pt,a4paper]{report}
+\usepackage[margin=1.25in]{geometry}
 \usepackage[pdftex]{graphicx}
 \usepackage{subfigure}            % Multiple figures per float
 \usepackage{placeins}             % Fix float loactions with \FloatBarrier
@@ -7,11 +8,24 @@
 \usepackage{verbatim}             % Long verbatim sections
 \usepackage{titlesec}             % Easy modification the chapter format
 \usepackage{fancyhdr}             % Easy modification of header and footer
-\usepackage{hyperref}			  % Custom hyperlinks
+\usepackage{hyperref}				% Custom hyperlinks
+\usepackage{tikz}					% Figures and trees
+\usetikzlibrary{arrows,shapes,positioning,shadows,trees}
 
 \renewcommand{\arraystretch}{1.2} % Extra space in tables
 \parindent0mm                     % New paragraphs start without indentation
 \setlength{\parskip}{1em}         % And with a blank line in between
+
+\tikzset{
+  basic/.style  = {draw, text width=2.5cm, drop shadow, font=\sffamily, rectangle},
+  root/.style   = {basic, rounded corners=2pt, thin, align=center,
+                   fill=green!30},
+  level 2/.style = {basic, rounded corners=6pt, thin,align=center, fill=green!60,
+                   text width=10em},
+  level 3/.style = {basic, thin, align=left, fill=blue!30, text width=8em},
+  level 4/.style = {basic, thin, align=left, fill=blue!60, text width=8em},
+  level 5/.style = {basic, thin, align=left, fill=gray!60, text width=10em}
+}
 
 % Redefine chapters to remove the "Chapter" word
 \titleformat{\chapter}
@@ -73,10 +87,10 @@
 \verb+ +
 \vspace{1em}
 \begin{flushright}
-\huge\bf REMORA v1.4.0\\
+\huge\bf REMORA v1.5.0\\
 \rule{\textwidth}{4pt}
 \large{\bf REsource MOnitoring for Remote Applications\\
-Document Revision 1.1\\
+Document Revision 1.0\\
 \today}
 \end{flushright}
 
@@ -91,14 +105,14 @@ High Performance Computing \\
 Texas Advanced Computing Center\\
 The University of Texas at Austin\\
 \vspace{1cm}
-Copyright 2015 The University of Texas at Austin.
+Copyright 2016 The University of Texas at Austin.
 \end{flushleft}
 \newpage
 \end{titlepage}
 
 \begin{abstract}
 
-REMORA is a modular tool to monitor runtime resource utilization in HPC environments. As of version 1.4.0 the suite contains code designed to test:
+REMORA is a modular tool to monitor runtime resource utilization in HPC environments. As of version 1.5.0 the suite contains code designed to test:
 
 \begin{itemize}
 \item Memory utilization in CPUs, Xeon Phi co-processors, and NVIDIA GPUs
@@ -114,7 +128,7 @@ Throughout the text we have used text boxes to highlight important information. 
 
 Our intention is to create a simple runtime resource monitoring tool that provides both simple to understand high level information to the user, as well as detailed statistics for in-depth analysis. We welcome all feedback. Feedback that includes suggestions for improvement in the usability, reliability, and accuracy of this tool is particularly welcome. 
 
-Version 1.4.0 is a new release that adds a modular design that allows to easily configure the functionality available on each site as well as a simple addition of new functionality to the tool. In this release REMORA has also become independent of XLTOP, so Lustre IO data may be captured without the need to install and run third party tools.
+Version 1.5.0 is a new release that adds DVS file system support for Cray systems, the option to use a temporary directory that is situated in local storage using the \verb+REMORA_TMPDIR+ variable, an optional file system blacklist, and an improved code structure to facilitate updates. The output directory has been cleaned up so that data is stored in subdirectories by type ( IO / MEM / NETWORK / IO / INFO ), since things were getting confusing for large runs.
 
 Remora is an open-source project. Funding to keep researchers working on Remora depends on the value of this tool to the scientific community. We would appreciate if you could include the following citation in your scientific articles:
 
@@ -127,10 +141,10 @@ C. Rosales, A. G\'{o}mez-Iglesias, A. Predoehl. ``REMORA: a Resource Monitoring 
 \chapter{Installation}
 Remora is simple to install. In order to use all of its features you will need GNU Make and a C compiler. If testing the Xeon Phi you will also need a compiler with support for compilation of native code for the Xeon Phi - currently limited to Intel 13+ compilers.
 
-First of all obtain the latest version tarball, currently remora-1.4.tar.gz \footnote{\href{https://github.com/TACC/remora/archive/v1.4.0.tar.gz}{https://github.com/TACC/remora/archive/v1.4.0.tar.gz}}, and expand it in a convenient location in your system:
+First of all obtain the latest version tarball, currently remora-1.4.tar.gz \footnote{\href{https://github.com/TACC/remora/archive/v1.5.0.tar.gz}{https://github.com/TACC/remora/archive/v1.5.0.tar.gz}}, and expand it in a convenient location in your system:
 
 \begin{verbatim}
-    tar xzvf ./remora-1.4.0.tar.gz
+    tar xzvf ./remora-1.5.0.tar.gz
 \end{verbatim}
 
 Alternatively clone the git repository with the latest development version (not recommended):
@@ -219,8 +233,11 @@ As it is well known, NUMA (Non-Uniform Memory Access) can have a large impact on
 
 \paragraph{Lustre} 
 
-A new Lustre module was included in Remora 1.4.0. This module looks at the content of the files located in /proc/fs/lustre/{mdc,osc}/*/ . In particular, it looks for the content of the stats file. In order to generate a more user-friendly data, and it extracts the name of the filesystems and the different lustre mounts from the \texttt{df} command.
+A new Lustre module was included in Remora 1.4.0. This module looks at the content of the files located in \verb+/proc/fs/lustre/{mdc,osc}/*/+ . In particular, it looks for the content of the stats file. In order to generate a more user-friendly data, and it extracts the name of the filesystems and the different lustre mounts from the \texttt{df} command.
 
+\paragraph{DVS}
+
+A new Data Virtualization Service (DVS) module was added in Remora 1.5.0. This module captures information in the \verb+/proc/fs/dvs/mounts/*/+ files to provide the number of requests per second for every DVS served file system that is not in the blacklist under \verb+/config/fs\_blacklist+.
 
 
 \paragraph{LNET Stats}
@@ -291,6 +308,61 @@ a module's functionality will be implemented in the data collection module.
 This design also makes it straightforward to deactivate existing modules.
 Simply by not including a module name in the configuration file will de-activate the module at runtime
 
+\FloatBarrier
+\section{Code Structure}
+
+\begin{tikzpicture}[level 1/.style={sibling distance=40mm},edge from parent/.style={->,draw},>=latex]
+
+% scripts are level 2, aux is level 3, modules is level 4, bash funcs are level 5
+
+\node[root] { remora }
+  child {node[level 2, xshift=-40pt] (c1) {remora\_init.sh} }
+  child {node[level 2] (c2) {remora\_collect.sh} }
+  child {node[level 2, xshift=40pt] (c3) {remora\_finalize.sh} };
+  
+\node [level 3, below of = c1, xshift=15pt] (c11) {extra};
+\node [level 5, below of = c11, xshift=15pt] (c111) {check\_running\_parallel};
+\node [level 5, below of = c111] (c112) {parse\_arguments};
+\node [level 5, below of = c112] (c113) {init\_folders};
+\node [level 5, below of = c113] (c114) {parse\_environment};
+\node [level 5, below of = c114] (c115) {is\_mpi\_job};
+\node [level 5, below of = c115] (c116) {check\_gpu};
+\node [level 5, below of = c116] (c117) {check\_cpu};
+\node [level 5, below of = c117] (c118) {check\_io};
+
+\node [level 3, below of = c118, xshift=-15pt] (c12) {scheduler};
+\node [level 5, below of = c12, xshift=15pt] (c121) {get\_node\_list};
+\node [level 5, below of = c121] (c122) {write\_node\_list};
+\node [level 5, below of = c122] (c123) {check\_hostlist\_empty};
+
+\node [level 2, below of = c2, xshift=15pt] (c21) {remora\_report.sh};
+\node [level 4, below of = c21, xshift=15pt] (c211) {modules\_utils};
+\node [level 2, below of = c211, xshift=-15pt] (c22) {remora\_report\_mic.sh};
+
+\node [level 3, below of = c3, xshift=15pt] (c31) {extra};
+\node [level 3, below of = c31] (c32) {report};
+\node [level 5, below of = c32, xshift=15pt] (c321) {show\_time};
+\node [level 5, below of = c321] (c322) {show\_final\_report};
+
+
+\foreach \value in {1,2}
+  \draw[-] (c1.185) |- (c1\value.west);
+\foreach \value in {1,2}
+  \draw[-] (c2.185) |- (c2\value.west);
+\foreach \value in {1,2}
+  \draw[-] (c3.185) |- (c3\value.west);
+  
+\foreach \value in {1,...,8}
+  \draw[-] (c11.185) |- (c11\value.west);
+\foreach \value in {1,2,3}
+  \draw[-] (c12.185) |- (c12\value.west);
+\foreach \value in {1}
+  \draw[-] (c21.185) |- (c21\value.west);
+\foreach \value in {1,2}
+  \draw[-] (c32.185) |- (c32\value.west);
+   
+\end{tikzpicture}
+
 
 \FloatBarrier
 \chapter{Using Remora}
@@ -305,7 +377,7 @@ All the data is collected in a set of files with the statistics organized in col
 
 REMORA is configurable in terms of the amount and type of data collected, but sensible defaults are provided to simplify its use. By default the statistics are collected every ten seconds.
 
-REMORA provides two different running modes and it also allows the users to specify how frequently the data is collected. A verbose mode is provided mostly for troubleshooting and should not be used by default. The behavior of the application is controlled via three environment variables:
+REMORA provides two different running modes and it also allows the users to specify how frequently the data is collected. A verbose mode is provided mostly for troubleshooting and should not be used by default. The behavior of the application is controlled via four environment variables:
 
 \IntroBox{
 \begin{itemize}
@@ -314,12 +386,16 @@ REMORA provides two different running modes and it also allows the users to spec
 	\item \texttt{REMORA\_MODE}: this variable accepts two possible values (FULL and BASIC). The FULL mode runs all the tests that the tool allows. The BASIC mode only reports memory and cpu usage. This is the recommended mode when the users now that the application of interest does not create problems in the distributed file system.
 	
 	\item \texttt{REMORA\_VERBOSE}: Enable (1) or disable (0) verbose mode. Default is disabled.
+	
+	\item \texttt{REMORA\_TMPDIR}: Full path for intermediate file storage. It is recommended that this is a local disk. Default value is the location of the REMORA output directory (which must be on a shared file system). When specied by the user REMORA will collect data in this location, and only copy the files to the output directory once data collection is complete. Using a local file system for the temporary files reduces overhead. 
 \end{itemize}
 }
 
+In addition to these variables a list of file systems taht should be ignored during data collection can be provided to REMORA in the file \verb+config/fs_blacklist+. This is a simple text file with a names of mounts hat should be ignored during runtime.
+
 \section{Expanding Remora's Functionality}\label{expand-remora}
 
-Since version 1.4.0, Remora allows system administrators to easily change the functionality provided by Remora and extend its capabilities. The configuration file \verb+src\config\modules+ defines the modules used by Remora. Each module provides a specific capability in terms of data collection. By default, these are the modules available in Remora:
+Since version 1.5.0, Remora allows system administrators to easily change the functionality provided by Remora and extend its capabilities. The configuration file \verb+src\config\modules+ defines the modules used by Remora. Each module provides a specific capability in terms of data collection. By default, these are the modules available in Remora:
 
 \begin{itemize}
 \item cpu
@@ -327,12 +403,15 @@ Since version 1.4.0, Remora allows system administrators to easily change the fu
 \item numa
 \item lustre
 \item lnet
+\item dvs
 \item ib
 \item gpu
 \item network
 \end{itemize}
 
 These modules are currently specified in the configuration file. At runtime, Remora will read this file and execute all the modules listed on it.
+
+We are trying to provide modules that required no elevated privileges in the system. If you are willing to run remora as root, or using a setuid binary then you can easily extend it to support GPFS data collection.
 
 \IntroBox{If you are installing Remora system-wide, you can modify the configuration file before installing it. If you have Remora installed in your user account, you can modify this file at any time.}
 

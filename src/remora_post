@@ -106,12 +106,12 @@ def print_help():
 def get_period(path):
   try:
     global period
-    file = path+"/vars.txt"
+    file = path+"/INFO/remora_env.txt"
     with open(file, 'r') as f:
       lines = f.readlines()
     for l in lines:
       if "PERIOD" in l:
-        period = int(l.split()[2])
+        period = int(l.split('=')[1])
         break
   except Exception, e:
     tacc_log.print_error (" While reading configuration file %s: %s" %(file, e))
@@ -265,6 +265,14 @@ def is_number(s):
 
 
 def plot_lustre(file):
+  """ The new format of this files is as follows"
+      TIMESTAMP fs-RQ       fs-RD         fs-WR
+      123456    5368950       1917334       524528
+      123457    5368992       1917334       524560
+      123458    5369034       1917334       524560
+  """
+
+
   """ The format of this file is as follows"
       work       scratch       home1
       5368950       1917334       524528
@@ -282,13 +290,13 @@ def plot_lustre(file):
   xvalues = xrange(0, len(values[labels[0]])) #np.array (values[labels[0]])
 
   color=cm.rainbow(np.linspace(0,1,len(labels)+1))
-  for i in xrange (len(labels)):
+  for i in xrange (1, len(labels)):
     ax.plot (xvalues, values[labels[i]], linestyle=line_styles[0], label=labels[i], lw=0.5, c=color[i])
 
   ax.set_title('Lustre Load')
   box = ax.get_position()
   ax.set_position([box.x0+box.width*0.25, box.y0, box.width * 0.6, box.height])
-  ax.set_xlabel('Execution Time (Timestamps)')
+  ax.set_xlabel('Execution Time (seconds)')
   ax.legend(loc='center left', bbox_to_anchor=(-0.65,0.5), prop={'size':9})
   plt.savefig (file.replace("txt", "png"))
   plt.clf()
@@ -341,33 +349,35 @@ def plot_stats(folder):
   """
   import glob
 
-  cpu_files = glob.glob(folder+'/cpu*txt')
+  cpu_files = glob.glob(folder+'/CPU/cpu*txt')
   for file in cpu_files:
     try:
       plot_cpu(file)
     except Exception, e:
       tacc_log.print_error (" While processing file %s: %s" %(file, e))
 
-  numa_files = glob.glob(folder+"/numa*txt")
+  numa_files = glob.glob(folder+"/NUMA/numa*txt")
   for file in numa_files:
     try:
       plot_numa (file)
     except Exception, e:
       tacc_log.print_error (" While processing file %s: %s" %(file, e))
 
-  mem_files = glob.glob(folder+"/mem_stats*txt")
+  mem_files = glob.glob(folder+"/MEMORY/mem_stats*txt")
   for file in mem_files:
     try:
       plot_mem (file)
     except Exception, e:
       tacc_log.print_error (" While processing file %s: %s" %(file, e))
 
-  try:
-    plot_lustre (folder+"/fs_lustre_total.txt")
-  except Exception, e:
-    tacc_log.print_error (" While processing file %s: %s" %(folder+"/fs_lustre_total.txt", e))
+  lustre_files = glob.glob(folder+"/IO/lustre*_rate.txt")
+  for file in lustre_files:
+    try:
+      plot_lustre (file)
+    except Exception, e:
+      tacc_log.print_error (" While processing file %s: %s" %(file, e))
 
-  ibxmit_files = glob.glob(folder+"/ib_xmit*txt")
+  ibxmit_files = glob.glob(folder+"/NETWORK/ib_xmit*txt")
   for file in ibxmit_files:
     try:
       plot_ibxmit(file)
@@ -375,7 +385,7 @@ def plot_stats(folder):
       tacc_log.print_error (" While processing file %s: %s" %(file, e))
 
   #Plot the file with lnet stats
-  lnet_files = glob.glob(folder+'/lustre_counters-*.txt')
+  lnet_files = glob.glob(folder+'/IO/lnet_counters*.txt')
   for file in lnet_files:
     try:
       plot_lnstats (file)
@@ -393,12 +403,12 @@ def plot_network(folder):
   switch_leaf2="" #Another leaf switch
   switch_core=""  #Core switch
 
-  if (not os.path.isfile (folder+"/trace_network.txt")):
+  if (not os.path.isfile (folder+"/NETWORK/trace_network.txt")):
     return
-  with open(folder+"/trace_network.txt") as f:
+  with open(folder+"/NETWORK/trace_network.txt") as f:
     lines = f.readlines()
 
-  fout = open (folder+"/network_diag.diag", "w")
+  fout = open (folder+"/NETWORK/network_diag.diag", "w")
   #Create a set of common options for the diag file (orientation and colors)
   fout.write ("blockdiag {\n")
   fout.write ("orientation = portrait\n")
@@ -461,11 +471,11 @@ def plot_network(folder):
   #Now, call the program that creates the png file using the diag file
   try:
     from blockdiag import parser, builder, drawer
-    with open(folder+"/network_diag.diag") as f:
+    with open(folder+"/NETWORK/network_diag.diag") as f:
       content = f.read()
     tree=parser.parse_string(content)
     diagram = builder.ScreenNodeBuilder.build(tree)
-    output_fn = folder+"/network_diag.png"
+    output_fn = folder+"/NETWORK/network_diag.png"
     draw = drawer.DiagramDraw('PNG', diagram, filename=output_fn)
     draw.draw()
     draw.save()
