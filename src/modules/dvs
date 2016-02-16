@@ -94,8 +94,8 @@ collect_data_dvs()
                     echo "cat /proc/fs/dvs/mounts/$idx/stats | grep -e RQ_OPEN -e RQ_CLOSE -e RQ_READDIR -e RQ_CREATE -e RQ_UNLINK -e RQ_MKDIR -e RQ_RMDIR -e RQ_FLUSH -e RQ_RENAME -e RQ_SETATTR -e RQ_GETATTR | awk '{sum+=$2} END {print sum}'"
                 fi
                 COUNTER[$col_id]=`cat /proc/fs/dvs/mounts/$idx/stats | grep -e RQ_OPEN -e RQ_CLOSE -e RQ_READDIR -e RQ_CREATE -e RQ_UNLINK -e RQ_MKDIR -e RQ_RMDIR -e RQ_FLUSH -e RQ_RENAME -e RQ_SETATTR -e RQ_GETATTR | awk '{sum+=$2} END {print sum}'`
-                COUNTER[$((col_id+1))]=`echo 0.00`
-                COUNToR[$((col_id+2))]=`echo 0.00`
+                COUNTER[$((col_id+1))]=`echo 0`
+                COUNTER[$((col_id+2))]=`echo 0`
 		col_id=$((col_id+3))
                 idx=$((idx+1))
             done
@@ -121,19 +121,22 @@ finalize_module_dvs()
     if [ "$REMORA_MODE" == "FULL" ] && [ "$REMORA_DVS" == "1" ]; then
 
       # Capture the names of the mounts (FSNAMES)
-      idx=0
-      FSNAMES=()
+      idx=0; FSNAMES=()
       for i in `ls /proc/fs/dvs/mounts`; do
-        FSNAMES[$idx]=$(basename `grep "remote-path" /proc/fs/dvs/mounts/$i/mount | awk '{print $2}'`)
-        if [ "$REMORA_VERBOSE" == "1" ]; then
-            echo ${FSNAMES[$idx]}
+        isBlacklisted=0
+        currentName=$(basename `grep "remote-path" /proc/fs/dvs/mounts/$i/mount | awk '{print $2}'`)
+        for elem in `cat $REMORA_BIN/config/fs_blacklist`; do
+          if [ "$currentName" == "$elem" ]; then isBlacklisted=1; fi
+        done
+        if [ "$isBlacklisted" == "0" ]; then
+          FSNAMES[$idx]=$currentName
+          idx=$((idx+1))
         fi
-        idx=$((idx+1))
       done
 
       # Identify shortest entry
       min_len=0
-      for file in `ls $2/dvs_*.txt`; do
+      for file in `ls $2/dvs_stats_*.txt`; do
          fs_col=2; len=0
          for FS in "${FSNAMES[@]}"; do
            len=`cat $file | tr -s ' ' | cut -d ' ' -f $fs_col | wc -l | awk '{print $1}'`
@@ -151,10 +154,10 @@ finalize_module_dvs()
         HEADER[1]=`echo "${FSNAMES[$idx]}-RQ"`
         HEADER[2]=`echo "${FSNAMES[$idx]}-RD"`
         HEADER[3]=`echo "${FSNAMES[$idx]}-WR"`
-        printf "%-17s"  "${HEADER[@]}" > $2/dvs_$FS.txt
-        printf "\n" >> $2/dvs_$FS.txt
-        printf "%-17s"  "${HEADER[@]}" > $2/dvs_$FS_rate.txt
-        printf "\n" >> $2/dvs_$FS_rate.txt
+        printf "%-17s"  "${HEADER[@]}" > $2/dvs_${FS}.txt
+        printf "\n" >> $2/dvs_${FS}.txt
+        printf "%-17s"  "${HEADER[@]}" > $2/dvs_${FS}_rate.txt
+        printf "\n" >> $2/dvs_${FS}_rate.txt
         idx=$((idx+1))
       done
    
@@ -162,7 +165,8 @@ finalize_module_dvs()
       awk 'FNR>1 {a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=2; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $2/dvs_stats_*.txt > $2/dvs.tmp
       col_id=2
       for FS in "${FSNAMES[@]}"; do
-        cut -d ' ' -f 1,$col_id,$((col_id+1)),$((col_id+2)) $2/dvs.tmp > $2/dvs_$FS.txt
+        echo $FS
+        cut -d ' ' -f 1,$col_id,$((col_id+1)),$((col_id+2)) $2/dvs.tmp > $2/dvs_${FS}.txt
         col_id=$((col_id+3))
       done
       rm $2/dvs.tmp
@@ -172,7 +176,7 @@ finalize_module_dvs()
       min_len=$((min_len-1))
       local d1=(); local d2=()
       for FS in "${FSNAMES[@]}"; do
-        file=`echo dvs_$FS.txt`
+        file=`echo dvs_${FS}.txt`
         startTime=`sed "2q;d" $2/$file | awk '{ print $1}'`
         for i in `seq 2 $min_len`; do
           next=$((i+1))
@@ -182,7 +186,7 @@ finalize_module_dvs()
           fsio=`echo "scale=6; ( ${d2[1]} - ${d1[1]} ) / ( ( ${d2[0]} - ${d1[0]} ) )" | bc`
           fsrd=`echo "scale=6; ( ${d2[2]} - ${d1[2]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
           fswr=`echo "scale=6; ( ${d2[3]} - ${d1[3]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
-          printf "%-17f %-17f %-17f %-17f\n" $rtime $fsio $fsrd $fswr >> $2/dvs_$FS_rate.txt
+          printf "%-17f %-17f %-17f %-17f\n" $rtime $fsio $fsrd $fswr >> $2/dvs_${FS}_rate.txt
         done
       done
     fi
