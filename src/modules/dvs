@@ -165,7 +165,6 @@ finalize_module_dvs()
       awk 'FNR>1 {a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=2; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $2/dvs_stats_*.txt > $2/dvs.tmp
       col_id=2
       for FS in "${FSNAMES[@]}"; do
-        echo $FS
         cut -d ' ' -f 1,$col_id,$((col_id+1)),$((col_id+2)) $2/dvs.tmp > $2/dvs_${FS}.txt
         col_id=$((col_id+3))
       done
