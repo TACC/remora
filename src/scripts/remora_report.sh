@@ -44,11 +44,6 @@ mkdir -p $REMORA_TMPDIR
 #Source the script that has the modules' functionality
 source $REMORA_BIN/modules/modules_utils
 
-# DEBUG
-echo "env | grep REMORA"
-env | grep REMORA
-echo "You should have seen that"
-
 #Read the list of active modules from the configuration file
 remora_read_active_modules
 

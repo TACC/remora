@@ -266,7 +266,7 @@ def is_number(s):
 
 def plot_lustre(file):
   """ The new format of this files is as follows"
-      TIMESTAMP fs-IOPS       fs-RD         fs-WR
+      TIMESTAMP fs-RQ       fs-RD         fs-WR
       123456    5368950       1917334       524528
       123457    5368992       1917334       524560
       123458    5369034       1917334       524560
@@ -290,13 +290,13 @@ def plot_lustre(file):
   xvalues = xrange(0, len(values[labels[0]])) #np.array (values[labels[0]])
 
   color=cm.rainbow(np.linspace(0,1,len(labels)+1))
-  for i in xrange (len(labels)):
+  for i in xrange (1, len(labels)):
     ax.plot (xvalues, values[labels[i]], linestyle=line_styles[0], label=labels[i], lw=0.5, c=color[i])
 
   ax.set_title('Lustre Load')
   box = ax.get_position()
   ax.set_position([box.x0+box.width*0.25, box.y0, box.width * 0.6, box.height])
-  ax.set_xlabel('Execution Time (Timestamps)')
+  ax.set_xlabel('Execution Time (seconds)')
   ax.legend(loc='center left', bbox_to_anchor=(-0.65,0.5), prop={'size':9})
   plt.savefig (file.replace("txt", "png"))
   plt.clf()
@@ -370,7 +370,7 @@ def plot_stats(folder):
     except Exception, e:
       tacc_log.print_error (" While processing file %s: %s" %(file, e))
 
-  lustre_files = glob.glob(folder+"/IO/lustre*.rate")
+  lustre_files = glob.glob(folder+"/IO/lustre*_rate.txt")
   for file in lustre_files:
     try:
       plot_lustre (file)
