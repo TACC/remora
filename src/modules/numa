@@ -32,7 +32,7 @@ init_module_numa()
 
 collect_data_numa()
 {
-  if [ "$REMORA_MODE" == "FULL" ]; then
+  if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
     #Get a timestamp in seconds for this data sample
     local TIMESTAMP=`date +%s`
     # NUMA statistics
@@ -57,6 +57,11 @@ collect_data_numa()
 # This function might perform some processing on the data.
 # If nothing needs to be done, it can be empty (but declared)
 process_data_numa()
+{
+  :
+}
+
+monitor_numa()
 {
   :
 }

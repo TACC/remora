@@ -82,7 +82,7 @@ show_final_report() {
     show_time $((END-START))
 
     #Show Maximum IO Requests/S to all MDS servers (H-Home, S-Scratch, W-Work)
-    if [ "$REMORA_MODE" == "FULL" ]; then
+    if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
 
       if [ "$REMORA_LUSTRE" == "1" ]; then
         printf "%s\n" $bar | tee -a $REMORA_OUTDIR/remora_summary.txt

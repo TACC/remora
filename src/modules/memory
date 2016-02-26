@@ -64,7 +64,26 @@ collect_data_memory()
 # If nothing needs to be done, it can be empty (but declared)
 process_data_memory()
 {
-  :
+ :
+}
+
+monitor_memory()
+{
+	REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+    if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+		max_mem=0; max_mem_global=0
+		for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`
+		do
+			if [ -r $REMORA_TMPDIR/mem_stats_${NODE}.txt ]; then
+				COMMAND="tail -n 1 $REMORA_TMPDIR/mem_stats_${NODE}.txt"
+				max_mem=`ssh $NODE $COMMAND`
+				max_mem=`echo $max_mem | awk '{print $2}'`
+				if [ $(echo "$max_mem > $max_mem_global" | bc) -eq 1 ]; then max_mem_global=$max_mem; fi
+			fi
+		done
+		echo $max_mem_global >> $REMORA_TMPDIR/monitor_memory.txt 
+	fi
 }
 
 finalize_module_memory()

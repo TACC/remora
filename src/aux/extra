@@ -94,7 +94,7 @@ parse_environment() {
         export REMORA_MODE=FULL
     fi
 
-    if [ "$REMORA_MODE" != "FULL" ] && [ "$REMORA_MODE" != "BASIC" ]; then
+    if [ "$REMORA_MODE" != "FULL" ] && [ "$REMORA_MODE" != "BASIC" ] && [ "$REMORA_MODE" != "MONITOR" ]; then
         export REMORA_MODE=FULL
     fi
 

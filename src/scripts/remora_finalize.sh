@@ -62,10 +62,14 @@ show_final_report $END $START
 mv $REMORA_OUTDIR/{remora*,runtime*} $REMORA_OUTDIR/INFO
 mv $REMORA_OUTDIR/cpu* $REMORA_OUTDIR/CPU
 mv $REMORA_OUTDIR/mem* $REMORA_OUTDIR/MEMORY
-if [ "$REMORA_MODE" == "FULL" ]; then
+if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
   if [ "$REMORA_LUSTRE" == "1" ]; then mv $REMORA_OUTDIR/{lustre*,lnet*} $REMORA_OUTDIR/IO; fi
   if [ "$REMORA_DVS" == "1" ]; then mv $REMORA_OUTDIR/dvs* $REMORA_OUTDIR/IO; fi
   mv $REMORA_OUTDIR/{ib*,trace_*} $REMORA_OUTDIR/NETWORK/
   mv $REMORA_OUTDIR/numa* $REMORA_OUTDIR/NUMA
+fi
+if [ "$REMORA_MODE" == "MONITOR" ]; then
+	mkdir $REMORA_OUTDIR/MONITOR
+	mv $REMORA_OUTDIR/monitor* $REMORA_OUTDIR/MONITOR/
 fi
 

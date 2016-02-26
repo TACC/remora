@@ -48,6 +48,11 @@ process_data_gpu()
   :
 }
 
+monitor_gpu()
+{
+  :
+}
+
 finalize_module_gpu()
 {
   :

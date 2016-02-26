@@ -64,6 +64,25 @@ process_data_cpu()
   :
 }
 
+monitor_cpu()
+{
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+	REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+    if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+        avg_cpu=0; max_cpu=0; min_cpu=200
+        for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`
+        do 
+			if [ -r $REMORA_TMPDIR/cpu_$NODE.txt ]; then 
+            	COMMAND="tail -n 3 $REMORA_TMPDIR/cpu_$NODE.txt"
+            	avg_cpu=`ssh $NODE $COMMAND | head -n 1`
+				avg_cpu=`echo $avg_cpu | awk '{for(i=1;i<NF;i++)avg+=$i} END {print avg/(NF-1)}'`
+            	if [ $(echo "$avg_cpu > $max_cpu" | bc) -eq 1 ]; then max_cpu=$avg_cpu; fi
+				if [ $(echo "$avg_cpu < $min_cpu" | bc) -eq 1 ]; then min_cpu=$avg_cpu; fi
+			fi
+        done
+        echo "$max_cpu $min_cpu" >> $REMORA_TMPDIR/monitor_cpu.txt 
+    fi  
+}
 
 finalize_module_cpu()
 {

@@ -47,7 +47,19 @@ remora_configure_modules()
     done
 }
 
-#Call the execute_module_function of each active module
+# Call the monitor_module function of each active module
+remora_monitor_modules()
+{
+    for MODULE in "${REMORA_MODULES[@]}"
+    do  
+        if [ "$REMORA_VERBOSE" == "1" ]; then
+            echo monitor_$MODULE $1 $2 $3
+        fi  
+        monitor_$MODULE $1 $2 $3
+    done
+}
+
+#Call the c llect_data_module function of each active module
 remora_execute_modules()
 {
     for MODULE in "${REMORA_MODULES[@]}"

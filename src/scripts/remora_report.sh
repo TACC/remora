@@ -39,7 +39,6 @@ source $REMORA_OUTDIR/remora_env.txt
 
 # Remove any temporary data and perform data collation
 mkdir -p $REMORA_TMPDIR
-#rm -rf $REMORA_TMPDIR/*
 
 #Source the script that has the modules' functionality
 source $REMORA_BIN/modules/modules_utils
@@ -50,11 +49,13 @@ remora_read_active_modules
 #Configure the modules (they might not need it)
 remora_configure_modules $REMORA_NODE $REMORA_TMPDIR
 
-while [ 1 ]
-do
+while [ 1 ]; do
     remora_execute_modules $REMORA_NODE $REMORA_TMPDIR
     if [ "$REMORA_VERBOSE" == "1" ]; then
         echo "sleep $REMORA_PERIOD"
+    fi
+    if [ "$REMORA_MODE" == "MONITOR" ]; then
+        remora_monitor_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
     fi
     sleep $REMORA_EFFECTIVE_PERIOD
 done

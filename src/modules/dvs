@@ -27,7 +27,8 @@
 init_module_dvs()
 {
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
-        if [ "$REMORA_MODE" = "FULL" ] && [ "$REMORA_DVS" == "1" ]; then
+        if [ "$REMORA_MODE" = "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+			if [ "$REMORA_DVS" == "1" ]; then
             rm -f $2/dvs*
             # Capture the names of the mounts (FSNAMES)
             idx=0; hdx=1
@@ -54,6 +55,7 @@ init_module_dvs()
             done
             printf "%-17s"  "${HEADER[@]}" >> $2/dvs_stats_$1.txt
             printf "\n"  >> $2/dvs_stats_$1.txt
+			fi
         fi
     fi
 }
@@ -82,7 +84,8 @@ collect_data_dvs()
 # ...
 # 
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
-        if [ "$REMORA_MODE" == "FULL" ] && [ "$REMORA_DVS" == "1" ]; then
+        if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+			if [ "$REMORA_DVS" == "1" ]; then
             local DVS_DIR_PATH=/proc/fs/dvs/mounts
             local TIMESTAMP=`date +%s`
             local idx=0
@@ -103,6 +106,7 @@ collect_data_dvs()
             # in raw counters, not rates
             printf "%-17d %-17d" $TIMESTAMP "${COUNTER[@]}" >> $2/dvs_stats_$1.txt
             printf "\n"  >> $2/dvs_stats_$1.txt
+			fi
         fi
     fi
 }
@@ -114,11 +118,17 @@ process_data_dvs()
   :
 }
 
+monitor_dvs()
+{
+  :
+}
+
 finalize_module_dvs()
 {
   REMORA_NODE_ID=$3
   if [ "$REMORA_NODE_ID" == "0" ] && [ "$REMORA_SYMMETRIC" == "0" ]; then 
-    if [ "$REMORA_MODE" == "FULL" ] && [ "$REMORA_DVS" == "1" ]; then
+    if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+		if [ "$REMORA_DVS" == "1" ]; then
 
       # Capture the names of the mounts (FSNAMES)
       idx=0; FSNAMES=()
@@ -188,6 +198,7 @@ finalize_module_dvs()
           printf "%-17f %-17f %-17f %-17f\n" $rtime $fsio $fsrd $fswr >> $2/dvs_${FS}_rate.txt
         done
       done
+	  fi
     fi
   fi
 }
