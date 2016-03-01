@@ -78,11 +78,12 @@ monitor_memory()
 			if [ -r $REMORA_TMPDIR/mem_stats_${NODE}.txt ]; then
 				COMMAND="tail -n 1 $REMORA_TMPDIR/mem_stats_${NODE}.txt"
 				max_mem=`ssh $NODE $COMMAND`
-				max_mem=`echo $max_mem | awk '{print $2}'`
+				max_mem=`echo $max_mem | awk '{print $3}'`
 				if [ $(echo "$max_mem > $max_mem_global" | bc) -eq 1 ]; then max_mem_global=$max_mem; fi
 			fi
 		done
-		echo $max_mem_global >> $REMORA_TMPDIR/monitor_memory.txt 
+		echo $max_mem_global >> $REMORA_OUTDIR/monitor_memory.txt 
+		printf "MAX MEM (GB) : %4.1f\n" $max_mem_global >> $REMORA_OUTDIR/monitor.txt
 	fi
 }
 

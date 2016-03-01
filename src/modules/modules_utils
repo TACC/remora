@@ -82,3 +82,8 @@ remora_finalize_modules()
         finalize_module_$MODULE $1 $2 $3
     done
 }
+
+remora_monitor_summary()
+{
+	:
+}

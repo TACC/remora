@@ -202,6 +202,9 @@ init_folders() {
     if [ -z "$REMORA_TMPDIR" ]; then
         export REMORA_TMPDIR=$REMORA_OUTDIR
     fi
+	mkdir -p $REMORA_TMPDIR
+	rm -rf $REMORA_TMPDIR/*
+
     # Setup output subdirectories
     mkdir $REMORA_OUTDIR/INFO
     mkdir $REMORA_OUTDIR/CPU
@@ -209,6 +212,7 @@ init_folders() {
     mkdir $REMORA_OUTDIR/MEMORY
     mkdir $REMORA_OUTDIR/NETWORK
     mkdir $REMORA_OUTDIR/NUMA
+	mkdir $REMORA_OUTDIR/MONITOR
 
     echo "export REMORA_OUTDIR=$REMORA_OUTDIR"  > $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_TMPDIR=$REMORA_TMPDIR" >> $REMORA_OUTDIR/remora_env.txt

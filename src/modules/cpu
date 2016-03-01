@@ -80,7 +80,9 @@ monitor_cpu()
 				if [ $(echo "$avg_cpu < $min_cpu" | bc) -eq 1 ]; then min_cpu=$avg_cpu; fi
 			fi
         done
-        echo "$max_cpu $min_cpu" >> $REMORA_TMPDIR/monitor_cpu.txt 
+        echo "$max_cpu $min_cpu" >> $REMORA_OUTDIR/monitor_cpu.txt 
+		echo "====================================" >> $REMORA_OUTDIR/monitor.txt
+		printf "CPU MAX/MIN (%%): %4.1f / %4.1f \n" $max_cpu $min_cpu >> $REMORA_OUTDIR/monitor.txt
     fi  
 }
 
