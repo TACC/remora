@@ -81,6 +81,12 @@ REMORA_OUTDIR=$($REMORA_BIN/scripts/remora_init.sh "$@")
 export NODES=`cat $REMORA_OUTDIR/remora_nodes.txt`
 source $REMORA_OUTDIR/remora_env.txt
 
+# Output real time results if running in monitor mode
+if [ "$REMORA_MODE" == "MONITOR" ]; then
+	touch $REMORA_OUTDIR/monitor.txt
+	tail -f $REMORA_OUTDIR/monitor.txt --pid=$REMORA_TOP_PID &
+fi
+
 $REMORA_BIN/scripts/remora_collect.sh "$@"
 
 # Now that we are collecting data in the background
@@ -93,7 +99,6 @@ fi
 START=$(date +%s%N)
 $@
 END=$(date +%s%N)
-
 $REMORA_BIN/scripts/remora_finalize.sh $END $START
 
 
