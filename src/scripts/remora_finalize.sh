@@ -69,7 +69,6 @@ if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
   mv $REMORA_OUTDIR/numa* $REMORA_OUTDIR/NUMA
 fi
 if [ "$REMORA_MODE" == "MONITOR" ]; then
-	mkdir $REMORA_OUTDIR/MONITOR
 	mv $REMORA_OUTDIR/monitor* $REMORA_OUTDIR/MONITOR/
 fi
 

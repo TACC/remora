@@ -56,6 +56,7 @@ while [ 1 ]; do
     fi
     if [ "$REMORA_MODE" == "MONITOR" ]; then
         remora_monitor_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+		remora_monitor_summary $REMORA_NODE $REMORA_OUTDIR 
     fi
     sleep $REMORA_EFFECTIVE_PERIOD
 done

@@ -59,6 +59,14 @@ init_module_lustre()
 
             printf "%-17s"  "${HEADER[@]}" >> $2/lustre_stats_$1.txt
             printf "\n"  >> $2/lustre_stats_$1.txt
+			if [ "$REMORA_MODE" == "MONITOR" ]; then
+				REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+				REMORA_NODE=$1
+				echo "MASTER=$REMORA_MASTER NODE=$REMORA_NODE"
+				if [ "$REMORA_MASTER" == "$REMORA_NODE" ]; then
+					printf "%17s"  "${FSNAMES[@]}" >> $REMORA_OUTDIR/monitor.txt
+				fi
+			fi
             fi
         fi
     fi
@@ -132,7 +140,6 @@ monitor_lustre()
 			current_file=$REMORA_OUTDIR/MONITOR/lustre_stats_${NODE}.txt
 			scp $NODE:$REMORA_TMPDIR/lustre_stats_${NODE}.txt $REMORA_OUTDIR/MONITOR
 			line2=`wc -l $current_file | awk '{print $1}'`
-			echo "line2= $line2"
 			if [ "$line2" > "2" ]; then
 				line1=$((line2-1))
 				sed "${line1}q;d" $current_file >  $REMORA_TMPDIR/monitor_lustre_stats_${NODE}.txt
@@ -154,7 +161,7 @@ monitor_lustre()
 
       		# Calculate actual data rates from raw counters
       		# $1 = time; $2 = iopsi (usec); $3 = read (bytes); $4 = write (bytes)
-      		local d1=(); local d2=()
+      		local d1=(); local d2=(); realtime_lustre=()
       		for FS in "${FSNAMES[@]}"; do
         		file=$(echo ${REMORA_TMPDIR}/monitor_lustre_${FS}.txt)
         		d1=(`sed "1q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4}'`)
@@ -163,8 +170,11 @@ monitor_lustre()
         		#fsrd=`echo "scale=6; ( ${d2[2]} - ${d1[2]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
         		#fswr=`echo "scale=6; ( ${d2[3]} - ${d1[3]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
         		#printf "%-17f %-17f %-17f\n" $fsio $fsrd $fswr >> $REMORA_OUTDIR/monitor_lustre_${FS}_rate.txt
-				printf "IOPS ($FS) : %4.1f\n" $fsio  >> $REMORA_OUTDIR/monitor.txt
+				#printf "IOPS ($FS) : %4.1f\n" $fsio  >> $REMORA_OUTDIR/monitor.txt
+				realtime_lustre[$idx]=$fsio
+				idx=$((idx+1))
       		done
+			printf  "%17.2f " ${realtime_lustre[@]} >> $REMORA_OUTDIR/monitor.txt
 		fi
     fi  
 }

@@ -27,6 +27,12 @@
 init_module_cpu()
 {
   rm -f $2/cpu*
+  if [ "$REMORA_MODE" == "MONITOR" ]; then
+	REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+	if [ "$1" == "$REMORA_MASTER" ]; then
+		printf "%17s %17s" "CPU_MAX_%" "CPU_MIN_%" >> $REMORA_OUTDIR/monitor.txt
+	fi
+  fi
 }
 
 collect_data_cpu()
@@ -81,8 +87,9 @@ monitor_cpu()
 			fi
         done
         echo "$max_cpu $min_cpu" >> $REMORA_OUTDIR/monitor_cpu.txt 
-		echo "====================================" >> $REMORA_OUTDIR/monitor.txt
-		printf "CPU MAX/MIN (%%): %4.1f / %4.1f \n" $max_cpu $min_cpu >> $REMORA_OUTDIR/monitor.txt
+		#echo "" >> $REMORA_OUTDIR/monitor.txt
+		#echo "====================================" >> $REMORA_OUTDIR/monitor.txt
+		printf "\n %17.1f %17.1f " $max_cpu $min_cpu >> $REMORA_OUTDIR/monitor.txt
     fi  
 }
 
