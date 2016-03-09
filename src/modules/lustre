@@ -153,7 +153,7 @@ monitor_lustre()
         for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`
         do 
 			# Copy file over only if necessary
-			if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+			if [ "$REMORA_NODE" == "$NODE" ]; then
 				cp $REMORA_TMPDIR/lustre_stats_${NODE}.txt $REMORA_OUTDIR/MONITOR
 			else
 				scp $NODE:$REMORA_TMPDIR/lustre_stats_${NODE}.txt $REMORA_OUTDIR/MONITOR

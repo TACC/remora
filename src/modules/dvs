@@ -150,7 +150,7 @@ monitor_dvs()
         for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`
         do
             # scp file only if not in local node
-			if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+			if [ "$REMORA_NODE" == "$NODE" ]; then
 				cp $REMORA_TMPDIR/dvs_stats_${NODE}.txt $REMORA_OUTDIR/MONITOR
 			else
             	scp $NODE:$REMORA_TMPDIR/dvs_stats_${NODE}.txt $REMORA_OUTDIR/MONITOR
