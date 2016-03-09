@@ -108,6 +108,11 @@ parse_environment() {
         export REMORA_PERIOD=1
     fi
 
+	# Check if monitor period is set and use a sane default value
+	if [ -z "$REMORA_MONITOR_PERIOD" ]; then
+		export REMORA_MONITOR_PERIOD=10
+	fi
+
     # Enable only critical warnings by default
     # 0: disabel all warnings
     # 1: enable excessive memory and io usage warnings
@@ -120,7 +125,7 @@ parse_environment() {
     echo "export REMORA_MODE=$REMORA_MODE"       >> $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_PERIOD=$REMORA_PERIOD"   >> $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_VERBOSE=$REMORA_VERBOSE" >> $REMORA_OUTDIR/remora_env.txt
-
+	echo "export REMORA_MONITOR_PERIOD=$REMORA_MONITOR_PERIOD" >> $REMORA_OUTDIR/remora_env.txt
 }
 
 is_mpi_job() {

@@ -62,9 +62,8 @@ init_module_lustre()
 			if [ "$REMORA_MODE" == "MONITOR" ]; then
 				REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
 				REMORA_NODE=$1
-				echo "MASTER=$REMORA_MASTER NODE=$REMORA_NODE"
 				if [ "$REMORA_MASTER" == "$REMORA_NODE" ]; then
-					printf "%17s"  "${FSNAMES[@]}" >> $REMORA_OUTDIR/monitor.txt
+					printf "%10s_IOPS"  "${FSNAMES[@]}" >> $REMORA_TMPDIR/.monitor
 				fi
 			fi
             fi
@@ -174,7 +173,7 @@ monitor_lustre()
 				realtime_lustre[$idx]=$fsio
 				idx=$((idx+1))
       		done
-			printf  "%17.2f " ${realtime_lustre[@]} >> $REMORA_OUTDIR/monitor.txt
+			printf  "%14.1f " ${realtime_lustre[@]} >> $REMORA_TMPDIR/.monitor
 		fi
     fi  
 }

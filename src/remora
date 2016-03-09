@@ -83,8 +83,12 @@ source $REMORA_OUTDIR/remora_env.txt
 
 # Output real time results if running in monitor mode
 if [ "$REMORA_MODE" == "MONITOR" ]; then
-	touch $REMORA_OUTDIR/monitor.txt
-	tail -f $REMORA_OUTDIR/monitor.txt --pid=$REMORA_TOP_PID &
+#	touch $REMORA_OUTDIR/monitor.txt
+#	tail -f $REMORA_OUTDIR/monitor.txt --pid=$REMORA_TOP_PID &
+	echo ""
+	echo "REMORA: Running in monitor mode. For real time updates use:"
+	echo "        tail -f $REMORA_OUTDIR/monitor.txt"
+	echo ""
 fi
 
 $REMORA_BIN/scripts/remora_collect.sh "$@"

@@ -43,9 +43,17 @@ do
   FINAL_PID=`ssh -q -n $NODE $COMMAND 2> /dev/null`
   idx=$((idx+1))
 done  
-
 rm $REMORA_OUTDIR/remora_pid.txt
 rm $REMORA_OUTDIR/remora_pid_mic.txt
+
+# Clean up the instance of remora summary running on the master node
+if [ "$REMORA_MODE" == "MONITOR" ]; then
+	MONITOR_PID=`cat $REMORA_OUTDIR/remora_pid_monitor.txt`
+	kill $MONITOR_PID 2> /dev/null
+	rm $REMORA_OUTDIR/remora_pid_monitor.txt
+fi
+
+# Wait for files to be available in cached shared file systems
 waiting=1
 while [ "$waiting" -lt "10" ] && [ ! -r $REMORA_OUTDIR/trace_network.txt ]; do
   sleep 2
@@ -70,5 +78,6 @@ if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
 fi
 if [ "$REMORA_MODE" == "MONITOR" ]; then
 	mv $REMORA_OUTDIR/monitor* $REMORA_OUTDIR/MONITOR/
+	rm $REMORA_TMPDIR/.monitor
 fi
 

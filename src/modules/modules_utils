@@ -85,6 +85,10 @@ remora_finalize_modules()
 
 remora_monitor_summary()
 {
-	:
+	REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+	if [ "$1" == "$REMORA_MASTER" ]; then
+		tail -n 1 $REMORA_TMPDIR/.monitor >> $REMORA_OUTDIR/monitor.txt
+		echo "" >> $REMORA_OUTDIR/monitor.txt
+	fi
 }
 

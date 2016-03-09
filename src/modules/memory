@@ -33,7 +33,7 @@ init_module_memory()
     if [ "$REMORA_MODE" == "MONITOR" ]; then
 		REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
 		if [ "$1" == "$REMORA_MASTER" ]; then
-			printf "%17s " "MAX_MEM_GB" >> $REMORA_OUTDIR/monitor.txt
+			printf "%10s " "MAX_MEM_GB" >> $REMORA_TMPDIR/.monitor
 		fi
 	fi
 }
@@ -89,7 +89,7 @@ monitor_memory()
 			fi
 		done
 		echo $max_mem_global >> $REMORA_OUTDIR/monitor_memory.txt 
-		printf "%17.1f " $max_mem_global >> $REMORA_OUTDIR/monitor.txt
+		printf "%9.1f" $max_mem_global >> $REMORA_TMPDIR/.monitor
 	fi
 }
 
