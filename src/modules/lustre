@@ -152,20 +152,25 @@ monitor_lustre()
         max_iops=0; max_iops_global=0
         for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`
         do 
-			# WARNING - TO BE DONE: Avoid scp if file already in $OUTDIR
+			# Copy file over only if necessary
+			if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+				cp $REMORA_TMPDIR/lustre_stats_${NODE}.txt $REMORA_OUTDIR/MONITOR
+			else
+				scp $NODE:$REMORA_TMPDIR/lustre_stats_${NODE}.txt $REMORA_OUTDIR/MONITOR
+			fi
 			current_file=$REMORA_OUTDIR/MONITOR/lustre_stats_${NODE}.txt
-			scp $NODE:$REMORA_TMPDIR/lustre_stats_${NODE}.txt $REMORA_OUTDIR/MONITOR
 			line2=`wc -l $current_file | awk '{print $1}'`
 			if [ "$line2" > "2" ]; then
 				line1=$((line2-1))
 				sed "${line1}q;d" $current_file >  $REMORA_TMPDIR/monitor_lustre_stats_${NODE}.txt
 				sed "${line2}q;d" $current_file >> $REMORA_TMPDIR/monitor_lustre_stats_${NODE}.txt
 			fi
+			rm $current_file
         done
 
 		# WARNING - NO PROTECTION FOR FILES NOT BEING THERE	
 		# Generate file with aggregate counts from all nodes
-		# Note taht teh loop in FNR is really a loop over the lines in the file. 
+		# Note that the loop in FNR is really a loop over the lines in the file. 
 		# Starting at 2 skips a header if needed.
         awk '{a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=1; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $REMORA_TMPDIR/monitor_lustre_stats_*.txt > $REMORA_TMPDIR/monitor_lustre.tmp
       	col_id=2
@@ -183,10 +188,6 @@ monitor_lustre()
         	d1=(`sed "1q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4}'`)
         	d2=(`sed "2q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4 }'`)
         	fsio=`echo "scale=6; ( ${d2[1]} - ${d1[1]} ) / ( ( ${d2[0]} - ${d1[0]} ) )" | bc`
-        	#fsrd=`echo "scale=6; ( ${d2[2]} - ${d1[2]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
-        	#fswr=`echo "scale=6; ( ${d2[3]} - ${d1[3]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
-        	#printf "%-17f %-17f %-17f\n" $fsio $fsrd $fswr >> $REMORA_OUTDIR/monitor_lustre_${FS}_rate.txt
-			#printf "IOPS ($FS) : %4.1f\n" $fsio  >> $REMORA_OUTDIR/monitor.txt
 			realtime_lustre[$idx]=$fsio
 			idx=$((idx+1))
       	done
@@ -196,24 +197,16 @@ monitor_lustre()
 
 finalize_module_lustre()
 {
-  REMORA_NODE_ID=$3
+  REMORA_NODE=$1; REMORA_NODE_ID=$3
   if [ "$REMORA_NODE_ID" == "0" ] && [ "$REMORA_SYMMETRIC" == "0" ]; then
     if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
 		if [ "$REMORA_LUSTRE" == "1" ]; then
 
-      # Get names from lustre.txt file headers
-      FSS=`df --type=lustre -P | uniq`
-      local idx=0
-      FSNAMES=()
-      while read -r line; do
-        if [ $idx == 0 ]; then
+      idx=0
+      for NAME in `cat $REMORA_TMPDIR/remora_lustre_names_${REMORA_NODE}.tmp`; do
+          FSNAMES[$idx]=$NAME
           idx=$((idx+1))
-          continue
-        fi  
-        local TEMP=`echo $line | sed 's/.*:\///' | awk '{print $6;}'`
-        FSNAMES[$idx-1]=`echo "${TEMP////}"`
-        idx=$((idx+1))
-      done <<< "$FSS"
+      done
 
       # Identify shortest entry
       min_len=0
@@ -273,4 +266,5 @@ finalize_module_lustre()
 	  fi
     fi
   fi
+  rm $REMORA_TMPDIR/remora_lustre_names_${REMORA_NODE}.tmp
 }

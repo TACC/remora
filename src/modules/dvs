@@ -138,7 +138,7 @@ monitor_dvs()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-    if [ "$REMORA_NODE" == "$REMORA_MASTER" ] && [ "$REMORA_LUSTRE" == "1" ]; then
+    if [ "$REMORA_NODE" == "$REMORA_MASTER" ] && [ "$REMORA_DVS" == "1" ]; then
 
         idx=0
         for NAME in `cat $REMORA_TMPDIR/remora_dvs_names_${REMORA_NODE}.tmp`; do
@@ -149,15 +149,20 @@ monitor_dvs()
         max_iops=0; max_iops_global=0
         for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`
         do
-            # WARNING - TO BE DONE : Avoid scp if file already in $OUTDIR
-            current_file=$REMORA_OUTDIR/MONITOR/dvs_stats_${NODE}.txt
-            scp $NODE:$REMORA_TMPDIR/dvs_stats_${NODE}.txt $REMORA_OUTDIR/MONITOR
+            # scp file only if not in local node
+			if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+				cp $REMORA_TMPDIR/dvs_stats_${NODE}.txt $REMORA_OUTDIR/MONITOR
+			else
+            	scp $NODE:$REMORA_TMPDIR/dvs_stats_${NODE}.txt $REMORA_OUTDIR/MONITOR
+			fi
+			current_file=$REMORA_OUTDIR/MONITOR/dvs_stats_${NODE}.txt
             line2=`wc -l $current_file | awk '{print $1}'`
             if [ "$line2" > "2" ]; then
                 line1=$((line2-1))
                 sed "${line1}q;d" $current_file >  $REMORA_TMPDIR/monitor_dvs_stats_${NODE}.txt
                 sed "${line2}q;d" $current_file >> $REMORA_TMPDIR/monitor_dvs_stats_${NODE}.txt
             fi
+			rm $current_file
         done
 
         # WARNING - NO PROTECTION FOR FILES NOT BEING THERE 
@@ -190,23 +195,15 @@ monitor_dvs()
 
 finalize_module_dvs()
 {
-  REMORA_NODE_ID=$3
+  REMORA_NODE=$1; REMORA_NODE_ID=$3
   if [ "$REMORA_NODE_ID" == "0" ] && [ "$REMORA_SYMMETRIC" == "0" ]; then 
     if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
 		if [ "$REMORA_DVS" == "1" ]; then
 
-      # Capture the names of the mounts (FSNAMES)
-      idx=0; FSNAMES=()
-      for i in `ls /proc/fs/dvs/mounts`; do
-        isBlacklisted=0
-        currentName=$(basename `grep "remote-path" /proc/fs/dvs/mounts/$i/mount | awk '{print $2}'`)
-        for elem in `cat $REMORA_BIN/config/fs_blacklist`; do
-          if [ "$currentName" == "$elem" ]; then isBlacklisted=1; fi
-        done
-        if [ "$isBlacklisted" == "0" ]; then
-          FSNAMES[$idx]=$currentName
+      idx=0
+      for NAME in `cat $REMORA_TMPDIR/remora_dvs_names_${REMORA_NODE}.tmp`; do
+          FSNAMES[$idx]=$NAME
           idx=$((idx+1))
-        fi
       done
 
       # Identify shortest entry
@@ -266,4 +263,5 @@ finalize_module_dvs()
 	  fi
     fi
   fi
+  rm $REMORA_TMPDIR/remora_dvs_names_${REMORA_NODE}.tmp
 }

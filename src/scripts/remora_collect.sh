@@ -39,6 +39,6 @@ echo ${PID_MIC[@]} > $REMORA_OUTDIR/remora_pid_mic.txt
 # Only do this is MONITOR mode is active
 if [ "$REMORA_MODE" == "MONITOR" ]; then
 	NODE=`hostname -s`
-	PID=`$REMORA_BIN/scripts/remora_monitor.sh $NODE $REMORA_BIN $REMORA_OUTDIR 1>2 2> /dev/null & echo $!`
+	PID=`$REMORA_BIN/scripts/remora_monitor.sh $NODE $REMORA_BIN $REMORA_OUTDIR 1>> $REMORA_OUTDIR/.remora_out_${REMORA_NODE} 2>> $REMORA_OUTDIR/.remora_out_${REMORA_NODE} & echo $!`
 	echo $PID > $REMORA_OUTDIR/remora_pid_monitor.txt
 fi
