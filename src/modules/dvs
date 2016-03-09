@@ -53,8 +53,24 @@ init_module_dvs()
                     hdx=$((hdx+3))
                 fi
             done
+
+			# Write dvs data file header
             printf "%-17s"  "${HEADER[@]}" >> $2/dvs_stats_$1.txt
             printf "\n"  >> $2/dvs_stats_$1.txt
+
+			# If monitor mode enabled, generate monitor file headers
+            if [ "$REMORA_MODE" == "MONITOR" ]; then
+                REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+                if [ "$REMORA_MASTER" == "$REMORA_NODE" ]; then
+                    printf "%10s_IOPS"  "${FSNAMES[@]}" >> $REMORA_TMPDIR/.monitor
+                fi  
+            fi  
+
+            # Save DVS file system names to a file for later reuse
+            for NAME in "${FSNAMES[@]}"; do
+                echo $NAME >> $REMORA_TMPDIR/remora_dvs_names_${REMORA_NODE}.tmp
+            done
+
 			fi
         fi
     fi
@@ -120,7 +136,56 @@ process_data_dvs()
 
 monitor_dvs()
 {
-  :
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+    if [ "$REMORA_NODE" == "$REMORA_MASTER" ] && [ "$REMORA_LUSTRE" == "1" ]; then
+
+        idx=0
+        for NAME in `cat $REMORA_TMPDIR/remora_dvs_names_${REMORA_NODE}.tmp`; do
+            FSNAMES[$idx]=$NAME
+            idx=$((idx+1))
+        done
+
+        max_iops=0; max_iops_global=0
+        for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`
+        do
+            # WARNING - TO BE DONE : Avoid scp if file already in $OUTDIR
+            current_file=$REMORA_OUTDIR/MONITOR/dvs_stats_${NODE}.txt
+            scp $NODE:$REMORA_TMPDIR/dvs_stats_${NODE}.txt $REMORA_OUTDIR/MONITOR
+            line2=`wc -l $current_file | awk '{print $1}'`
+            if [ "$line2" > "2" ]; then
+                line1=$((line2-1))
+                sed "${line1}q;d" $current_file >  $REMORA_TMPDIR/monitor_dvs_stats_${NODE}.txt
+                sed "${line2}q;d" $current_file >> $REMORA_TMPDIR/monitor_dvs_stats_${NODE}.txt
+            fi
+        done
+
+        # WARNING - NO PROTECTION FOR FILES NOT BEING THERE 
+        # Generate file with aggregate counts from all nodes
+        # Note taht teh loop in FNR is really a loop over the lines in the file. 
+        # Starting at 2 skips a header if needed.
+        awk '{a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=1; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $REMORA_TMPDIR/monitor_dvs_stats_*.txt > $REMORA_TMPDIR/monitor_dvs.tmp
+        col_id=2
+        for FS in "${FSNAMES[@]}"; do
+            cut -d ' ' -f 1,$col_id,$((col_id+1)),$((col_id+2)) $REMORA_TMPDIR/monitor_dvs.tmp > $REMORA_TMPDIR/monitor_dvs_${FS}.txt
+            col_id=$((col_id+3))
+        done
+        rm $REMORA_TMPDIR/monitor_dvs.tmp
+
+        # Calculate actual data rates from raw counters
+        # $1 = time; $2 = iopsi (usec); $3 = read (bytes); $4 = write (bytes)
+        idx=0; local d1=(); local d2=(); realtime_dvs=()
+        for FS in "${FSNAMES[@]}"; do
+            file=$(echo ${REMORA_TMPDIR}/monitor_dvs_${FS}.txt)
+            d1=(`sed "1q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4}'`)
+            d2=(`sed "2q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4 }'`)
+            fsio=`echo "scale=6; ( ${d2[1]} - ${d1[1]} ) / ( ( ${d2[0]} - ${d1[0]} ) )" | bc`
+            realtime_dvs[$idx]=$fsio
+            idx=$((idx+1))
+        done
+        printf  "%14.1f " ${realtime_dvs[@]} >> $REMORA_TMPDIR/.monitor
+
+	fi
 }
 
 finalize_module_dvs()

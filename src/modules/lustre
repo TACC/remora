@@ -59,8 +59,11 @@ init_module_lustre()
                 hdx=$((hdx+3))
             done <<< "$FSS"
 
+			# Write lustre data file header
             printf "%-17s"  "${HEADER[@]}" >> $2/lustre_stats_$1.txt
             printf "\n"  >> $2/lustre_stats_$1.txt
+
+			# If monitor mode active, generate monitor file header
 			if [ "$REMORA_MODE" == "MONITOR" ]; then
 				REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
 				if [ "$REMORA_MASTER" == "$REMORA_NODE" ]; then
@@ -149,7 +152,7 @@ monitor_lustre()
         max_iops=0; max_iops_global=0
         for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`
         do 
-			# Avoid scp if file already in $OUTDIR
+			# WARNING - TO BE DONE: Avoid scp if file already in $OUTDIR
 			current_file=$REMORA_OUTDIR/MONITOR/lustre_stats_${NODE}.txt
 			scp $NODE:$REMORA_TMPDIR/lustre_stats_${NODE}.txt $REMORA_OUTDIR/MONITOR
 			line2=`wc -l $current_file | awk '{print $1}'`
@@ -170,7 +173,7 @@ monitor_lustre()
         	cut -d ' ' -f 1,$col_id,$((col_id+1)),$((col_id+2)) $REMORA_TMPDIR/monitor_lustre.tmp > $REMORA_TMPDIR/monitor_lustre_${FS}.txt
         	col_id=$((col_id+3))
       	done
-      	#rm $REMORA_TMPDIR/monitor_lustre.tmp
+      	rm $REMORA_TMPDIR/monitor_lustre.tmp
 
       	# Calculate actual data rates from raw counters
       	# $1 = time; $2 = iopsi (usec); $3 = read (bytes); $4 = write (bytes)
