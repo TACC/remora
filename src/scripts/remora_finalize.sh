@@ -20,6 +20,8 @@ if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
     scp $NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR 2> /dev/null 1> /dev/null
   done
 fi
+# Remove any temp files leftover
+rm $REMORA_OUTDIR/*.tmp
 # Give time for metadata to be updated
 sleep 5
 
@@ -27,9 +29,8 @@ sleep 5
 PID=(); PID_MIC=()
 idx=0; for elem in `cat $REMORA_OUTDIR/remora_pid.txt`; do PID[$idx]=$elem; idx=$((idx+1)); done
 idx=0; for elem in `cat $REMORA_OUTDIR/remora_pid_mic.txt`; do PID_MIC[$idx]=$elem; idx=$((idx+1)); done
-idx=0;
-for NODE in $NODES
-do
+idx=0
+for NODE in $NODES; do
   REMORA_NODE_ID=$idx
   ssh -f $NODE 'kill '${PID[$idx]} 2> /dev/null
   if [ "$REMORA_SYMMETRIC" == "1" ]; then
@@ -48,9 +49,14 @@ rm $REMORA_OUTDIR/remora_pid_mic.txt
 
 # Clean up the instance of remora summary running on the master node
 if [ "$REMORA_MODE" == "MONITOR" ]; then
-	MONITOR_PID=`cat $REMORA_OUTDIR/remora_pid_monitor.txt`
-	kill $MONITOR_PID 2> /dev/null
-	rm $REMORA_OUTDIR/remora_pid_monitor.txt
+	idx=0; PID_MON=()
+	for elem in `cat $REMORA_OUTDIR/remora_pid_mon.txt`; do PID_MON[$idx]=$elem; idx=$((idx+1)); done
+	idx=0	
+	for NODE in $NODES; do
+		ssh -f $NODE 'kill '${PID_MON[$idx]} 2> /dev/null
+		idx=$((idx+1))
+	done
+	rm $REMORA_OUTDIR/remora_pid_mon.txt
 fi
 
 # Wait for files to be available in cached shared file systems
