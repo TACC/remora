@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -10,19 +10,17 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.5
+#-      version     REMORA 1.6
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
-#
-#========================================================================
-#  HISTORY
-#       2015/12/08: Initial commit
 #========================================================================
 
-# All the functions take two arguments:
+# All the functions take three arguments:
 #  1.- The name of the node where this function is running
 #  2.- The full path where the output will be stored/read
+#  3.- The full path to an optional temporary storage location
+
 init_module_ib()
 {
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
@@ -34,23 +32,23 @@ init_module_ib()
 
 collect_data_ib()
 {
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
             local TIMESTAMP=`date +%s`
             local newpack=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`
-            printf "%d %10d\n" $TIMESTAMP $((newpack-remora_ib_packets)) >> $2/ib_xmit_packets-$1.txt
+            printf "%d %10d\n" $TIMESTAMP $((newpack-remora_ib_packets)) >> $REMORA_TMPDIR/ib_xmit_packets-${REMORA_NODE}.txt
             remora_ib_packets=$newpack
         fi
     fi
 }
-# This function might perform some processing on the data.
-# If nothing needs to be done, it can be empty (but declared)
+
 process_data_ib()
 {
   :
 }
 
-monitor_ib()
+monitor_data_ib()
 {
   :
 }

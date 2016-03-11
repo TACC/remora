@@ -10,19 +10,17 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.5
+#-      version     REMORA 1.6
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
-#
-#========================================================================
-#  HISTORY
-#       2015/12/08: Initial commit
 #========================================================================
 
-# All the functions take two arguments:
+# All the functions take three arguments:
 #  1.- The name of the node where this function is running
 #  2.- The full path where the output will be stored/read
+#  3.- The full path to an optional temporary storage location
+
 init_module_network()
 {
   :
@@ -40,15 +38,16 @@ process_data_network()
   :
 }
 
-monitor_network()
+monitor_data_network()
 {
   :
 }
 
 finalize_module_network()
 {
-  REMORA_NODE_ID=$3
-  if [ "$REMORA_NODE_ID" -eq "0" ]; then
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+  REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+  if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
 	if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
     local idx=0
     local LID=()

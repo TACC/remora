@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -10,19 +10,17 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.5
+#-      version     REMORA 1.6
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
-#
-#========================================================================
-#  HISTORY
-#       2015/12/08: Initial commit
 #========================================================================
 
-# All the functions take two arguments:
+# All the functions take three arguments:
 #  1.- The name of the node where this function is running
 #  2.- The full path where the output will be stored/read
+#  3.- The full path to an optional temporary storage location
+
 init_module_gpu()
 {
   :
@@ -30,6 +28,7 @@ init_module_gpu()
 
 collect_data_gpu()
 {
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     # Get GPU utilization data
     if [ "$REMORA_CUDA" == "1" ]; then
         current_time=`date +%s`
@@ -38,7 +37,7 @@ collect_data_gpu()
         gpumem=$(echo $gpumem | awk '{print $1/1000}')
         gpumax=$(echo $gpumax | awk '{print $1/1000}')
         gpufree=$(echo "$gpumax $gpumem" | awk '{ print $1-$2 }')
-        printf "%-17d %-17f %-17f\n" $current_time $gpumem $gpufree >> $2/mem_stats_$1-gpu.txt
+        printf "%-17d %-17f %-17f\n" $current_time $gpumem $gpufree >> $REMORA_TMPDIR/mem_stats_${REMORA_NODE}-gpu.txt
     fi
 }
 # This function might perform some processing on the data.
@@ -48,7 +47,7 @@ process_data_gpu()
   :
 }
 
-monitor_gpu()
+monitor_data_gpu()
 {
   :
 }

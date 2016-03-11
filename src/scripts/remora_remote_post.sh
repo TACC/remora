@@ -35,4 +35,4 @@ source $REMORA_OUTDIR/remora_env.txt
 #Read the list of active modules from the configuration file
 remora_read_active_modules
 
-remora_finalize_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_NODE_ID
+remora_finalize_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR

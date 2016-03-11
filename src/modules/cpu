@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -10,26 +10,24 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.5
+#-      version     REMORA 1.6
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
-#
-#========================================================================
-#  HISTORY
-#       2015/12/08: Initial commit
 #========================================================================
 
-# All the functions take two arguments:
+# All the functions take three arguments:
 #  1.- The name of the node where this function is running
 #  2.- The full path where the output will be stored/read
+#  3.- The full path to an optional temporary storage location
 
 init_module_cpu()
 {
-  rm -f $2/cpu*
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+  rm -f $REMORA_TMPDIR/cpu*
   if [ "$REMORA_MODE" == "MONITOR" ]; then
 	REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-	if [ "$1" == "$REMORA_MASTER" ]; then
+	if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
 		printf "%10s %9s " "#CPU_MAX_%" "CPU_MIN_%" >> $REMORA_TMPDIR/.monitor
 	fi
   fi
@@ -37,8 +35,9 @@ init_module_cpu()
 
 collect_data_cpu()
 {
-  #Get CPU utilization
-  #We use mpstat (installed with Remora) to collect this data
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+  # Get CPU utilization
+  # We use mpstat (installed with Remora) to collect this data
   mpstat -P ALL 1 1 | grep Average| awk '
   {
     for (i=2; i<=NF; i++)  {
@@ -59,7 +58,7 @@ collect_data_cpu()
         print str
         }
     }
-  }' >> $2/cpu_$1.txt
+  }' >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.txt
 }
 
 
@@ -70,7 +69,7 @@ process_data_cpu()
   :
 }
 
-monitor_cpu()
+monitor_data_cpu()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 	REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`

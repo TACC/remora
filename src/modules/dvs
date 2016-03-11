@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -10,26 +10,24 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.5
+#-      version     REMORA 1.6
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
-#
-#========================================================================
-#  HISTORY
-#       2015/12/08: Initial commit
 #========================================================================
 
-# All the functions take two arguments:
+# All the functions take three arguments:
 #  1.- The name of the node where this function is running
 #  2.- The full path where the output will be stored/read
+#  3.- The full path to an optional temporary storage location
 
 init_module_dvs()
 {
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" = "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
 			if [ "$REMORA_DVS" == "1" ]; then
-            rm -f $2/dvs*
+            rm -f $REMORA_TMPDIR/dvs*
             # Capture the names of the mounts (FSNAMES)
             idx=0; hdx=1
             HEADER=()
@@ -55,8 +53,8 @@ init_module_dvs()
             done
 
 			# Write dvs data file header
-            printf "%-17s"  "${HEADER[@]}" >> $2/dvs_stats_$1.txt
-            printf "\n"  >> $2/dvs_stats_$1.txt
+            printf "%-17s"  "${HEADER[@]}" >> $REMORA_TMPDIR/dvs_stats_${REMORA_NODE}.txt
+            printf "\n"                    >> $REMORA_TMPDIR/dvs_stats_${REMORA_NODE}.txt
 
 			# If monitor mode enabled, generate monitor file headers
             if [ "$REMORA_MODE" == "MONITOR" ]; then
@@ -99,9 +97,11 @@ collect_data_dvs()
 # RQ_OPEN: 2638 0 0 0 0.000 0.000
 # ...
 # 
+
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
 			if [ "$REMORA_DVS" == "1" ]; then
+            REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
             local DVS_DIR_PATH=/proc/fs/dvs/mounts
             local TIMESTAMP=`date +%s`
             local idx=0
@@ -120,8 +120,8 @@ collect_data_dvs()
             done
             # This will have TIMESTAMP FS1_IOPS FS1_READ FS1_WRITE FS2_IOPS FS2_READ FS2_WRITE ....
             # in raw counters, not rates
-            printf "%-17d %-17d" $TIMESTAMP "${COUNTER[@]}" >> $2/dvs_stats_$1.txt
-            printf "\n"  >> $2/dvs_stats_$1.txt
+            printf "%-17d %-17d" $TIMESTAMP "${COUNTER[@]}" >> $REMORA_TMPDIR/dvs_stats_${REMORA_NODE}.txt
+            printf "\n"                                     >> $REMORA_TMPDIR/dvs_stats_${REMORA_NODE}.txt
 			fi
         fi
     fi
@@ -134,13 +134,13 @@ process_data_dvs()
   :
 }
 
-monitor_dvs()
+monitor_data_dvs()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
     if [ "$REMORA_NODE" == "$REMORA_MASTER" ] && [ "$REMORA_DVS" == "1" ]; then
 
-        idx=0
+        idx=0; FSNAMES=()
         for NAME in `cat $REMORA_TMPDIR/remora_dvs_names_${REMORA_NODE}.tmp`; do
             FSNAMES[$idx]=$NAME
             idx=$((idx+1))
@@ -150,12 +150,10 @@ monitor_dvs()
         for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`
         do
             # scp file only if not in local node
-			if [ "$REMORA_NODE" == "$NODE" ]; then
-				cp $REMORA_TMPDIR/dvs_stats_${NODE}.txt $REMORA_OUTDIR/MONITOR
-			else
-            	scp $NODE:$REMORA_TMPDIR/dvs_stats_${NODE}.txt $REMORA_OUTDIR/MONITOR
+			if [ "$REMORA_NODE" != "$NODE" ]; then
+            	scp $NODE:$REMORA_TMPDIR/dvs_stats_${NODE}.txt $REMORA_TMPDIR
 			fi
-			current_file=$REMORA_OUTDIR/MONITOR/dvs_stats_${NODE}.txt
+			current_file=$REMORA_TMPDIR/dvs_stats_${NODE}.txt
             line2=`wc -l $current_file | awk '{print $1}'`
             if [ "$line2" > "2" ]; then
                 line1=$((line2-1))
@@ -195,12 +193,13 @@ monitor_dvs()
 
 finalize_module_dvs()
 {
-  REMORA_NODE=$1; REMORA_NODE_ID=$3
-  if [ "$REMORA_NODE_ID" == "0" ] && [ "$REMORA_SYMMETRIC" == "0" ]; then 
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+  REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+  if [ "$REMORA_NODE" == "$REMORA_MASTER" ] && [ "$REMORA_SYMMETRIC" == "0" ]; then 
     if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
 		if [ "$REMORA_DVS" == "1" ]; then
 
-      idx=0
+      idx=0; FSNAMES=()
       for NAME in `cat $REMORA_TMPDIR/remora_dvs_names_${REMORA_NODE}.tmp`; do
           FSNAMES[$idx]=$NAME
           idx=$((idx+1))
@@ -208,7 +207,7 @@ finalize_module_dvs()
 
       # Identify shortest entry
       min_len=0
-      for file in `ls $2/dvs_stats_*.txt`; do
+      for file in `ls $REMORA_OUTDIR/dvs_stats_*.txt`; do
          fs_col=2; len=0
          for FS in "${FSNAMES[@]}"; do
            len=`cat $file | tr -s ' ' | cut -d ' ' -f $fs_col | wc -l | awk '{print $1}'`
@@ -226,21 +225,21 @@ finalize_module_dvs()
         HEADER[1]=`echo "${FSNAMES[$idx]}-RQ"`
         HEADER[2]=`echo "${FSNAMES[$idx]}-RD"`
         HEADER[3]=`echo "${FSNAMES[$idx]}-WR"`
-        printf "%-17s"  "${HEADER[@]}" > $2/dvs_${FS}.txt
-        printf "\n" >> $2/dvs_${FS}.txt
-        printf "%-17s"  "${HEADER[@]}" > $2/dvs_${FS}_rate.txt
-        printf "\n" >> $2/dvs_${FS}_rate.txt
+        printf "%-17s"  "${HEADER[@]}" > $REMORA_OUTDIR/dvs_${FS}.txt
+        printf "\n"                   >> $REMORA_OUTDIR/dvs_${FS}.txt
+        printf "%-17s"  "${HEADER[@]}" > $REMORA_OUTDIR/dvs_${FS}_rate.txt
+        printf "\n"                   >> $REMORA_OUTDIR/dvs_${FS}_rate.txt
         idx=$((idx+1))
       done
    
       # Generate file with aggregate counts from all nodes
-      awk 'FNR>1 {a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=2; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $2/dvs_stats_*.txt > $2/dvs.tmp
+      awk 'FNR>1 {a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=2; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $REMORA_OUTDIR/dvs_stats_*.txt > $REMORA_OUTDIR/dvs.tmp
       col_id=2
       for FS in "${FSNAMES[@]}"; do
-        cut -d ' ' -f 1,$col_id,$((col_id+1)),$((col_id+2)) $2/dvs.tmp > $2/dvs_${FS}.txt
+        cut -d ' ' -f 1,$col_id,$((col_id+1)),$((col_id+2)) $REMORA_OUTDIR/dvs.tmp > $REMORA_OUTDIR/dvs_${FS}.txt
         col_id=$((col_id+3))
       done
-      rm $2/dvs.tmp
+      rm $REMORA_OUTDIR/dvs.tmp
 
       # Calculate actual data rates from raw counters
       # $1 = time; $2 = iops (usec); $3 = read (bytes); $4 = write (bytes)
@@ -248,7 +247,7 @@ finalize_module_dvs()
       local d1=(); local d2=()
       for FS in "${FSNAMES[@]}"; do
         file=`echo dvs_${FS}.txt`
-        startTime=`sed "2q;d" $2/$file | awk '{ print $1}'`
+        startTime=`sed "2q;d" $REMORA_OUTDIR/$file | awk '{ print $1}'`
         for i in `seq 2 $min_len`; do
           next=$((i+1))
           d1=(`sed "${i}q;d" $2/$file | awk '{ print $1 " " $2 " " $3 " " $4}'`)
@@ -257,7 +256,7 @@ finalize_module_dvs()
           fsio=`echo "scale=6; ( ${d2[1]} - ${d1[1]} ) / ( ( ${d2[0]} - ${d1[0]} ) )" | bc`
           fsrd=`echo "scale=6; ( ${d2[2]} - ${d1[2]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
           fswr=`echo "scale=6; ( ${d2[3]} - ${d1[3]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
-          printf "%-17f %-17f %-17f %-17f\n" $rtime $fsio $fsrd $fswr >> $2/dvs_${FS}_rate.txt
+          printf "%-17f %-17f %-17f %-17f\n" $rtime $fsio $fsrd $fswr >> $REMORA_OUTDIR/dvs_${FS}_rate.txt
         done
       done
 	  fi

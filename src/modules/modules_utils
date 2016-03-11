@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -10,14 +10,10 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.5
+#-      version     REMORA 1.6
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
-#
-#========================================================================
-#  HISTORY
-#       2015/12/08: Initial commit
 #========================================================================
 
 remora_read_active_modules()
@@ -41,9 +37,9 @@ remora_configure_modules()
     for MODULE in "${REMORA_MODULES[@]}"
     do
         if [ "$REMORA_VERBOSE" == "1" ]; then
-            echo init_module_$MODULE $1 $2
+            echo init_module_$MODULE $1 $2 $3
         fi
-        init_module_$MODULE $1 $2
+        init_module_$MODULE $1 $2 $3
     done
 }
 
@@ -65,9 +61,9 @@ remora_execute_modules()
     for MODULE in "${REMORA_MODULES[@]}"
     do
         if [ "$REMORA_VERBOSE" == "1" ]; then
-            echo collect_data_$MODULE $1 $2
+            echo collect_data_$MODULE $1 $2 $3
         fi
-        collect_data_$MODULE $1 $2
+        collect_data_$MODULE $1 $2 $3
     done
 }
 
@@ -83,6 +79,7 @@ remora_finalize_modules()
     done
 }
 
+# Here we just make sure the visible monitor file is updated all at one time
 remora_monitor_summary()
 {
 	REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
