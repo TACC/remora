@@ -1,22 +1,22 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
 #========================================================================
-#% DESCRIPTION
-#% remora_init
-#%
-#% DO NOT call this script directly. This is called by REMORA. 
-#% This script loads basic functions, performs sanity checks, and sets up
-#% the REMORA execution environment.
-#%
-#% remora_init.sh "$@"
+# DESCRIPTION
+# remora_init
+#
+# DO NOT call this script directly. This is called by REMORA. 
+# This script loads basic functions, performs sanity checks, and sets up
+# the REMORA execution environment.
+#
+# remora_init.sh "$@"
 #========================================================================
-#- IMPLEMENTATION
-#-      version     REMORA 1.6
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
-#-      license     MIT
+# IMPLEMENTATION
+#      version     REMORA 1.6
+#      authors     Carlos Rosales (carlos@tacc.utexas.edu)
+#                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#      license     MIT
 #========================================================================
 
 # --- Load basic functions 
