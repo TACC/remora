@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -6,21 +6,16 @@
 #% DESCRIPTION
 #% remora_remote_post
 #%
-#% DO NOT call this script directory. This is called by REMORA
+#% DO NOT call this script directory. This is called by REMORA.
+#% This script launches the finalize function for all active modules.
 #%
-#% remora_remote_post.sh NODE_NAME OUTDIR REMORA_BIN
+#% remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE $REMORA_NODE_ID
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.5
+#-      version     REMORA 1.6
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
-#
-#========================================================================
-#  HISTORY
-#       2015/08/12: Initial version
-#       2015/12/08: Version 1.4. Modular design.
-#       2016/01/24: Version 1.5. Separate dir for tmp files.
 #========================================================================
 
 #Initialize variables specific to certain modules here

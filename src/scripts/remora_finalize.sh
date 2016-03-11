@@ -1,4 +1,23 @@
 #!/bin/bash
+#
+#========================================================================
+# HEADER
+#========================================================================
+#% DESCRIPTION
+#% remora_finalize
+#%
+#% DO NOT call this script directly. This is called by REMORA. 
+#% This script finalizes the REMORA execution and kills all backgrounded
+#% remora scripts.
+#%
+#% remora_finalize.sh $END $START
+#========================================================================
+#- IMPLEMENTATION
+#-      version     REMORA 1.6
+#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      license     MIT
+#========================================================================
 
 # --- Show a final report on screen
 

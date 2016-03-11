@@ -1,23 +1,21 @@
-#!/bin/sh
+#!/bin/bash
+#
 #========================================================================
 # HEADER
 #========================================================================
 #% DESCRIPTION
 #% remora_report_mic
 #%
-#% DO NOT call this script directory. This is called by REMORA
+#% DO NOT call this script directory. This is called by REMORA.
+#% This script collects memory utilization on the MIC co-processor.
 #%
-#% remora_report_mic.sh NODE_NAME OUTDIR REMORA_PERIOD REMORA_SYMMETRIC REMORA_MODE REMORA_BIN
+#% remora_report_mic.sh $NODE $REMORA_OUTDIR $REMORA_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_BIN
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 0.1
+#-      version     REMORA 1.6
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
-#
-#========================================================================
-#  HISTORY
-#       2015/08/12: Initial version
 #========================================================================
 
 

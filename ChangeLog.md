@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.6.0] - (2016-03-11)
+
+Introduced real-time monitoring capabilities, enabled by REMORA_MODE=MONITOR.
+Fixed minor bug introduced in summary report warnings for systems with over 32 GB or memory per node.
+Updated user documentation.
+
 ## [1.5.0] - (2016-02-16)
 
 Improved performance by allowing the use of a separate REMORA_TMPDIR which can be a local file system.

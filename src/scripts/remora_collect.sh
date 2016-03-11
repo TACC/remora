@@ -1,4 +1,22 @@
 #!/bin/bash
+#
+#========================================================================
+# HEADER
+#========================================================================
+#% DESCRIPTION
+#% remora_collect
+#%
+#% DO NOT call this script directly. This is called by REMORA. 
+#% This script starts the REMORA data collection.
+#%
+#% remora_collect.sh "$@"
+#========================================================================
+#- IMPLEMENTATION
+#-      version     REMORA 1.6
+#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      license     MIT
+#========================================================================
 
 # -- Collect required data in backgroud
 

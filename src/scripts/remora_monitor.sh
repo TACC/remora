@@ -1,27 +1,24 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
 #========================================================================
 #% DESCRIPTION
-#% remora_report
+#% remora_monitor
 #%
-#% DO NOT call this script directory. This is called by REMORA
+#% DO NOT call this script directly. This is called by REMORA. 
+#% This script starts real-time REMORA data collection and processing.
 #%
-#% remora_report.sh NODE_NAME OUTDIR REMORA_PERIOD SYMMETRIC REMORA_MODE REMORA_CUDA
+#% remora_monitor.sh $NODE $REMORA_BIN $REMORA_OUTDIR
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.5
+#-      version     REMORA 1.6
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
-#
 #========================================================================
-#  HISTORY
-#       2015/08/12: Initial version
-#       2015/12/08: Version 1.4. Modular design.
-#		2016/01/24: Version 1.5. Separate dir for tmp files.
-#========================================================================
+
+# --- Real-time data monitoring
 
 #Initialize variables specific to certain modules here
 REMORA_NODE=$1

@@ -1,3 +1,18 @@
+//========================================================================
+// HEADER
+//========================================================================
+// DESCRIPTION
+// mic_affinity
+//
+// Sets affinity of parent launching process to last core on 61 core KNC
+//========================================================================
+//- IMPLEMENTATION
+//-      version     REMORA 1.6
+//-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
+//-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+//-      license     MIT
+//========================================================================
+
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <sched.h>
