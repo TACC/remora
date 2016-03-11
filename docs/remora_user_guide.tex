@@ -386,9 +386,19 @@ nodes used by the application. The script defines the following functions:
 	\item init\_module\_cpu
 	\item collect\_data\_cpu
 	\item process\_data\_cpu
-	\item monitor\_cpu
+	\item monitor\_data\_cpu
 	\item finalize\_module\_cpu
 \end{itemize}
+
+Each of these functions takes exactly three arguments: 
+
+\begin{itemize}
+\item Name of the node where the function is running (\texttt{\$REMORA\_NODE})
+\item Full path where the output will be stored (\texttt{\$REMORA\_OUTDIR})
+\item Full path to an optional temporary storage location (\texttt{\$REMORA\_TMPDIR})
+\end{itemize}
+
+\verb+$REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR+
 
 Developing a new module following this model is a task that can be performed without understanding 
 the infrastructure that calls the different modules.
@@ -401,7 +411,7 @@ least the following functions:
 	\item init\_module\_new\_module
 	\item collect\_data\_new\_module
 	\item process\_data\_new\_module
-	\item monitor\_new\_module
+	\item monitor\_data\_new\_module
 	\item finalize\_module\_new\_module
 \end{itemize}
 
@@ -500,7 +510,7 @@ All the modules are located in the \verb+src/modules/+ folder. They are all bash
 	\item \texttt{init\_module\_modulename()}: this function is called only once to initialize the environment or files that are required by each specific module.
 	\item \texttt{collect\_data\_modulename()}: main function of the module. This is the function called each \texttt{REMORA\_PERIOD} seconds. Depending on the module, different statistics will be collected in this function. This function can include some postprocessing.
 	\item \texttt{process\_data\_modulename()}: currently unused.
-	\item \texttt{monitor\_modulename()}: real time post-processing of captured data
+	\item \texttt{monitor\_data\_modulename()}: real time post-processing of captured data
 	\item \texttt{finalize\_module\_modulename()}: this function is also called only once, when the application of interest has finished. Any heavy postprocessing method can go in this function.
 \end{itemize}
 
@@ -516,7 +526,7 @@ The \texttt{modulename} is exactly the same name specified in the configuration 
 	\item \texttt{init\_module\_cpu()}
 	\item \texttt{collect\_data\_cpu()}
 	\item \texttt{process\_data\_cpu()}
-	\item \texttt{monitor\_cpu()}
+	\item \texttt{monitor\_data\_cpu()}
 	\item \texttt{finalize\_module\_cpu()}
 \end{itemize}
 
@@ -533,7 +543,7 @@ Remora has been designed so that expanding its functionality is very simple. If 
 			\item \texttt{init\_module\_newmodule()}
 			\item \texttt{collect\_data\_newmodule()}
 			\item \texttt{process\_data\_newmodule()}
-			\item \texttt{monitor\_newmodule()}
+			\item \texttt{monitor\_data\_newmodule()}
 			\item \texttt{finalize\_module\_newmodule()}
 		\end{itemize}
 	\item Implement the functionality that \texttt{newmodule} requires in those functions.
