@@ -33,6 +33,10 @@ get_node_list()
         REMORA_SCHEDULER=sge
         REMORA_JOB_ID=$JOB_ID
         NODES=`cat $PE_HOSTFILE | awk '{print $1}' | uniq`
+    elif [ -n "$PBS_NODEFILE" ]; then
+        REMORA_SCHEDULER=pbs
+        REMORA_JOB_ID=$PBS_JOBID
+        NODES=`cat $PBS_NODEFILE | sort | uniq`
     else
         print_error "Unknown scheduler - unable to generate host list"
         exit 1
