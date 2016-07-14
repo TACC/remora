@@ -25,7 +25,12 @@ init_module_ib()
 {
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-            remora_ib_packets=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`
+            if [ -e "/sys/class/infiniband/mlx4_0/ports/1/counters_ext/port_xmit_packets_64" ]; then
+                remora_ib_packet_cntr="/sys/class/infiniband/mlx4_0/ports/1/counters_ext/port_xmit_packets_64"
+            else
+                remora_ib_packet_cntr="/sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets"
+            fi
+            remora_ib_packets=`cat $remora_ib_packet_cntr`
         fi
     fi
 }
@@ -36,7 +41,7 @@ collect_data_ib()
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
             local TIMESTAMP=`date +%s`
-            local newpack=`cat /sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets`
+            local newpack=`cat $remora_ib_packet_cntr`
             printf "%d %10d\n" $TIMESTAMP $((newpack-remora_ib_packets)) >> $REMORA_TMPDIR/ib_xmit_packets-${REMORA_NODE}.txt
             remora_ib_packets=$newpack
         fi
