@@ -235,7 +235,10 @@ def plot_ibxmit(file):
   ax.set_ylabel('Number of Packets')
   ax.set_xlabel('Execution Time (s)')
   ax.set_title('InfiniBand Packets')
-  ax.legend(handles=[xmit_packs, rcv_packs])
+  #ax.legend(handles=[xmit_packs, rcv_packs])
+  #error is thrown when handles is used under python/2.7.3
+  #no issue in either 2.7.3 or 2.7.10 when handles is removed
+  ax.legend([xmit_packs, rcv_packs])
   plt.savefig (file.replace("txt","png"))
   plt.clf()
 
@@ -250,10 +253,14 @@ def plot_eth(file):
   #subtract time x+1 from time x to determine the amount of time that transpired.
   vals[:,0]=vals[:,0]-vals[:,0][0]
   #plot the various columns
-  ax.plot (vals[:,0], vals[:,1], label="Tx Packets", c='blue', linestyle=line_styles[0])
-  ax.plot (vals[:,0], vals[:,2], label="Rx Packets", c='red', linestyle=line_styles[1])
-  ax.plot (vals[:,0], vals[:,3], label="Tx Bytes", c='green', linestyle=line_styles[0])
-  ax.plot (vals[:,0], vals[:,4], label="Rx Bytes", c='yellow', linestyle=line_styles[1])
+  ax.plot (vals[:,0], vals[:,1], label="Tx Packets", c='blue', linestyle=line_styles[0], linewidth=2)
+  ax.plot (vals[:,0], vals[:,2], label="Rx Packets", c='red', linestyle=line_styles[1], linewidth=2)
+  ax.plot (vals[:,0], vals[:,3], label="Tx Bytes", c='green', linestyle=line_styles[0], linewidth=2)
+  ax.plot (vals[:,0], vals[:,4], label="Rx Bytes", c='yellow', linestyle=line_styles[1], linewidth=2)
+  ax.plot (vals[:,0], vals[:,5], label="Tx Errors", c='purple', linestyle=line_styles[1])
+  ax.plot (vals[:,0], vals[:,6], label="Tx Dropped", c='pink', linestyle=line_styles[1])
+  ax.plot (vals[:,0], vals[:,7], label="Rx Frame Errors", c='brown', linestyle=line_styles[1])
+  ax.plot (vals[:,0], vals[:,8], label="Rx CRC Errors", c='aqua', linestyle=line_styles[1])
   ax.set_ylabel('Number of Packets/Bytes')
   ax.set_xlabel('Execution Time (s)')
   ax.set_title('Ethernet Traffic')
