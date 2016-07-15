@@ -26,28 +26,40 @@ init_module_eth()
 {
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-            printf "%10s %10s %10s %15s %15s %10s %10s %10s %10s\n" "time" "tx_packets" "rx_packets" "tx_bytes" "rx_bytes" "tx_errors" "tx_dropped" "rx_frame_errors" "rx_crc_errors" >> $REMORA_TMPDIR/eth_traffic-${REMORA_NODE}.txt
-		    iface=`netstat -nr | sed -n 3p | rev | cut -d ' ' -f1 | rev`	
+            #write header to file
+            printf "%10s %10s %10s %15s %15s %10s %10s %10s %10s\n" \
+            "time" "tx_packets" "rx_packets" "tx_bytes" "rx_bytes" \
+            "tx_errors" "tx_dropped" "rx_frame_errors" "rx_crc_errors" \
+            >> $REMORA_TMPDIR/eth_traffic-${REMORA_NODE}.txt
+            
+            #find the default interface		    
+            iface=`netstat -nr | sed -n 3p | rev | cut -d ' ' -f1 | rev`	
             if [ -z $iface ]; then
                 echo "ERROR: Failed to identify a default interface."
                 exit
             fi
+
+            #location of eth statistics
+            cntr="/sys/class/net/$iface/statistics/"
+
             #keep track of send/receive info 
-            remora_eth_tx_packet_cntr="/sys/class/net/$iface/statistics/tx_packets"
-            remora_eth_rx_packet_cntr="/sys/class/net/$iface/statistics/rx_packets"
-            remora_eth_tx_bytes_cntr="/sys/class/net/$iface/statistics/tx_bytes"
-            remora_eth_rx_bytes_cntr="/sys/class/net/$iface/statistics/rx_bytes"
+            remora_eth_tx_packet_cntr="${cntr}tx_packets"
+            remora_eth_rx_packet_cntr="${cntr}rx_packets"
+            remora_eth_tx_bytes_cntr="${cntr}tx_bytes"
+            remora_eth_rx_bytes_cntr="${cntr}rx_bytes"
+
             #keep track of errors
-            remora_eth_tx_errors_cntr="/sys/class/net/$iface/statistics/tx_errors"
-            remora_eth_tx_dropped_cntr="/sys/class/net/$iface/statistics/tx_dropped"
-            remora_eth_rx_frame_errors_cntr="/sys/class/net/$iface/statistics/rx_frame_errors"
-            remora_eth_rx_crc_errors_cntr="/sys/class/net/$iface/statistics/rx_crc_errors"
-            echo "Statistics PATH: $remora_eth_tx_packet_cntr"
+            remora_eth_tx_errors_cntr="${cntr}tx_errors"
+            remora_eth_tx_dropped_cntr="${cntr}tx_dropped"
+            remora_eth_rx_frame_errors_cntr="${cntr}rx_frame_errors"
+            remora_eth_rx_crc_errors_cntr="${cntr}rx_crc_errors"
+
             #obtain a baseline number of packets/bytes for use in the first call to collect_data_eth()
             remora_eth_tx_packets=`cat $remora_eth_tx_packet_cntr`
             remora_eth_rx_packets=`cat $remora_eth_rx_packet_cntr`
             remora_eth_tx_bytes=`cat $remora_eth_tx_bytes_cntr`
             remora_eth_rx_bytes=`cat $remora_eth_rx_bytes_cntr`
+
             #obtain a baseline number of errors for use in the first call to collect_data_eth()
             remora_eth_tx_errors=`cat $remora_eth_tx_errors_cntr`
             remora_eth_tx_dropped=`cat $remora_eth_tx_dropped_cntr`
@@ -75,7 +87,17 @@ collect_data_eth()
             local newrx_frame_errors=`cat $remora_eth_rx_frame_errors_cntr`
             local newrx_crc_errors=`cat $remora_eth_rx_crc_errors_cntr`
 
-            printf "%d %10d %10d %15d %15d %10d %10d %10d %10d\n" $TIMESTAMP $((newpack_tx-remora_eth_tx_packets)) $((newpack_rx-remora_eth_rx_packets)) $((newbyte_tx-remora_eth_tx_bytes)) $((newbyte_rx-remora_eth_rx_bytes)) $((newtx_errors-remora_eth_tx_errors)) $((newtx_dropped-remora_eth_tx_dropped)) $((newrx_frame_errors-remora_eth_rx_frame_errors)) $((newrx_crc_errors-remora_eth_rx_crc_errors)) >> $REMORA_TMPDIR/eth_traffic-${REMORA_NODE}.txt
+            #write results to file
+            printf "%d %10d %10d %15d %15d %10d %10d %10d %10d\n" \
+            $TIMESTAMP $((newpack_tx-remora_eth_tx_packets)) \
+            $((newpack_rx-remora_eth_rx_packets)) \
+            $((newbyte_tx-remora_eth_tx_bytes)) \
+            $((newbyte_rx-remora_eth_rx_bytes)) \
+            $((newtx_errors-remora_eth_tx_errors)) \
+            $((newtx_dropped-remora_eth_tx_dropped)) \
+            $((newrx_frame_errors-remora_eth_rx_frame_errors)) \
+            $((newrx_crc_errors-remora_eth_rx_crc_errors)) \
+            >> $REMORA_TMPDIR/eth_traffic-${REMORA_NODE}.txt
 
             remora_eth_tx_packets=$newpack_tx
             remora_eth_rx_packets=$newpack_rx
