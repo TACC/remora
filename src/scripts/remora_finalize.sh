@@ -98,7 +98,7 @@ mv $REMORA_OUTDIR/mem* $REMORA_OUTDIR/MEMORY
 if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
   if [ "$REMORA_LUSTRE" == "1" ]; then mv $REMORA_OUTDIR/{lustre*,lnet*} $REMORA_OUTDIR/IO; fi
   if [ "$REMORA_DVS" == "1" ]; then mv $REMORA_OUTDIR/dvs* $REMORA_OUTDIR/IO; fi
-  mv $REMORA_OUTDIR/{ib*,trace_*} $REMORA_OUTDIR/NETWORK/
+  mv $REMORA_OUTDIR/{ib*,trace_*,eth*} $REMORA_OUTDIR/NETWORK/
   mv $REMORA_OUTDIR/numa* $REMORA_OUTDIR/NUMA
 fi
 if [ "$REMORA_MODE" == "MONITOR" ]; then
