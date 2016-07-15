@@ -30,12 +30,18 @@ init_module_ib()
             if [ -d $cntr_64b ]; then
                 ib_xmit_pack_cntr="${cntr_64b}port_xmit_packets_64"
                 ib_rcv_pack_cntr="${cntr_64b}port_rcv_packets_64"
+                ib_xmit_byte_cntr="${cntr_64b}port_xmit_data_64"
+                ib_rcv_byte_cntr="${cntr_64b}port_rcv_data_64"
             else
                 ib_xmit_pack_cntr="${cntr_32b}port_xmit_packets"
                 ib_rcv_pack_cntr="${cntr_32b}port_rcv_packets"
+                ib_xmit_byte_cntr="${cntr_32b}port_xmit_data"
+                ib_rcv_byte_cntr="${cntr_32b}port_rcv_data"
             fi
             ib_xmit_packs=`cat $ib_xmit_pack_cntr`
             ib_rcv_packs=`cat $ib_rcv_pack_cntr`
+            ib_xmit_bytes=`cat $ib_xmit_byte_cntr`
+            ib_rcv_bytes=`cat $ib_rcv_byte_cntr`
         fi
     fi
 }
@@ -48,9 +54,18 @@ collect_data_ib()
             local TIMESTAMP=`date +%s`
             local new_ib_xmit_packs=`cat $ib_xmit_pack_cntr`
             local new_ib_rcv_packs=`cat $ib_rcv_pack_cntr`
-            printf "%d %10d %10d\n" $TIMESTAMP $((new_ib_xmit_packs-ib_xmit_packs)) $((new_ib_rcv_packs-ib_rcv_packs)) >> $REMORA_TMPDIR/ib_packets-${REMORA_NODE}.txt
+            local new_ib_xmit_bytes=`cat $ib_xmit_byte_cntr`
+            local new_ib_rcv_bytes=`cat $ib_rcv_byte_cntr`
+            printf "%d %10d %10d %10d %10d\n" $TIMESTAMP \
+                $((new_ib_xmit_packs-ib_xmit_packs)) \
+                $((new_ib_rcv_packs-ib_rcv_packs)) \
+                $((new_ib_xmit_bytes-ib_xmit_bytes)) \
+                $((new_ib_rcv_bytes-ib_rcv_bytes)) \
+                >> $REMORA_TMPDIR/ib_packets-${REMORA_NODE}.txt
             ib_xmit_packs=$new_ib_xmit_packs
             ib_rcv_packs=$new_ib_rcv_packs
+            ib_xmit_bytes=$new_ib_xmit_bytes
+            ib_rcv_bytes=$new_ib_rcv_bytes
         fi
     fi
 }
