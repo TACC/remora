@@ -13,6 +13,7 @@
 #-      version     REMORA 1.6
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-                  Jacob Pollack  (jacob.pollack@bp.com)
 #-      license     MIT
 #========================================================================
 
@@ -25,8 +26,16 @@ init_module_eth()
 {
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-            remora_eth_packet_cntr="/sys/class/net/eth1/statistics/tx_packets"
-            remora_eth_packets=`cat $remora_eth_packet_cntr`
+            printf "%10s %10s %10s %15s %15s\n" "time" "tx_packets" "rx_packets" "tx_bytes" "rx_bytes" >> $REMORA_TMPDIR/eth_traffic-${REMORA_NODE}.txt
+            remora_eth_tx_packet_cntr="/sys/class/net/eth1/statistics/tx_packets"
+            remora_eth_rx_packet_cntr="/sys/class/net/eth1/statistics/rx_packets"
+            remora_eth_tx_bytes_cntr="/sys/class/net/eth1/statistics/tx_bytes"
+            remora_eth_rx_bytes_cntr="/sys/class/net/eth1/statistics/rx_bytes"
+            #obtain a baseline number of packets/bytes for use in the first call to collect_data_eth()
+            remora_eth_tx_packets=`cat $remora_eth_tx_packet_cntr`
+            remora_eth_rx_packets=`cat $remora_eth_rx_packet_cntr`
+            remora_eth_tx_bytes=`cat $remora_eth_tx_bytes_cntr`
+            remora_eth_rx_bytes=`cat $remora_eth_rx_bytes_cntr`
         fi
     fi
 }
@@ -36,11 +45,20 @@ collect_data_eth()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+            #determine the number of packets/bytes that have been transmitted during the period.
+            #subtract the number of bytes/packets in the current period (new{pack, byte}_{tx,rx})
+            #from the number of bytes/packets in the previous period (remora_eth_{tx, rx}_{packets, bytes}) 
             local TIMESTAMP=`date +%s`
-            local newpack=`cat $remora_eth_packet_cntr`
+            local newpack_tx=`cat $remora_eth_tx_packet_cntr`
+            local newpack_rx=`cat $remora_eth_rx_packet_cntr`
+            local newbyte_tx=`cat $remora_eth_tx_bytes_cntr`
+            local newbyte_rx=`cat $remora_eth_rx_bytes_cntr`
 
-            printf "%d %10d\n" $TIMESTAMP $((newpack-remora_eth_packets)) >> $REMORA_TMPDIR/eth_tx_packets-${REMORA_NODE}.txt
-            remora_eth_packets=$newpack
+            printf "%d %10d %10d %15d %15d\n" $TIMESTAMP $((newpack_tx-remora_eth_tx_packets)) $((newpack_rx-remora_eth_rx_packets)) $((newbyte_tx-remora_eth_tx_bytes)) $((newbyte_rx-remora_eth_rx_bytes)) >> $REMORA_TMPDIR/eth_traffic-${REMORA_NODE}.txt
+            remora_eth_tx_packets=$newpack_tx
+            remora_eth_rx_packets=$newpack_rx
+            remora_eth_tx_bytes=$newbyte_tx
+            remora_eth_rx_bytes=$newbyte_rx
         fi
     fi
 }
