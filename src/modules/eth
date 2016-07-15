@@ -1,0 +1,61 @@
+#!/bin/sh
+#
+#========================================================================
+# HEADER
+#========================================================================
+#% DESCRIPTION
+#% eth
+#%
+#% DO NOT call this script directly. This is called by REMORA
+#%
+#========================================================================
+#- IMPLEMENTATION
+#-      version     REMORA 1.6
+#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      license     MIT
+#========================================================================
+
+# All the functions take three arguments:
+#  1.- The name of the node where this function is running
+#  2.- The full path where the output will be stored/read
+#  3.- The full path to an optional temporary storage location
+
+init_module_eth()
+{
+    if [ "$REMORA_SYMMETRIC" == "0" ]; then
+        if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+            remora_eth_packet_cntr="/sys/class/net/eth1/statistics/tx_packets"
+            remora_eth_packets=`cat $remora_eth_packet_cntr`
+        fi
+    fi
+}
+
+collect_data_eth()
+{
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    if [ "$REMORA_SYMMETRIC" == "0" ]; then
+        if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+            local TIMESTAMP=`date +%s`
+            local newpack=`cat $remora_eth_packet_cntr`
+
+            printf "%d %10d\n" $TIMESTAMP $((newpack-remora_eth_packets)) >> $REMORA_TMPDIR/eth_tx_packets-${REMORA_NODE}.txt
+            remora_eth_packets=$newpack
+        fi
+    fi
+}
+
+process_data_eth()
+{
+  :
+}
+
+monitor_data_eth()
+{
+  :
+}
+
+finalize_module_eth()
+{
+  :
+}
