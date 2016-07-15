@@ -230,10 +230,12 @@ def plot_ibxmit(file):
   vals =  np.loadtxt (file)
   ax = plt.subplot(111)
   vals[:,0]=vals[:,0]-vals[:,0][0]
-  ax.plot (vals[:,0], vals[:,1], label="Packets")
+  xmit_packs, = ax.plot (vals[:,0], vals[:,1], label="Xmit Packets")
+  rcv_packs, = ax.plot (vals[:,0], vals[:,2], label="Rcv Packets")
   ax.set_ylabel('Number of Packets')
   ax.set_xlabel('Execution Time (s)')
-  ax.set_title('InfiniBand Transmitted Packets')
+  ax.set_title('InfiniBand Packets')
+  ax.legend(handles=[xmit_packs, rcv_packs])
   plt.savefig (file.replace("txt","png"))
   plt.clf()
 
@@ -462,7 +464,7 @@ def plot_stats(folder):
     except Exception, e:
       tacc_log.print_error (" While processing file %s: %s" %(file, e))
 
-  ibxmit_files = glob.glob(folder+"/NETWORK/ib_xmit*txt")
+  ibxmit_files = glob.glob(folder+"/NETWORK/ib_packets*txt")
   for file in ibxmit_files:
     try:
       plot_ibxmit(file)
