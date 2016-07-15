@@ -230,15 +230,17 @@ def plot_ibxmit(file):
   vals =  np.loadtxt (file)
   ax = plt.subplot(111)
   vals[:,0]=vals[:,0]-vals[:,0][0]
-  xmit_packs, = ax.plot (vals[:,0], vals[:,1], label="Xmit Packets")
-  rcv_packs, = ax.plot (vals[:,0], vals[:,2], label="Rcv Packets")
-  ax.set_ylabel('Number of Packets')
+  ax.plot (vals[:,0], vals[:,1], label="TX Packets", c='blue', linestyle=line_styles[0])
+  ax.plot (vals[:,0], vals[:,2], label="RX Packets", c='red', linestyle=line_styles[1])
+  ax.plot (vals[:,0], vals[:,3], label="TX Bytes", c='green', linestyle=line_styles[0])
+  ax.plot (vals[:,0], vals[:,4], label="RX Bytes", c='yellow', linestyle=line_styles[1])
+  ax.set_ylabel('Number of Packets/Bytes')
   ax.set_xlabel('Execution Time (s)')
-  ax.set_title('InfiniBand Packets')
-  #ax.legend(handles=[xmit_packs, rcv_packs])
-  #error is thrown when handles is used under python/2.7.3
-  #no issue in either 2.7.3 or 2.7.10 when handles is removed
-  ax.legend([xmit_packs, rcv_packs])
+  ax.set_title('InfiniBand Traffic')
+  box = ax.get_position()
+  ax.set_yscale('log')
+  ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+  ax.legend(loc='center left', bbox_to_anchor=(1,0.5), prop={'size':10})
   plt.savefig (file.replace("txt","png"))
   plt.clf()
 
