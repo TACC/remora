@@ -156,8 +156,10 @@ def plot_cpu (file):
     return
 
   ax = plt.subplot(111)
-  for i in xrange (values.shape[1]):
+  for i in xrange (values.shape[1] - 1):
     ax.plot (xvalues, values[:,i], linestyle=line_styles[i%4], label="cpu"+str(i), c = color[i])
+
+  ax.plot (xvalues, values[:,0], linestyle="-", label = "cpu_avg", c = "black")
 
   ax.set_title('CPU Utilization')
   ax.set_ylabel('Utilization %')
@@ -167,14 +169,19 @@ def plot_cpu (file):
   ax.legend(loc='center left', bbox_to_anchor=(1,0.5), prop={'size':10})
   plt.savefig (file.replace("txt", "png"))
   plt.clf()
-  return xvalues, values
+  return xvalues, values[:,0]
 
+
+#  This is naive averaging which does not account for differences in sampling times.  
+#  Results will be skewed as sampling period approaches 1-2s
 def plot_avg_cpu(cpu_files, cpu_xvalues, cpu_yvalues):
+  pdb.set_trace()
   #x-axis = time
   #y-axis = user cpu usage
 
   global period
   num_samples = []
+  numcolumns = 0
 
   #determine the number of samples to consider
   #some nodes may get one or two more samples than others
@@ -210,6 +217,8 @@ def plot_avg_cpu(cpu_files, cpu_xvalues, cpu_yvalues):
 
   #plot
   ax = plt.subplot(111)
+  for i in xrange(len(cpu_yvalues)):
+    ax.plot(cpu_xvalues[i], cpu_yvalues[i], label='node'+str(i), linestyle='--')
   ax.plot(x_avg, y_avg, label="cpu avg")
   ax.set_title('Average CPU Utilization Across All Machines')
   ax.set_ylabel('Utilization %')
@@ -450,7 +459,7 @@ def plot_stats(folder):
   try:
     plot_avg_cpu(cpu_files, cpu_xvalues, cpu_yvalues)
   except Exception, e:
-    tacc_log.print_error (" While processing cpu files: %s" %(e))     
+    tacc_log.print_error (" While processing cpu avg files: %s" %(e))     
 
   numa_files = glob.glob(folder+"/NUMA/numa*txt")
   for file in numa_files:
