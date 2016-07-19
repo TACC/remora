@@ -156,8 +156,10 @@ def plot_cpu (file):
     return
 
   ax = plt.subplot(111)
-  for i in xrange (values.shape[1]):
+  for i in xrange (values.shape[1] - 1):
     ax.plot (xvalues, values[:,i], linestyle=line_styles[i%4], label="cpu"+str(i), c = color[i])
+
+  ax.plot (xvalues, values[:,0], linestyle="-", label = "cpu_avg", c = "black")
 
   ax.set_title('CPU Utilization')
   ax.set_ylabel('Utilization %')
@@ -167,8 +169,69 @@ def plot_cpu (file):
   ax.legend(loc='center left', bbox_to_anchor=(1,0.5), prop={'size':10})
   plt.savefig (file.replace("txt", "png"))
   plt.clf()
+  return xvalues, values[:,0]
 
 
+#  This is naive averaging which does not account for differences in sampling times.  
+#  Results will be skewed as sampling period approaches 1-2s
+def plot_avg_cpu(cpu_files, cpu_xvalues, cpu_yvalues):
+  pdb.set_trace()
+  #x-axis = time
+  #y-axis = user cpu usage
+
+  global period
+  num_samples = []
+  numcolumns = 0
+
+  #determine the number of samples to consider
+  #some nodes may get one or two more samples than others
+  #these extra samples are ignored
+  for xvals in cpu_xvalues:
+    num_samples.append(len(xvals))
+  min_num_samples = min(num_samples)
+
+  #generate x-values based on the period and number of samples
+  #it is not a precise representation of the actual sample time,
+  #but it is close enough.
+  x_avg = []
+  time = 0
+  for i in range(0, min_num_samples):
+    x_avg.append(time)
+    time += period
+
+  y_avg = []
+  #each period (default 10 sec.) the cpu utilization is determined
+  #for each core on all machines involved in the job.
+  #here we take the average of the cores to get a CPU AVERAGE for
+  #each machine. We then take the average of the CPU AVERAGE on each machine.
+  #this is done for each period. 
+  for i in range(0, min_num_samples):
+    #keep track of the total for this iteration (each iteration represents a period)
+    iter_total = 0
+    for yvals in cpu_yvalues:
+      #np.average(yvals[i]) represents the CPU AVERAGE
+      #on one of the machines at a given period (i).
+      iter_total += np.average(yvals[i])
+    #divide the total by the number of machines.
+    y_avg.append(iter_total/len(cpu_yvalues))
+
+  #plot
+  ax = plt.subplot(111)
+  for i in xrange(len(cpu_yvalues)):
+    ax.plot(cpu_xvalues[i], cpu_yvalues[i], label='node'+str(i), linestyle='--')
+  ax.plot(x_avg, y_avg, label="cpu avg")
+  ax.set_title('Average CPU Utilization Across All Machines')
+  ax.set_ylabel('Utilization %')
+  ax.set_xlabel('Execution Time (s)')
+  box = ax.get_position()
+  ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+  ax.legend(loc='center left', bbox_to_anchor=(1,0.5), prop={'size':10})
+  file = cpu_files[0].split('/')
+  file[-1] = "cpu_all_nodes.png"
+  file = "/".join(file)
+  plt.savefig (file)
+  plt.clf()
+     
 def plot_ibxmit(file):
   """ Plot InfiniBand transmited packets.
       The argument is the path to a file that contains the a list of numbers
@@ -176,10 +239,46 @@ def plot_ibxmit(file):
   vals =  np.loadtxt (file)
   ax = plt.subplot(111)
   vals[:,0]=vals[:,0]-vals[:,0][0]
-  ax.plot (vals[:,0], vals[:,1], label="Packets")
-  ax.set_ylabel('Number of Packets')
+  ax.plot (vals[:,0], vals[:,1], label="TX Packets", c='blue', linestyle=line_styles[0])
+  ax.plot (vals[:,0], vals[:,2], label="RX Packets", c='red', linestyle=line_styles[1])
+  ax.plot (vals[:,0], vals[:,3], label="TX Bytes", c='green', linestyle=line_styles[0])
+  ax.plot (vals[:,0], vals[:,4], label="RX Bytes", c='yellow', linestyle=line_styles[1])
+  ax.set_ylabel('Number of Packets/Bytes')
   ax.set_xlabel('Execution Time (s)')
-  ax.set_title('InfiniBand Transmitted Packets')
+  ax.set_title('InfiniBand Traffic')
+  box = ax.get_position()
+  ax.set_yscale('log')
+  ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+  ax.legend(loc='center left', bbox_to_anchor=(1,0.5), prop={'size':10})
+  plt.savefig (file.replace("txt","png"))
+  plt.clf()
+
+
+def plot_eth(file):
+  """ Plot Ethernet traffic.
+      The argument is the path to a file that contains the a list of numbers
+  """
+  #skip header row
+  vals =  np.loadtxt (file,skiprows=1)
+  ax = plt.subplot(111)
+  #subtract time x+1 from time x to determine the amount of time that transpired.
+  vals[:,0]=vals[:,0]-vals[:,0][0]
+  #plot the various columns
+  ax.plot (vals[:,0], vals[:,1], label="Tx Packets", c='blue', linestyle=line_styles[0], linewidth=2)
+  ax.plot (vals[:,0], vals[:,2], label="Rx Packets", c='red', linestyle=line_styles[1], linewidth=2)
+  ax.plot (vals[:,0], vals[:,3], label="Tx Bytes", c='green', linestyle=line_styles[0], linewidth=2)
+  ax.plot (vals[:,0], vals[:,4], label="Rx Bytes", c='yellow', linestyle=line_styles[1], linewidth=2)
+  ax.plot (vals[:,0], vals[:,5], label="Tx Errors", c='purple', linestyle=line_styles[1])
+  ax.plot (vals[:,0], vals[:,6], label="Tx Dropped", c='pink', linestyle=line_styles[1])
+  ax.plot (vals[:,0], vals[:,7], label="Rx Frame Errors", c='brown', linestyle=line_styles[1])
+  ax.plot (vals[:,0], vals[:,8], label="Rx CRC Errors", c='aqua', linestyle=line_styles[1])
+  ax.set_ylabel('Number of Packets/Bytes')
+  ax.set_xlabel('Execution Time (s)')
+  ax.set_title('Ethernet Traffic')
+  box = ax.get_position()
+  ax.set_yscale('log')
+  ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+  ax.legend(loc='center left', bbox_to_anchor=(1,0.5), prop={'size':10})
   plt.savefig (file.replace("txt","png"))
   plt.clf()
 
@@ -347,11 +446,20 @@ def plot_stats(folder):
   import glob
 
   cpu_files = glob.glob(folder+'/CPU/cpu*txt')
+  cpu_xvalues = []
+  cpu_yvalues = []
   for file in cpu_files:
     try:
-      plot_cpu(file)
+      xvalues, yvalues = plot_cpu(file)
+      cpu_xvalues.append(xvalues)
+      cpu_yvalues.append(yvalues)
     except Exception, e:
       tacc_log.print_error (" While processing file %s: %s" %(file, e))
+
+  try:
+    plot_avg_cpu(cpu_files, cpu_xvalues, cpu_yvalues)
+  except Exception, e:
+    tacc_log.print_error (" While processing cpu avg files: %s" %(e))     
 
   numa_files = glob.glob(folder+"/NUMA/numa*txt")
   for file in numa_files:
@@ -374,10 +482,17 @@ def plot_stats(folder):
     except Exception, e:
       tacc_log.print_error (" While processing file %s: %s" %(file, e))
 
-  ibxmit_files = glob.glob(folder+"/NETWORK/ib_xmit*txt")
+  ibxmit_files = glob.glob(folder+"/NETWORK/ib_packets*txt")
   for file in ibxmit_files:
     try:
       plot_ibxmit(file)
+    except Exception, e:
+      tacc_log.print_error (" While processing file %s: %s" %(file, e))
+
+  eth_files = glob.glob(folder+"/NETWORK/eth_traffic*txt")
+  for file in eth_files:
+    try:
+      plot_eth(file)
     except Exception, e:
       tacc_log.print_error (" While processing file %s: %s" %(file, e))
 
