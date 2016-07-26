@@ -175,7 +175,6 @@ def plot_cpu (file):
 #  This is naive averaging which does not account for differences in sampling times.  
 #  Results will be skewed as sampling period approaches 1-2s
 def plot_avg_cpu(cpu_files, cpu_xvalues, cpu_yvalues):
-  pdb.set_trace()
   #x-axis = time
   #y-axis = user cpu usage
 
@@ -186,6 +185,8 @@ def plot_avg_cpu(cpu_files, cpu_xvalues, cpu_yvalues):
   #determine the number of samples to consider
   #some nodes may get one or two more samples than others
   #these extra samples are ignored
+  ###
+  #this is the naive part
   for xvals in cpu_xvalues:
     num_samples.append(len(xvals))
   min_num_samples = min(num_samples)
@@ -218,7 +219,8 @@ def plot_avg_cpu(cpu_files, cpu_xvalues, cpu_yvalues):
   #plot
   ax = plt.subplot(111)
   for i in xrange(len(cpu_yvalues)):
-    ax.plot(cpu_xvalues[i], cpu_yvalues[i], label='node'+str(i), linestyle='--')
+    nodename = re.search('(cpu_)(\w+)(.txt)', cpu_files[i])
+    ax.plot(cpu_xvalues[i], cpu_yvalues[i], label=nodename.group(2), linestyle='--')
   ax.plot(x_avg, y_avg, label="cpu avg")
   ax.set_title('Average CPU Utilization Across All Machines')
   ax.set_ylabel('Utilization %')
@@ -247,7 +249,6 @@ def plot_ibxmit(file):
   ax.set_xlabel('Execution Time (s)')
   ax.set_title('InfiniBand Traffic')
   box = ax.get_position()
-  ax.set_yscale('log')
   ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
   ax.legend(loc='center left', bbox_to_anchor=(1,0.5), prop={'size':10})
   plt.savefig (file.replace("txt","png"))
