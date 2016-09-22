@@ -10,10 +10,10 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.6
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
-#-      license     MIT
+#-    version   REMORA 1.6
+#-    authors   Carlos Rosales (carlos@tacc.utexas.edu)
+#-          Antonio Gomez  (agomez@tacc.utexas.edu)
+#-    license   MIT
 #========================================================================
 
 # All the functions take three arguments:
@@ -25,53 +25,53 @@ init_module_lustre()
 {
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-			if [ "$REMORA_LUSTRE" == "1" ]; then
-			REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+            if [ "$REMORA_LUSTRE" == "1" ]; then
+                REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
-            #Capture the "internal" names (IFSNAMES) of the lustre filesystems
-            #and the names of the mounts (FSNAMES)
-            FSS=`df --type=lustre -P | uniq`
-            local MOUNTS=()
-            local idx=0; local hdx=0
-            IFSNAMES=()
-            FSNAMES=()
-            HEADER=()
-            HEADER[$hdx]=`echo TIMESTAMP`
-            hdx=$((hdx+1))
-            while read -r line; do
-                if [ $idx == 0 ]; then
+                #Capture the "internal" names (IFSNAMES) of the lustre filesystems
+                #and the names of the mounts (FSNAMES)
+                FSS=`df --type=lustre -P | uniq`
+                local MOUNTS=()
+                local idx=0; local hdx=0
+                IFSNAMES=()
+                FSNAMES=()
+                HEADER=()
+                HEADER[$hdx]=`echo TIMESTAMP`
+                hdx=$((hdx+1))
+                while read -r line; do
+                    if [ $idx == 0 ]; then
+                        idx=$((idx+1))
+                        continue
+                    fi
+                    IFSNAMES[$idx-1]=`echo $line  | sed 's/.*:\///' | awk '{print $1;}'`
+                    local TEMP=`echo $line | sed 's/.*:\///' | awk '{print $6;}'`
+                    FSNAMES[$idx-1]=`echo "${TEMP////}"`
+                    HEADER[$hdx]=`echo "${FSNAMES[$idx-1]}-RQ"`
+                    HEADER[$hdx+1]=`echo "${FSNAMES[$idx-1]}-RD"`
+                    HEADER[$hdx+2]=`echo "${FSNAMES[$idx-1]}-WR"`
+                    if [ "$REMORA_VERBOSE" == "1" ]; then
+                        echo ${IFSNAMES[$idx-1]} ${FSNAMES[$idx-1]}
+                    fi
                     idx=$((idx+1))
-                    continue
+                    hdx=$((hdx+3))
+                done <<< "$FSS"
+
+                # Write lustre data file header
+                printf "%-17s"  "${HEADER[@]}" >> $REMORA_TMPDIR/lustre_stats_${REMORA_NODE}.txt
+                printf "\n"  >> $REMORA_TMPDIR/lustre_stats_${REMORA_NODE}.txt
+
+                # If monitor mode active, generate monitor file header
+                if [ "$REMORA_MODE" == "MONITOR" ]; then
+                    REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+                    if [ "$REMORA_MASTER" == "$REMORA_NODE" ]; then
+                        printf "%10s_IOPS"  "${FSNAMES[@]}" >> $REMORA_TMPDIR/.monitor
+                    fi
                 fi
-                IFSNAMES[$idx-1]=`echo $line  | sed 's/.*:\///' | awk '{print $1;}'`
-                local TEMP=`echo $line | sed 's/.*:\///' | awk '{print $6;}'`
-                FSNAMES[$idx-1]=`echo "${TEMP////}"`
-                HEADER[$hdx]=`echo "${FSNAMES[$idx-1]}-RQ"`
-                HEADER[$hdx+1]=`echo "${FSNAMES[$idx-1]}-RD"`
-                HEADER[$hdx+2]=`echo "${FSNAMES[$idx-1]}-WR"`
-                if [ "$REMORA_VERBOSE" == "1" ]; then
-                    echo ${IFSNAMES[$idx-1]} ${FSNAMES[$idx-1]}
-                fi
-                idx=$((idx+1))
-                hdx=$((hdx+3))
-            done <<< "$FSS"
 
-			# Write lustre data file header
-            printf "%-17s"  "${HEADER[@]}" >> $REMORA_TMPDIR/lustre_stats_${REMORA_NODE}.txt
-            printf "\n"  >> $REMORA_TMPDIR/lustre_stats_${REMORA_NODE}.txt
-
-			# If monitor mode active, generate monitor file header
-			if [ "$REMORA_MODE" == "MONITOR" ]; then
-				REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-				if [ "$REMORA_MASTER" == "$REMORA_NODE" ]; then
-					printf "%10s_IOPS"  "${FSNAMES[@]}" >> $REMORA_TMPDIR/.monitor
-				fi
-			fi
-
-			# Save Lustre file system names to a file for later reuse
-			for NAME in "${FSNAMES[@]}"; do
-				echo $NAME >> $REMORA_TMPDIR/remora_lustre_names_${REMORA_NODE}.tmp
-			done
+                # Save Lustre file system names to a file for later reuse
+                for NAME in "${FSNAMES[@]}"; do
+                    echo $NAME >> $REMORA_TMPDIR/remora_lustre_names_${REMORA_NODE}.tmp
+                done
 
             fi
         fi
@@ -80,50 +80,49 @@ init_module_lustre()
 
 collect_data_lustre()
 {
-# Here we use lustre stat files, which are user-readable
-# We use req_waittime rather than req_active becasue empirical testing 
-# indicates that IOPS are more accurately reported by this counter.
-#
-# Most entries are like this:
-# {name of statistic} {count of events} samples [{units}] {minimum value} {maximum value} {sum of values}
-# But some include an extra element:
-# {name of statistic} {count of events} samples [{units}] {minimum value} {maximum value} {sum of values} {sum of value squared}
-#
-# cat /proc/fs/lustre/mdc/home*/stats
-# snapshot_time             1452890000.568766 secs.usecs
-# req_waittime              3851885 samples [usec] 37 49056921 800336413 2410726275303557
-#
-# cat /proc/fs/lustre/llite/home*/stats
-# snapshot_time             1452890065.50567 secs.usecs
-# read_bytes                1364393 samples [bytes] 1 4194304 336228258590
-# write_bytes               7771 samples [bytes] 1 315502 5346139
+    # Here we use lustre stat files, which are user-readable
+    # We use req_waittime rather than req_active becasue empirical testing 
+    # indicates that IOPS are more accurately reported by this counter.
+    #
+    # Most entries are like this:
+    # {name of statistic} {count of events} samples [{units}] {minimum value} {maximum value} {sum of values}
+    # But some include an extra element:
+    # {name of statistic} {count of events} samples [{units}] {minimum value} {maximum value} {sum of values} {sum of value squared}
+    #
+    # cat /proc/fs/lustre/mdc/home*/stats
+    # snapshot_time       1452890000.568766 secs.usecs
+    # req_waittime        3851885 samples [usec] 37 49056921 800336413 2410726275303557
+    #
+    # cat /proc/fs/lustre/llite/home*/stats
+    # snapshot_time       1452890065.50567 secs.usecs
+    # read_bytes        1364393 samples [bytes] 1 4194304 336228258590
+    # write_bytes         7771 samples [bytes] 1 315502 5346139
 
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-			if [ "$REMORA_LUSTRE" == "1" ]; then
-            REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-            local LUSTRE_DIR_PATH=/proc/fs/lustre
-            local TIMESTAMP=`date +%s`
-            local idx=0
-            local COUNTER=()
-            col_id=0
-            for fs in "${IFSNAMES[@]}"
-            do
-                if [ "$REMORA_VERBOSE" == "1" ]; then
-                    echo "cat /proc/fs/lustre/mdc/$fs*/stats | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc"
-                    echo "cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes | awk '{print $7;}' | paste -sd+ | bc"
-                    echo "cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes | awk '{print $7;}' | paste -sd+ | bc"
-                fi
-                COUNTER[$col_id]=`cat /proc/fs/lustre/mdc/$fs*/stats | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc`
-                COUNTER[$((col_id+1))]=`cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes | awk '{print $7;}' | paste -sd+ | bc`
-                COUNTER[$((col_id+2))]=`cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes | awk '{print $7;}' | paste -sd+ | bc`
-		col_id=$((col_id+3))
-            done
-            # This will have TIMESTAMP FS1_IOPS FS1_READ FS1_WRITE FS2_IOPS FS2_READ FS2_WRITE ....
-            # in raw counters, not rates
-            printf "%-17d %-17d" $TIMESTAMP "${COUNTER[@]}" >> $REMORA_TMPDIR/lustre_stats_${REMORA_NODE}.txt
-            printf "\n"  >> $REMORA_TMPDIR/lustre_stats_${REMORA_NODE}.txt
-			fi
+            if [ "$REMORA_LUSTRE" == "1" ]; then
+                REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+                local LUSTRE_DIR_PATH=/proc/fs/lustre
+                local TIMESTAMP=`date +%s`
+                local idx=0
+                local COUNTER=()
+                col_id=0
+                for fs in "${IFSNAMES[@]}"; do
+                    if [ "$REMORA_VERBOSE" == "1" ]; then
+                        echo "cat /proc/fs/lustre/mdc/$fs*/stats | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc"
+                        echo "cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes | awk '{print $7;}' | paste -sd+ | bc"
+                        echo "cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes | awk '{print $7;}' | paste -sd+ | bc"
+                    fi
+                    COUNTER[$col_id]=`cat /proc/fs/lustre/mdc/$fs*/stats | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc`
+                    COUNTER[$((col_id+1))]=`cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes | awk '{print $7;}' | paste -sd+ | bc`
+                    COUNTER[$((col_id+2))]=`cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes | awk '{print $7;}' | paste -sd+ | bc`
+                    col_id=$((col_id+3))
+                done
+                # This will have TIMESTAMP FS1_IOPS FS1_READ FS1_WRITE FS2_IOPS FS2_READ FS2_WRITE ....
+                # in raw counters, not rates
+                printf "%-17d %-17d" $TIMESTAMP "${COUNTER[@]}" >> $REMORA_TMPDIR/lustre_stats_${REMORA_NODE}.txt
+                printf "\n"  >> $REMORA_TMPDIR/lustre_stats_${REMORA_NODE}.txt
+            fi
         fi
     fi
 }
@@ -132,7 +131,7 @@ collect_data_lustre()
 # If nothing needs to be done, it can be empty (but declared)
 process_data_lustre()
 {
-  :
+    :
 }
 
 monitor_data_lustre()
@@ -141,127 +140,125 @@ monitor_data_lustre()
     REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
     if [ "$REMORA_NODE" == "$REMORA_MASTER" ] && [ "$REMORA_LUSTRE" == "1" ]; then
 
-		idx=0; FSNAMES=()
-		for NAME in `cat $REMORA_TMPDIR/remora_lustre_names_${REMORA_NODE}.tmp`; do
-			FSNAMES[$idx]=$NAME
-			idx=$((idx+1))
-		done
-
-        max_iops=0; max_iops_global=0
-        for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`
-        do 
-			# Copy file over only if necessary
-			if [ "$REMORA_NODE" != "$NODE" ]; then
-				scp $NODE:$REMORA_TMPDIR/lustre_stats_${NODE}.txt $REMORA_TMPDIR/
-			fi
-			current_file=$REMORA_TMPDIR/lustre_stats_${NODE}.txt
-			line2=`wc -l $current_file | awk '{print $1}'`
-			if [ "$line2" > "2" ]; then
-				line1=$((line2-1))
-				sed "${line1}q;d" $current_file >  $REMORA_TMPDIR/monitor_lustre_stats_${NODE}.txt
-				sed "${line2}q;d" $current_file >> $REMORA_TMPDIR/monitor_lustre_stats_${NODE}.txt
-			fi
-			rm $current_file
+        idx=0; FSNAMES=()
+        for NAME in `cat $REMORA_TMPDIR/remora_lustre_names_${REMORA_NODE}.tmp`; do
+            FSNAMES[$idx]=$NAME
+            idx=$((idx+1))
         done
 
-		# WARNING - NO PROTECTION FOR FILES NOT BEING THERE	
-		# Generate file with aggregate counts from all nodes
-		# Note that the loop in FNR is really a loop over the lines in the file. 
-		# Starting at 2 skips a header if needed.
-        awk '{a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=1; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $REMORA_TMPDIR/monitor_lustre_stats_*.txt > $REMORA_TMPDIR/monitor_lustre.tmp
-      	col_id=2
-      	for FS in "${FSNAMES[@]}"; do
-        	cut -d ' ' -f 1,$col_id,$((col_id+1)),$((col_id+2)) $REMORA_TMPDIR/monitor_lustre.tmp > $REMORA_TMPDIR/monitor_lustre_${FS}.txt
-        	col_id=$((col_id+3))
-      	done
-      	rm $REMORA_TMPDIR/monitor_lustre.tmp
+        max_iops=0; max_iops_global=0
+        for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`; do 
+            # Copy file over only if necessary
+            if [ "$REMORA_NODE" != "$NODE" ]; then
+                scp $NODE:$REMORA_TMPDIR/lustre_stats_${NODE}.txt $REMORA_TMPDIR/
+            fi
+            current_file=$REMORA_TMPDIR/lustre_stats_${NODE}.txt
+            line2=`wc -l $current_file | awk '{print $1}'`
+            if [ "$line2" > "2" ]; then
+                line1=$((line2-1))
+                sed "${line1}q;d" $current_file >  $REMORA_TMPDIR/monitor_lustre_stats_${NODE}.txt
+                sed "${line2}q;d" $current_file >> $REMORA_TMPDIR/monitor_lustre_stats_${NODE}.txt
+            fi
+            rm $current_file
+        done
 
-      	# Calculate actual data rates from raw counters
-      	# $1 = time; $2 = iopsi (usec); $3 = read (bytes); $4 = write (bytes)
-      	idx=0; local d1=(); local d2=(); realtime_lustre=()
-      	for FS in "${FSNAMES[@]}"; do
-        	file=$(echo ${REMORA_TMPDIR}/monitor_lustre_${FS}.txt)
-        	d1=(`sed "1q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4}'`)
-        	d2=(`sed "2q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4 }'`)
-        	fsio=`echo "scale=6; ( ${d2[1]} - ${d1[1]} ) / ( ( ${d2[0]} - ${d1[0]} ) )" | bc`
-			realtime_lustre[$idx]=$fsio
-			idx=$((idx+1))
-      	done
-		printf  "%14.1f " ${realtime_lustre[@]} >> $REMORA_TMPDIR/.monitor
+        # WARNING - NO PROTECTION FOR FILES NOT BEING THERE 
+        # Generate file with aggregate counts from all nodes
+        # Note that the loop in FNR is really a loop over the lines in the file. 
+        # Starting at 2 skips a header if needed.
+        awk '{a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=1; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $REMORA_TMPDIR/monitor_lustre_stats_*.txt > $REMORA_TMPDIR/monitor_lustre.tmp
+        col_id=2
+        for FS in "${FSNAMES[@]}"; do
+            cut -d ' ' -f 1,$col_id,$((col_id+1)),$((col_id+2)) $REMORA_TMPDIR/monitor_lustre.tmp > $REMORA_TMPDIR/monitor_lustre_${FS}.txt
+            col_id=$((col_id+3))
+        done
+        rm $REMORA_TMPDIR/monitor_lustre.tmp
+
+        # Calculate actual data rates from raw counters
+        # $1 = time; $2 = iopsi (usec); $3 = read (bytes); $4 = write (bytes)
+        idx=0; local d1=(); local d2=(); realtime_lustre=()
+        for FS in "${FSNAMES[@]}"; do
+            file=$(echo ${REMORA_TMPDIR}/monitor_lustre_${FS}.txt)
+            d1=(`sed "1q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4}'`)
+            d2=(`sed "2q;d" $file | awk '{ print $1 " " $2 " " $3 " " $4 }'`)
+            fsio=`echo "scale=6; ( ${d2[1]} - ${d1[1]} ) / ( ( ${d2[0]} - ${d1[0]} ) )" | bc`
+            realtime_lustre[$idx]=$fsio
+            idx=$((idx+1))
+        done
+        printf  "%14.1f " ${realtime_lustre[@]} >> $REMORA_TMPDIR/.monitor
     fi  
 }
 
 finalize_module_lustre()
 {
-  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-  REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-  if [ "$REMORA_NODE" == "$REMORA_MASTER" ] && [ "$REMORA_SYMMETRIC" == "0" ]; then
-    if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-		if [ "$REMORA_LUSTRE" == "1" ]; then
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+    if [ "$REMORA_NODE" == "$REMORA_MASTER" ] && [ "$REMORA_SYMMETRIC" == "0" ]; then
+        if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+            if [ "$REMORA_LUSTRE" == "1" ]; then
+                idx=0; FSNAMES=()
+                for NAME in `cat $REMORA_TMPDIR/remora_lustre_names_${REMORA_NODE}.tmp`; do
+                    FSNAMES[$idx]=$NAME
+                    idx=$((idx+1))
+                done
 
-      idx=0; FSNAMES=()
-      for NAME in `cat $REMORA_TMPDIR/remora_lustre_names_${REMORA_NODE}.tmp`; do
-          FSNAMES[$idx]=$NAME
-          idx=$((idx+1))
-      done
+                # Identify shortest entry
+                min_len=0
+                for file in `ls $REMORA_OUTDIR/lustre_stats*.txt`; do
+                    fs_col=2; len=0
+                    for FS in "${FSNAMES[@]}"; do
+                        len=`cat $file | tr -s ' ' | cut -d ' ' -f $fs_col | wc -l | awk '{print $1}'`
+                        if [ "$min_len" -eq "0" ] || [ "$len" -lt "$min_len" ]; then 
+                            min_len=$len
+                        fi
+                        fs_col=$((fs_col+3))
+                    done
+                done
 
-      # Identify shortest entry
-      min_len=0
-      for file in `ls $REMORA_OUTDIR/lustre_stats*.txt`; do
-         fs_col=2; len=0
-         for FS in "${FSNAMES[@]}"; do
-           len=`cat $file | tr -s ' ' | cut -d ' ' -f $fs_col | wc -l | awk '{print $1}'`
-           if [ "$min_len" -eq "0" ] || [ "$len" -lt "$min_len" ]; then 
-             min_len=$len
-           fi
-           fs_col=$((fs_col+3))
-         done
-       done
-   
-	  # Generate aggregate data file headers
-      HEADER=()
-	  idx=0
-	  for FS in "${FSNAMES[@]}"; do
-          HEADER[0]=`echo TIMESTAMP`
-		  HEADER[1]=`echo "${FSNAMES[$idx]}-RQ"`
-  		  HEADER[2]=`echo "${FSNAMES[$idx]}-RD"`
-		  HEADER[3]=`echo "${FSNAMES[$idx]}-WR"`
-		  printf "%-17s"  "${HEADER[@]}" > $REMORA_OUTDIR/lustre_${FS}.txt
-		  printf "\n"                   >> $REMORA_OUTDIR/lustre_${FS}.txt
-		  printf "%-17s"  "${HEADER[@]}" > $REMORA_OUTDIR/lustre_${FS}_rate.txt
-                  printf "\n"                   >> $REMORA_OUTDIR/lustre_${FS}_rate.txt
-		  idx=$((idx+1))
-      done
+                # Generate aggregate data file headers
+                HEADER=()
+                idx=0
+                for FS in "${FSNAMES[@]}"; do
+                    HEADER[0]=`echo TIMESTAMP`
+                    HEADER[1]=`echo "${FSNAMES[$idx]}-RQ"`
+                    HEADER[2]=`echo "${FSNAMES[$idx]}-RD"`
+                    HEADER[3]=`echo "${FSNAMES[$idx]}-WR"`
+                    printf "%-17s"  "${HEADER[@]}" > $REMORA_OUTDIR/lustre_${FS}.txt
+                    printf "\n"           >> $REMORA_OUTDIR/lustre_${FS}.txt
+                    printf "%-17s"  "${HEADER[@]}" > $REMORA_OUTDIR/lustre_${FS}_rate.txt
+                    printf "\n"           >> $REMORA_OUTDIR/lustre_${FS}_rate.txt
+                    idx=$((idx+1))
+                done
 
-      # Generate file with aggregate counts from all nodes
-      awk 'FNR>1 {a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=2; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $REMORA_OUTDIR/lustre_stats_*.txt > $REMORA_OUTDIR/lustre.tmp
-      col_id=2
-      for FS in "${FSNAMES[@]}"; do
-        cut -d ' ' -f 1,$col_id,$((col_id+1)),$((col_id+2)) $REMORA_OUTDIR/lustre.tmp >> $REMORA_OUTDIR/lustre_${FS}.txt
-        col_id=$((col_id+3))
-      done
-      rm $REMORA_OUTDIR/lustre.tmp
+                # Generate file with aggregate counts from all nodes
+                awk 'FNR>1 {a[FNR]=$1; for (j=2; j<=NF; j++) fs1[FNR,j]+=$j;} END {for (i=2; i<=FNR; i++){ printf "%d ",a[i]; for (j=2; j<=NF; j++){ printf "%d ",fs1[i,j]} printf "\n"} }' $REMORA_OUTDIR/lustre_stats_*.txt > $REMORA_OUTDIR/lustre.tmp
+                col_id=2
+                for FS in "${FSNAMES[@]}"; do
+                    cut -d ' ' -f 1,$col_id,$((col_id+1)),$((col_id+2)) $REMORA_OUTDIR/lustre.tmp >> $REMORA_OUTDIR/lustre_${FS}.txt
+                    col_id=$((col_id+3))
+                done
+                rm $REMORA_OUTDIR/lustre.tmp
 
-      # Calculate actual data rates from raw counters
-      # $1 = time; $2 = iopsi (usec); $3 = read (bytes); $4 = write (bytes)
-      min_len=$((min_len-1))
-      local d1=(); local d2=()
-      for FS in "${FSNAMES[@]}"; do
-        file=$(echo lustre_${FS}.txt)
-        startTime=`sed "2q;d" $REMORA_OUTDIR/$file | awk '{ print $1 }'`
-        for i in `seq 2 $min_len`; do
-          next=$((i+1))
-          d1=(`sed "${i}q;d" $REMORA_OUTDIR/$file | awk '{ print $1 " " $2 " " $3 " " $4}'`)
-          d2=(`sed "${next}q;d" $REMORA_OUTDIR/$file | awk '{ print $1 " " $2 " " $3 " " $4 }'`)
-          rtime=`echo "scale=6; ( ${d2[0]} - $startTime )" | bc`
-          fsio=`echo "scale=6; ( ${d2[1]} - ${d1[1]} ) / ( ( ${d2[0]} - ${d1[0]} ) )" | bc`
-          fsrd=`echo "scale=6; ( ${d2[2]} - ${d1[2]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
-          fswr=`echo "scale=6; ( ${d2[3]} - ${d1[3]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
-          printf "%-17f %-17f %-17f %-17f\n" $rtime $fsio $fsrd $fswr >> $REMORA_OUTDIR/lustre_${FS}_rate.txt
-        done
-      done
-	  fi
+                # Calculate actual data rates from raw counters
+                # $1 = time; $2 = iopsi (usec); $3 = read (bytes); $4 = write (bytes)
+                min_len=$((min_len-1))
+                local d1=(); local d2=()
+                for FS in "${FSNAMES[@]}"; do
+                    file=$(echo lustre_${FS}.txt)
+                    startTime=`sed "2q;d" $REMORA_OUTDIR/$file | awk '{ print $1 }'`
+                    for i in `seq 2 $min_len`; do
+                        next=$((i+1))
+                        d1=(`sed "${i}q;d" $REMORA_OUTDIR/$file | awk '{ print $1 " " $2 " " $3 " " $4}'`)
+                        d2=(`sed "${next}q;d" $REMORA_OUTDIR/$file | awk '{ print $1 " " $2 " " $3 " " $4 }'`)
+                        rtime=`echo "scale=6; ( ${d2[0]} - $startTime )" | bc`
+                        fsio=`echo "scale=6; ( ${d2[1]} - ${d1[1]} ) / ( ( ${d2[0]} - ${d1[0]} ) )" | bc`
+                        fsrd=`echo "scale=6; ( ${d2[2]} - ${d1[2]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
+                        fswr=`echo "scale=6; ( ${d2[3]} - ${d1[3]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
+                        printf "%-17f %-17f %-17f %-17f\n" $rtime $fsio $fsrd $fswr >> $REMORA_OUTDIR/lustre_${FS}_rate.txt
+                    done
+                done
+            fi
+        fi
     fi
-  fi
-  rm $REMORA_TMPDIR/remora_lustre_names_${REMORA_NODE}.tmp
+    rm $REMORA_TMPDIR/remora_lustre_names_${REMORA_NODE}.tmp
 }
