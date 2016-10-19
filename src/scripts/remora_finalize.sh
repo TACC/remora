@@ -40,7 +40,8 @@ if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
   done
 fi
 # Remove any temp files leftover
-rm $REMORA_OUTDIR/*.tmp
+# TEMPORARY SOLUTION
+#rm $REMORA_OUTDIR/*.tmp
 # Give time for metadata to be updated
 sleep 5
 
