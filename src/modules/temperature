@@ -1,0 +1,69 @@
+#!/bin/sh
+#
+#========================================================================
+# HEADER
+#========================================================================
+#% DESCRIPTION
+#% Temperature
+#%
+#% DO NOT call this script directly. This is called by REMORA
+#%
+#========================================================================
+#- IMPLEMENTATION
+#-      version     REMORA 1.6
+#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      license     MIT
+#========================================================================
+
+# All the functions take three arguments:
+#  1.- The name of the node where this function is running
+#  2.- The full path where the output will be stored/read
+#  3.- The full path to an optional temporary storage location
+
+init_module_temperature()
+{
+  files=`ls -v /sys/devices/platform/coretemp.0/temp*_input`
+  export REMORA_TEMPERATURE_IGNORE=$?
+  if [ $REMORA_TEMPERATURE_IGNORE -ne 0 ]; then
+    return 1
+  fi
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+  rm -f $REMORA_TMPDIR/temperature*
+}
+
+collect_data_temperature()
+{
+  if [ $REMORA_TEMPERATURE_IGNORE -ne 0 ]; then
+    return 1
+  fi
+
+  local TIMESTAMP=`date +%s`
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+  files=`ls -v /sys/devices/platform/coretemp.0/temp*_input`
+  local output=""
+  for file in $files; do
+    local temp=$( cat $file )
+    let temp=$temp/1000
+    output="$output $temp"
+  done
+  printf "%-17d %s\n" $TIMESTAMP $output >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt
+}
+
+
+# This function might perform some processing on the data.
+# If nothing needs to be done, it can be empty (but declared)
+process_data_temperature()
+{
+  :
+}
+
+monitor_data_temperature()
+{
+  :
+}
+
+finalize_module_temperature()
+{
+  :
+}

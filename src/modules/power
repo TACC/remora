@@ -1,0 +1,73 @@
+#!/bin/sh
+#
+#========================================================================
+# HEADER
+#========================================================================
+#% DESCRIPTION
+#% Power module.
+#% This module collects the power used by the processor by calling sensors.
+#%
+#% DO NOT call this script directly. This is called by REMORA
+#%
+#========================================================================
+#- IMPLEMENTATION
+#-      version     REMORA 1.6
+#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      license     MIT
+#========================================================================
+
+# All the functions take three arguments:
+#  1.- The name of the node where this function is running
+#  2.- The full path where the output will be stored/read
+#  3.- The full path to an optional temporary storage location
+
+init_module_power()
+{
+  #Check if we have access to sensors
+  #If not present, don't collect power
+  #If sensors returns an error (not configured or not allowed), ignore
+  #the message and configure REMORA to ignore power collection
+  sensors
+  export REMORA_POWER_IGNORE=$?
+
+  if [ $REMORA_POWER_IGNORE -ne 0 ]; then
+    return 1
+  fi
+
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+  rm -f $REMORA_TMPDIR/power*
+}
+
+collect_data_power()
+{
+  if [ $REMORA_POWER_IGNORE -ne 0 ]; then
+    return 1
+  fi
+
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+  local TIMESTAMP=`date +%s`
+  # Get power of each node
+  # We use sensors. Among other things, sensors is going to return something like this:
+  # power1:      159.00 W  (interval =   1.00 s)
+  local power=`sensors | grep power1 | awk '{print $2;}'`
+  printf "%-17d %-17d\n" $TIMESTAMP $power >> $REMORA_TMPDIR/power_${REMORA_NODE}.txt 
+}
+
+
+# This function might perform some processing on the data.
+# If nothing needs to be done, it can be empty (but declared)
+process_data_power()
+{
+  :
+}
+
+monitor_data_power()
+{
+  :
+}
+
+finalize_module_cpu()
+{
+  :
+}
