@@ -37,7 +37,7 @@ collect_data_gpu()
         gpumem=$(echo $gpumem | awk '{print $1/1000}')
         gpumax=$(echo $gpumax | awk '{print $1/1000}')
         gpufree=$(echo "$gpumax $gpumem" | awk '{ print $1-$2 }')
-        printf "%-17d %-17f %-17f\n" $current_time $gpumem $gpufree >> $REMORA_TMPDIR/mem_stats_${REMORA_NODE}-gpu.txt
+        printf "%-17d %-17f %-17f\n" $current_time $gpumem $gpufree >> $REMORA_TMPDIR/gpu_memory_stats_${REMORA_NODE}.txt
     fi
 }
 # This function might perform some processing on the data.

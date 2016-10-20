@@ -28,7 +28,7 @@ init_module_memory()
     rmem_max_global=0
     tmem_max_global=0
     rm -f $REMORA_TMPDIR/mem*
-    printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "#TIME" "VMEM_MAX" "VMEM" "RMEM_MAX" "RMEM" "SHMEM" "MEM_FREE" "TMEM_MAX"> $REMORA_TMPDIR/mem_stats_${REMORA_NODE}.txt
+    printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "#TIME" "VMEM_MAX" "VMEM" "RMEM_MAX" "RMEM" "SHMEM" "MEM_FREE" "TMEM_MAX"> $REMORA_TMPDIR/memory_stats_${REMORA_NODE}.txt
     if [ "$REMORA_MODE" == "MONITOR" ]; then
 		REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
 		if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
@@ -63,7 +63,7 @@ collect_data_memory()
     if [ $(echo "$tmem > $tmem_max_global" | bc) -eq 1 ]; then
         tmem_max_global=$tmem
     fi
-    printf "%-17d %-17f %-17f %-17f %-17f %-17f %-17f %-17f\n" $TIMESTAMP $vmem_max_global $vmem $rmem_max_global $rmem $shmem $mem_free $tmem_max_global >> $REMORA_TMPDIR/mem_stats_${REMORA_NODE}.txt
+    printf "%-17d %-17f %-17f %-17f %-17f %-17f %-17f %-17f\n" $TIMESTAMP $vmem_max_global $vmem $rmem_max_global $rmem $shmem $mem_free $tmem_max_global >> $REMORA_TMPDIR/memory_stats_${REMORA_NODE}.txt
     rm $REMORA_TMPDIR/mem_${REMORA_NODE}.tmp
 }
 
@@ -83,7 +83,7 @@ monitor_data_memory()
 		for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`
 		do
                         # WARNING - No remote file validation check
-			COMMAND="tail -n 1 $REMORA_TMPDIR/mem_stats_${NODE}.txt"
+			COMMAND="tail -n 1 $REMORA_TMPDIR/memory_stats_${NODE}.txt"
 			max_mem=`ssh $NODE $COMMAND`
 			max_mem=`echo $max_mem | awk '{print $3}'`
 			if [ $(echo "$max_mem > $max_mem_global" | bc) -eq 1 ]; then max_mem_global=$max_mem; fi
@@ -96,24 +96,24 @@ monitor_data_memory()
 finalize_module_memory()
 {
 REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-vmax_mem=`tail -n 1 $REMORA_OUTDIR/mem_stats_${REMORA_NODE}.txt | awk '{printf "%6.4f\n",$2}'`
-tmax_mem=`tail -n 1 $REMORA_OUTDIR/mem_stats_${REMORA_NODE}.txt | awk '{printf "%6.4f\n",$8}'`
-free_mem=$(awk ' NR == 1 {max=$7; min=$7} NR > 1 && $7 < min {min=$7} END {printf "%6.4f\n",min }' $REMORA_OUTDIR/mem_stats_${REMORA_NODE}.txt)
-echo "${REMORA_NODE} $vmax_mem $tmax_mem $free_mem" >> $REMORA_OUTDIR/mem_all_nodes.txt
+vmax_mem=`tail -n 1 $REMORA_OUTDIR/memory_stats_${REMORA_NODE}.txt | awk '{printf "%6.4f\n",$2}'`
+tmax_mem=`tail -n 1 $REMORA_OUTDIR/memory_stats_${REMORA_NODE}.txt | awk '{printf "%6.4f\n",$8}'`
+free_mem=$(awk ' NR == 1 {max=$7; min=$7} NR > 1 && $7 < min {min=$7} END {printf "%6.4f\n",min }' $REMORA_OUTDIR/memory_stats_${REMORA_NODE}.txt)
+echo "${REMORA_NODE} $vmax_mem $tmax_mem $free_mem" >> $REMORA_OUTDIR/memory_all_nodes.txt
 
 if [ "$REMORA_SYMMETRIC" == "1" ]; then
     currenthost=${REMORA_NODE}-mic0
-    vmax_mem=`tail -n 1 $REMORA_OUTDIR/mem_stats_$currenthost.txt | awk '{printf "%6.4f\n",$2}'`
-    tmax_mem=`tail -n 1 $REMORA_OUTDIR/mem_stats_$currenthost.txt | awk '{printf "%6.4f\n",$8}'`
-    free_mem=$(awk ' NR == 1 {max=$7; min=$7} NR > 1 && $7 < min {min=$7} END {printf "%6.4f\n",min }' $REMORA_OUTDIR/mem_stats_$currenthost.txt)
-    echo "$currenthost $vmax_mem $tmax_mem $free_mem" >> $REMORA_OUTDIR/mem_all_nodes_mic.txt
+    vmax_mem=`tail -n 1 $REMORA_OUTDIR/memory_stats_$currenthost.txt | awk '{printf "%6.4f\n",$2}'`
+    tmax_mem=`tail -n 1 $REMORA_OUTDIR/memory_stats_$currenthost.txt | awk '{printf "%6.4f\n",$8}'`
+    free_mem=$(awk ' NR == 1 {max=$7; min=$7} NR > 1 && $7 < min {min=$7} END {printf "%6.4f\n",min }' $REMORA_OUTDIR/memory_stats_$currenthost.txt)
+    echo "$currenthost $vmax_mem $tmax_mem $free_mem" >> $REMORA_OUTDIR/memory_all_nodes_mic.txt
 fi
 
 if [ "$REMORA_CUDA" == "1" ]; then
-    currenthost=$REMORA_OUTDIR-gpu
-    max_mem=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {printf "%6.4f\n",max }' $REMORA_OUTDIR/mem_stats_$currenthost.txt)
-    free_mem=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 < min {min=$3} END {printf "%6.4f\n",min }' $REMORA_OUTDIR/mem_stats_$currenthost.txt)
-    echo "$currenthost $max_mem $free_mem" >> $REMORA_OUTDIR/mem_all_nodes_gpu.txt
+    currenthost=$REMORA_OUTDIR
+    max_mem=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {printf "%6.4f\n",max }' $REMORA_OUTDIR/gpu_memory_stats_$currenthost.txt)
+    free_mem=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 < min {min=$3} END {printf "%6.4f\n",min }' $REMORA_OUTDIR/gpu_memory_stats_$currenthost.txt)
+    echo "$currenthost $max_mem $free_mem" >> $REMORA_OUTDIR/gpu_memory_all_nodes.txt
 fi
 
 }

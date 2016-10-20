@@ -197,10 +197,34 @@ check_io() {
     echo "export REMORA_DVS=$REMORA_DVS" >> $REMORA_OUTDIR/remora_env.txt
 }
 
+remora_read_active_modules()
+{
+    fileItemString=$(cat $REMORA_BIN/config/modules | cut -f1 -d "," | tr "\n" " ")
+    outDirsString=$(cat $REMORA_BIN/config/modules | cut -f2 -d "," | tr "\n" " ")
+    REMORA_MODULES=($fileItemString)
+    REMORA_MODULES_OUTDIRS=($outDirsString)
+
+#    REMORA_ACTIVE_MODS=${#REMORA_MODULES[@]}
+    for MODULE in "${REMORA_MODULES[@]}"
+    do  
+      source $REMORA_BIN/modules/$MODULE
+      if [ "$REMORA_VERBOSE" == "1" ]; then
+        echo "Module $MODULE is active"
+      fi  
+    done
+}
+
 init_folders() {
     CWD=`pwd`
     # Determing current work directory
     REMORA_OUTDIR=$CWD/remora_$REMORA_JOB_ID
+    if [ -d $REMORA_OUTDIR ]; then
+      n=1
+      while [ -d $REMORA_OUTDIR-$n ]; do
+        n=$((n+1))
+      done
+      mv $REMORA_OUTDIR $REMORA_OUTDIR-$n
+    fi
     mkdir -p $REMORA_OUTDIR
     rm -rf $REMORA_OUTDIR/*
     # Determine directory for temporary files
@@ -212,12 +236,13 @@ init_folders() {
 
     # Setup output subdirectories
     mkdir $REMORA_OUTDIR/INFO
-    mkdir $REMORA_OUTDIR/CPU
-    mkdir $REMORA_OUTDIR/IO
-    mkdir $REMORA_OUTDIR/MEMORY
-    mkdir $REMORA_OUTDIR/NETWORK
-    mkdir $REMORA_OUTDIR/NUMA
 	mkdir $REMORA_OUTDIR/MONITOR
+
+    remora_read_active_modules
+    #Create the output folders depending on the info passed on the configuration file (second column)
+    for MODULE in "${REMORA_MODULES_OUTDIRS[@]}"; do
+      [ -d $REMORA_OUTDIR/$MODULE ] || mkdir $REMORA_OUTDIR/$MODULE
+    done
 
     echo "export REMORA_OUTDIR=$REMORA_OUTDIR"  > $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_TMPDIR=$REMORA_TMPDIR" >> $REMORA_OUTDIR/remora_env.txt

@@ -27,8 +27,10 @@ REMORA_NODE_ID=$5
 
 #Source the script that has the modules' functionality
 if [ "$REMORA_VERBOSE" == "1" ]; then
+  echo "source $REMORA_BIN/aux/extra"
   echo "source $REMORA_BIN/modules/modules_utils"
 fi
+source $REMORA_BIN/aux/extra
 source $REMORA_BIN/modules/modules_utils
 source $REMORA_OUTDIR/remora_env.txt
 

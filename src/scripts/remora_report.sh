@@ -29,6 +29,8 @@ source $REMORA_OUTDIR/remora_env.txt
 mkdir -p $REMORA_TMPDIR
 
 #Source the script that has the modules' functionality
+
+source $REMORA_BIN/aux/extra
 source $REMORA_BIN/modules/modules_utils
 
 #Read the list of active modules from the configuration file

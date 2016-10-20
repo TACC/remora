@@ -81,7 +81,7 @@ fi
 
 # Wait for files to be available in cached shared file systems
 waiting=1
-while [ "$waiting" -lt "10" ] && [ ! -r $REMORA_OUTDIR/trace_network.txt ]; do
+while [ "$waiting" -lt "10" ] && [ ! -r $REMORA_OUTDIR/network_trace.txt ]; do
   sleep 2
   waiting=$((waiting+1))
 done
@@ -94,14 +94,25 @@ show_final_report $END $START
 
 # Should write name-based loop
 mv $REMORA_OUTDIR/{remora*,runtime*} $REMORA_OUTDIR/INFO
-mv $REMORA_OUTDIR/cpu* $REMORA_OUTDIR/CPU
-mv $REMORA_OUTDIR/mem* $REMORA_OUTDIR/MEMORY
-if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-  if [ "$REMORA_LUSTRE" == "1" ]; then mv $REMORA_OUTDIR/{lustre*,lnet*} $REMORA_OUTDIR/IO; fi
-  if [ "$REMORA_DVS" == "1" ]; then mv $REMORA_OUTDIR/dvs* $REMORA_OUTDIR/IO; fi
-  mv $REMORA_OUTDIR/{ib*,trace_*} $REMORA_OUTDIR/NETWORK/
-  mv $REMORA_OUTDIR/numa* $REMORA_OUTDIR/NUMA
-fi
+
+source $REMORA_BIN/aux/extra
+source $REMORA_BIN/modules/modules_utils
+remora_read_active_modules
+
+for i in "${!REMORA_MODULES[@]}"; do
+    mv $REMORA_OUTDIR/${REMORA_MODULES[$i]}* $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]}
+done
+
+#mv $REMORA_OUTDIR/cpu* $REMORA_OUTDIR/CPU
+#mv $REMORA_OUTDIR/mem* $REMORA_OUTDIR/MEMORY
+
+#if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+#  if [ "$REMORA_LUSTRE" == "1" ]; then mv $REMORA_OUTDIR/{lustre*,lnet*} $REMORA_OUTDIR/IO; fi
+#  if [ "$REMORA_DVS" == "1" ]; then mv $REMORA_OUTDIR/dvs* $REMORA_OUTDIR/IO; fi
+#  mv $REMORA_OUTDIR/{ib*,trace_*} $REMORA_OUTDIR/NETWORK/
+#  mv $REMORA_OUTDIR/numa* $REMORA_OUTDIR/NUMA
+#fi
+
 if [ "$REMORA_MODE" == "MONITOR" ]; then
 	rm $REMORA_TMPDIR/.monitor
 	mv $REMORA_OUTDIR/monitor* $REMORA_OUTDIR/MONITOR/

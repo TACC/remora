@@ -400,9 +400,9 @@ def plot_network(folder):
   switch_leaf2="" #Another leaf switch
   switch_core=""  #Core switch
 
-  if (not os.path.isfile (folder+"/NETWORK/trace_network.txt")):
+  if (not os.path.isfile (folder+"/NETWORK/network_trace.txt")):
     return
-  with open(folder+"/NETWORK/trace_network.txt") as f:
+  with open(folder+"/NETWORK/network_trace.txt") as f:
     lines = f.readlines()
 
   fout = open (folder+"/NETWORK/network_diag.diag", "w")
