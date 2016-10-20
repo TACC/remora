@@ -39,9 +39,7 @@ if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
     scp $NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR 2> /dev/null 1> /dev/null
   done
 fi
-# Remove any temp files leftover
-# TEMPORARY SOLUTION
-#rm $REMORA_OUTDIR/*.tmp
+
 # Give time for metadata to be updated
 sleep 5
 
@@ -91,6 +89,7 @@ if [ "$waiting" -gt "1" ] && [ "$REMORA_WARNING" -gt "1" ]; then
 fi
 
 show_final_report $END $START
+rm -f $REMORA_OUTDIR/*.tmp
 
 # Should write name-based loop
 mv $REMORA_OUTDIR/{remora*,runtime*} $REMORA_OUTDIR/INFO

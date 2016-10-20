@@ -223,6 +223,13 @@ init_folders() {
     echo "export REMORA_TMPDIR=$REMORA_TMPDIR" >> $REMORA_OUTDIR/remora_env.txt
 
     date >> $REMORA_OUTDIR/remora_timestamp.txt
+
+	# Generate unique file for transfer completion check 
+	# on distributed file systems
+    for node in $NODES; do
+        touch $REMORA_OUTDIR/zz.$node
+    done
+
     # Pass output directory name to parent remora script
     echo $REMORA_OUTDIR
 }
