@@ -47,13 +47,15 @@ finalize_module_network()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+  #Extract the mlx interface. It was hardcoded to mlx4_0
+  interf=`ibstat | head -n 1 | awk '{print $2}' | tr -d "'"`
   if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
 	if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
     local idx=0
     local LID=()
     local NODES=`cat $REMORA_OUTDIR/remora_nodes.txt`
     for NODE in $NODES; do
-      LIDCOMMAND="cat /sys/class/infiniband/mlx4_0/ports/1/lid"
+      LIDCOMMAND="cat /sys/class/infiniband/"$interf"/ports/1/lid"
       LID[$idx]=`ssh -f $NODE $LIDCOMMAND`
       idx=$((idx+1))
     done
