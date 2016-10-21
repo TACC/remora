@@ -39,7 +39,7 @@
 #========================================================================
 #  HISTORY
 #       2016/03/11: Added real-time monitor mode
-#	2016/01/25: Added alternative location for temp files
+#	    2016/01/25: Added alternative location for temp files
 #       2015/12/09: Implemented a modular design
 #       2015/11/21: Removing TACC specific data
 #       2015/09/09: Using python parser for file system data
@@ -69,9 +69,15 @@ if [ -z "$REMORA_BIN" ]; then
     exit
 fi
 
-# These two lines allow functions in other files to kill the main
-# process (REMORA_TOP_PID)
-trap "exit 1" TERM
+#Function that tries to exit clean if REMORA is cancelled.
+#It finalizes all processes. The main code might continue running though.
+exit_clean() {
+  $REMORA_BIN/scripts/remora_finalize.sh 0 0
+}
+#Trap the SIGTERM and SIGINT signals and call exit_clean
+trap "exit_clean" TERM SIGINT
+
+#Save the PID of REMORA in case we need it
 export REMORA_TOP_PID=$$
 
 SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
@@ -105,6 +111,4 @@ START=$(date +%s%N)
 $@
 END=$(date +%s%N)
 $REMORA_BIN/scripts/remora_finalize.sh $END $START
-
-
 
