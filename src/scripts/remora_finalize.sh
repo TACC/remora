@@ -40,8 +40,21 @@ if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
   done
 fi
 
-# Give time for metadata to be updated
-sleep 5
+# Ensure all data has been copied over or issue warning
+NodeCount=`wc -l $REMORA_OUTDIR/remora_nodes.txt | awk '{print $1}'`
+waiting=1; completed=0
+while [ "$waiting" -lt 60 ] && [ "$completed" -lt "$NodeCount" ]; do
+    completed=0
+    for node in $NODES; do
+        if [ -a $REMORA_OUTDIR/zz.$node ]; then
+            completed=$((completed+1))
+        fi  
+    done
+    sleep 1
+done
+if [ "$waiting" -ge 60 ]; then
+    printf "*** REMORA: WARNING - Slow file system response. Post-processing may be incomplete\n"
+fi
 
 # Kill remote remora processes running in the backgroud
 PID=(); PID_MIC=()
@@ -77,17 +90,6 @@ if [ "$REMORA_MODE" == "MONITOR" ]; then
 	rm $REMORA_OUTDIR/remora_pid_mon.txt
 fi
 
-# Wait for files to be available in cached shared file systems
-waiting=1
-while [ "$waiting" -lt "10" ] && [ ! -r $REMORA_OUTDIR/network_trace.txt ]; do
-  sleep 2
-  waiting=$((waiting+1))
-done
-if [ "$waiting" -gt "1" ] && [ "$REMORA_WARNING" -gt "1" ]; then
-  printf "*** REMORA: WARNING - Slow file system response.\n"
-  printf "*** REMORA: WARNING - It took %d seconds to reach the output files.\n" $((waiting*2))
-fi
-
 show_final_report $END $START
 rm -f $REMORA_OUTDIR/*.tmp
 
@@ -115,5 +117,9 @@ done
 if [ "$REMORA_MODE" == "MONITOR" ]; then
 	rm $REMORA_TMPDIR/.monitor
 	mv $REMORA_OUTDIR/monitor* $REMORA_OUTDIR/MONITOR/
+fi
+# Clean up TMPDIR if necessary
+if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
+    rm -rf $REMORA_TMPDIR
 fi
 

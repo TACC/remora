@@ -25,13 +25,18 @@ REMORA_BIN=$2
 REMORA_OUTDIR=$3
 source $REMORA_OUTDIR/remora_env.txt
 
-# Remove any temporary data and perform data collation
-mkdir -p $REMORA_TMPDIR
-
 #Source the script that has the modules' functionality
-
 source $REMORA_BIN/aux/extra
 source $REMORA_BIN/modules/modules_utils
+
+
+# Create TMPDIR if it si not there
+mkdir -p $REMORA_TMPDIR
+# Generate unique file for transfer completion check 
+# on distributed file systems
+for node in $NODES; do
+    touch $REMORA_TMPDIR/zz.$node
+done
 
 #Read the list of active modules from the configuration file
 remora_read_active_modules
