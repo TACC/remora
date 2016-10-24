@@ -1,5 +1,11 @@
 # Change Log
 
+## [bp-1.6.0] - (2016-08-09)
+
+Added "eth" module which tracks Ethernet statistics in a similar fashion to how "ib" module tracks InfiniBand statistics.
+Added support for use of 64 bit InfiniBand counters if they exist.
+Added average CPU usage information to CPU plots.
+
 ## [1.6.0] - (2016-03-11)
 
 Introduced real-time monitoring capabilities, enabled by REMORA_MODE=MONITOR.

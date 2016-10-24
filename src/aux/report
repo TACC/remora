@@ -100,7 +100,7 @@ show_final_report() {
               printf "*** REMORA: WARNING - Slow file system response.\n"
               printf "*** REMORA: WARNING - It took %d seconds to reach the output files.\n" $((waiting*2))
             fi
-            fsio=$(awk ' NR == 2 {max=$2; min=$2} NR > 2 && $2 > max {max=$2} END {print max}' $REMORA_OUTDIR/lustre_${fs}_rate.txt)         
+            fsio=$(awk ' NR == 2 {max=$2; min=$2} NR > 2 && $2 > max {max=$2} END {print max}' $REMORA_OUTDIR/lustre_${fs}_rate.txt) 
             fsrd=$(awk ' NR == 2 {max=$3; min=$3} NR > 2 && $3 > max {max=$3} END {print max}' $REMORA_OUTDIR/lustre_${fs}_rate.txt)
             fswr=$(awk ' NR == 2 {max=$4; min=$4} NR > 2 && $4 > max {max=$4} END {print max}' $REMORA_OUTDIR/lustre_${fs}_rate.txt)
             printf "%-14s %-14s %-1s %7.0f IOPS %7.0f RD(MB/S) %7.0f WR(MB/S)\n" " Max IO Load /" $fs ":" $fsio $fsrd $fswr | tee -a $REMORA_OUTDIR/remora_summary.txt

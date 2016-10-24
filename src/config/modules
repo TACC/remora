@@ -9,3 +9,4 @@ gpu,MEMORY
 network,NETWORK
 power,POWER
 temperature,TEMPERATURE
+eth,NETWORK
