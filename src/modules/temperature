@@ -30,6 +30,17 @@ init_module_temperature()
   fi
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   rm -f $REMORA_TMPDIR/temperature*
+  files=`ls -v /sys/devices/platform/coretemp.0/temp*_input`
+  local header="TIME"
+  local format="%-17s"
+  for file in $files; do
+    local corenumber=${file/\/sys\/devices\/platform\/coretemp.0\/temp}
+    corenumber=${corenumber%_input}
+    header="$header    core$corenumber"
+    format="$format %-8s"
+  done
+  format="$format \n"
+  printf "$format" $header >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt
 }
 
 collect_data_temperature()
@@ -42,12 +53,15 @@ collect_data_temperature()
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   files=`ls -v /sys/devices/platform/coretemp.0/temp*_input`
   local output=""
+  local format="%-17d"
   for file in $files; do
     local temp=$( cat $file )
     let temp=$temp/1000
     output="$output $temp"
+    format="$format %-4d"
   done
-  printf "%-17d %s\n" $TIMESTAMP $output >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt
+  format="$format \n"
+  printf "$format" $TIMESTAMP $output >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt
 }
 
 

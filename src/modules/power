@@ -37,6 +37,7 @@ init_module_power()
 
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   rm -f $REMORA_TMPDIR/power*
+  printf "%-17s %-17s\n" "#TIME" "POWER"> $REMORA_TMPDIR/power_${REMORA_NODE}.txt
 }
 
 collect_data_power()
