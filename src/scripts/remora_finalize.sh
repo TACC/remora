@@ -57,7 +57,7 @@ if [ "$waiting" -ge 60 ]; then
 fi
 
 # Kill remote remora processes running in the backgroud
-PID=(); PID_MIC=()
+PID=(); PID_MIC=(); FINAL_PID=()
 idx=0; for elem in `cat $REMORA_OUTDIR/remora_pid.txt`; do PID[$idx]=$elem; idx=$((idx+1)); done
 idx=0; for elem in `cat $REMORA_OUTDIR/remora_pid_mic.txt`; do PID_MIC[$idx]=$elem; idx=$((idx+1)); done
 idx=0
@@ -72,22 +72,30 @@ for NODE in $NODES; do
     echo "ssh -q -n $NODE $COMMAND"
   fi  
   #Right now this is putting the command in the background and continuing (so the remora can finish, therefore epilog might  #kill everything! We need to fix it
-  FINAL_PID=`ssh -q -n $NODE $COMMAND 2> /dev/null`
+  FINAL_PID+=(`ssh -q -n $NODE $COMMAND 2> /dev/null`)
   idx=$((idx+1))
-done  
+done
+
+#Wait until all remora_remote_post processes have finished
+for pid in "${FINAL_PID[@]}"; do
+  while [ -e /proc/$pid ]; do
+    sleep 0.1
+  done
+done
+
 rm $REMORA_OUTDIR/remora_pid.txt
 rm $REMORA_OUTDIR/remora_pid_mic.txt
 
 # Clean up the instance of remora summary running on the master node
 if [ "$REMORA_MODE" == "MONITOR" ]; then
-	idx=0; PID_MON=()
-	for elem in `cat $REMORA_OUTDIR/remora_pid_mon.txt`; do PID_MON[$idx]=$elem; idx=$((idx+1)); done
-	idx=0	
-	for NODE in $NODES; do
-		ssh -f $NODE 'kill '${PID_MON[$idx]} 2> /dev/null
-		idx=$((idx+1))
-	done
-	rm $REMORA_OUTDIR/remora_pid_mon.txt
+    idx=0; PID_MON=()
+    for elem in `cat $REMORA_OUTDIR/remora_pid_mon.txt`; do PID_MON[$idx]=$elem; idx=$((idx+1)); done
+    idx=0   
+    for NODE in $NODES; do
+        ssh -f $NODE 'kill '${PID_MON[$idx]} 2> /dev/null
+        idx=$((idx+1))
+    done
+    rm $REMORA_OUTDIR/remora_pid_mon.txt
 fi
 
 show_final_report $END $START
@@ -115,8 +123,8 @@ done
 #fi
 
 if [ "$REMORA_MODE" == "MONITOR" ]; then
-	rm $REMORA_TMPDIR/.monitor
-	mv $REMORA_OUTDIR/monitor* $REMORA_OUTDIR/MONITOR/
+    rm $REMORA_TMPDIR/.monitor
+    mv $REMORA_OUTDIR/monitor* $REMORA_OUTDIR/MONITOR/
 fi
 # Clean up TMPDIR if necessary
 if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
