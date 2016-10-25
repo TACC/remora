@@ -146,7 +146,11 @@ finalize_module_cpu()
     printf "%s \n" "title: 'CPU Utilization'," >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
     printf "%s \n" "subtitle: 'in percentage' " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
     printf "%s \n" "}," >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
-    printf "%s \n" "legend: {position: 'none', textStyle: {fontSize: 16}}," >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    #Only show the legend when there are few cores. Otherwise (think KNL), there are too many
+    #cores and the legend is difficult to read
+    if [ $cpus -gt 24 ]; then
+        printf "%s \n" "legend: {position: 'none', textStyle: {fontSize: 16}}," >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    fi
     printf "%s \n" "width: 1024, " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
     printf "%s \n" "height: 800, " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
     printf "%s \n" "axes: { " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
