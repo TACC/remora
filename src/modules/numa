@@ -25,7 +25,41 @@ init_module_numa()
 {
   if [ "$REMORA_MODE" == "FULL" ]; then
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "#TIME" "Node0_NumaHit" "Node0_NumaMiss" "Node0_LocalNode" "Node0_OtherNode" "Node0_MemFree" "Node0_MemUsed" "Node1_NumaHit" "Node1_NumaMiss" "Node1_LocalNode" "Node1_OtherNode" "Node1_MemFree" "Node1_MemUsed" > $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
+    local numStat=`numastat -c`
+    local numNodes=`echo $numStat | grep -o ' Node' | wc -l`
+    header="#TIME"
+    for idx in `seq $numNodes`;
+    do
+        header="$header Node${idx}_NumHit"
+    done
+    idx=0
+    for idx in `seq $numNodes`;
+    do
+        header="$header Node${idx}_NumMiss"
+    done
+    idx=0
+    for idx in `seq $numNodes`;
+    do
+        header="$header Node${idx}_Local"
+    done
+    idx=0
+    for idx in `seq $numNodes`;
+    do
+        header="$header Node${idx}_Other"
+    done
+    idx=0
+    for idx in `seq $numNodes`;
+    do
+        header="$header Node${idx}_Free"
+    done
+    idx=0
+    for idx in `seq $numNodes`;
+    do
+        header="$header Node${idx}_Used"
+    done
+
+    echo $header  > $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
+#    printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "#TIME" "Node0_NumaHit" "Node0_NumaMiss" "Node0_LocalNode" "Node0_OtherNode" "Node0_MemFree" "Node0_MemUsed" "Node1_NumaHit" "Node1_NumaMiss" "Node1_LocalNode" "Node1_OtherNode" "Node1_MemFree" "Node1_MemUsed" > $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
   fi
 }
 
@@ -37,20 +71,90 @@ collect_data_numa()
     local TIMESTAMP=`date +%s`
     # NUMA statistics
     local numStat=`numastat -c`
-    local node0_numahit=`echo $numStat | awk '{ print $17; }'` #Memory successfully allocated on this node as intended
-    local node1_numahit=`echo $numStat | awk '{ print $16; }'`
-    local node0_numamiss=`echo $numStat | awk '{ print $19; }'` #Memory allocated on this node, although the process preferred another
-    local node1_numamiss=`echo $numStat | awk '{ print $20; }'`
-    local node0_numalocal=`echo $numStat | awk '{ print $31; }'` #Memory allocated on this node while the process was running on it
-    local node1_numalocal=`echo $numStat | awk '{ print $32; }'`
-    local node0_numaother=`echo $numStat | awk '{ print $35; }'` #Memory allocated on this node while the process was running on another node
-    local node1_numaother=`echo $numStat | awk '{ print $36; }'`
-    local numMem=`numastat -m | grep Mem`
-    local node0_memfree=`echo $numMem | awk '{ print $6; }'`  #Memory available on this node
-    local node1_memfree=`echo $numMem | awk '{ print $7; }'`
-    local node0_memused=`echo $numMem | awk '{ print $10; }'` #Memory used on this node
-    local node1_memused=`echo $numMem | awk '{ print $11; }'`
-    printf "%-17d %-17d %-17d %-17d %-17d %-17f %-17f %-17d %-17d %-17d %-17d %-17f %-17f\n" $TIMESTAMP $node0_numahit $node0_numamiss $node0_numalocal $node0_numaother $node0_memfree $node0_memused $node1_numahit $node1_numamiss $node1_numalocal $node1_numaother $node1_memfree $node1_memused >> $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
+    local numNodes=`echo $numStat | grep -o ' Node' | wc -l`
+    data=()
+    for i in $numStat; do
+        data+=($i)
+    done
+
+    out=""
+    idx=0
+    for i in "${data[@]}"; do
+        if [ $i = 'Numa_Hit' ]; then
+            for j in `seq $numNodes`; do
+                val=${data[$idx+$j]}
+                out="$out $val"
+            done
+            break
+        fi
+        idx=$[ idx + 1 ]
+    done
+    idx=0
+    for i in "${data[@]}"; do
+        if [ $i = 'Numa_Miss' ]; then
+            for j in `seq $numNodes`; do
+                val=${data[$idx+$j]}
+                out="$out $val"
+            done
+            break
+        fi
+        idx=$[ idx + 1 ]
+    done
+    idx=0
+    for i in "${data[@]}"; do
+        if [ $i = 'Local_Node' ]; then
+            for j in `seq $numNodes`; do
+                val=${data[$idx+$j]}
+                out="$out $val"
+            done
+            break
+        fi
+        idx=$[ idx + 1 ]
+    done
+    idx=0
+    for i in "${data[@]}"; do
+        if [ $i = 'Other_Node' ]; then
+            for j in `seq $numNodes`; do
+                val=${data[$idx+$j]}
+                out="$out $val"
+            done
+            break
+        fi
+        idx=$[ idx + 1 ]
+    done
+    numMem=`numastat -m | grep MemFree`
+    for i in `seq $numNodes`;
+    do
+        idx=$[i+1]
+        val=`echo $numMem | cut -f $idx -d ' '`
+        out="$out $val"
+    done
+
+    numMem=`numastat -m | grep MemUsed`
+    for i in `seq $numNodes`;
+    do
+        idx=$[i+1]
+        val=`echo $numMem | cut -f $idx -d ' '`
+        out="$out $val"
+    done
+
+    echo  $TIMESTAMP $out  >> $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
+    #printf "%s %s\n"  $TIMESTAMP $out  >> $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
+
+#    local node0_numahit=`echo $numStat | awk '{ print $16; }'` #Memory successfully allocated on this node as intended
+#    local node1_numahit=`echo $numStat | awk '{ print $17; }'`
+#    local node0_numamiss=`echo $numStat | awk '{ print $19; }'` #Memory allocated on this node, although the process preferred another
+#    local node1_numamiss=`echo $numStat | awk '{ print $20; }'`
+#    local node0_numalocal=`echo $numStat | awk '{ print $31; }'` #Memory allocated on this node while the process was running on it
+#    local node1_numalocal=`echo $numStat | awk '{ print $32; }'`
+#    local node0_numaother=`echo $numStat | awk '{ print $35; }'` #Memory allocated on this node while the process was running on another node
+#    local node1_numaother=`echo $numStat | awk '{ print $36; }'`
+#    local numMem=`numastat -m | grep Mem`
+#    local node0_memfree=`echo $numMem | awk '{ print $6; }'`  #Memory available on this node
+#    local node1_memfree=`echo $numMem | awk '{ print $7; }'`
+#    local node0_memused=`echo $numMem | awk '{ print $10; }'` #Memory used on this node
+#    local node1_memused=`echo $numMem | awk '{ print $11; }'`
+#    printf "%-17d %-17d %-17d %-17d %-17d %-17f %-17f %-17d %-17d %-17d %-17d %-17f %-17f\n" $TIMESTAMP $node0_numahit $node0_numamiss $node0_numalocal $node0_numaother $node0_memfree $node0_memused $node1_numahit $node1_numamiss $node1_numalocal $node1_numaother $node1_memfree $node1_memused >> $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
   fi
 }
 
@@ -68,5 +172,272 @@ monitor_numa()
 
 finalize_module_numa()
 {
-  :
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+
+    local numStat=`numastat -c`
+    local numNodes=`echo $numStat | grep -o ' Node' | wc -l`
+    printf "%s \n" "<html>" > $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<head>" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "google.charts.load('current', {'packages':['corechart']});" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
+    printf "%s \n" "google.charts.setOnLoadCallback(drawMiss);" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "google.charts.setOnLoadCallback(drawHits);" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "google.charts.setOnLoadCallback(drawFree);" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "google.charts.setOnLoadCallback(drawUsed);" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+ 
+    printf "%s \n" "function drawMiss() {" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    for i in `seq $numNodes`; do
+        printf "%s %s %s \n" "data.addColumn('number', 'Node"$i"');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    done
+    local ctime=0
+    local firsttimestamp=0
+    local first=0
+    local previous=()
+    printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    while read line; do
+        if [ $first -eq 0 ]; then
+            first=1
+            continue
+        fi
+        if [ $first -eq 1 ]; then
+            first=2
+            firsttimestamp=`echo $line | awk '{print $1;}'`
+            for i in `seq $numNodes`; do
+                idx=$[i + 1]
+                previous[$i]=`echo $line | cut -f $idx -d ' '`
+            done
+        fi
+        local timestamp=`echo $line | awk '{print $1;}'`
+        ctime=$[timestamp - firsttimestamp]
+        printf "[" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+        printf "%s," $ctime >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+        for i in `seq $numNodes`; do
+            idx=$[i + 1]
+            tempval=`echo $line | cut -f $idx -d ' '`
+            val=$[tempval-previous[$i]]
+            previous[$i]=$tempval               
+            printf "%s," $val >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+        done
+        printf "%s\n" "]," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    done < $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
+
+    printf "%s \n" "]);" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
+    printf "%s \n" "var options = { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "title : 'NUMA Miss'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "vAxis: {title: 'Events'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "hAxis: {title: 'Time'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "seriesType: 'bars'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "bar: { groupWidth: '95%' }," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "isStacked: true," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
+    printf "%s \n" "width: 800, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "height: 600, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "axes: { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "x: { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "0: {side: 'top'} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "}, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" " }; " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" " var chart = new google.visualization.ComboChart(document.getElementById('chart_miss'));" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
+
+
+    printf "%s \n" "function drawHits() {" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    for i in `seq $numNodes`; do
+        printf "%s %s %s \n" "data.addColumn('number', 'Node"$i"');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    done
+    local ctime=0
+    local firsttimestamp=0
+    local first=0
+    local previous=()
+    printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    while read line; do
+        if [ $first -eq 0 ]; then
+            first=1
+            continue
+        fi
+        if [ $first -eq 1 ]; then
+            first=2
+            firsttimestamp=`echo $line | awk '{print $1;}'`
+            for i in `seq $numNodes`; do
+                idx=$[i + numNodes + 1]
+                previous[$i]=`echo $line | cut -f $idx -d ' '`
+            done
+        fi
+        local timestamp=`echo $line | awk '{print $1;}'`
+        ctime=$[timestamp - firsttimestamp]
+        printf "[" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+        printf "%s," $ctime >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+        for i in `seq $numNodes`; do
+            idx=$[i + numNodes + 1]
+            tempval=`echo $line | cut -f $idx -d ' '`
+            val=$[tempval-previous[$i]]
+            previous[$i]=$tempval               
+            printf "%s," $val >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+        done
+        printf "%s\n" "]," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
+    done < $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
+
+    printf "%s \n" "]);" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
+    printf "%s \n" "var options = { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "title : 'NUMA Hits'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "vAxis: {title: 'Events'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "hAxis: {title: 'Time'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "seriesType: 'bars'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "bar: { groupWidth: '95%' }," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "isStacked: true," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
+    printf "%s \n" "width: 800, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "height: 600, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "axes: { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "x: { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "0: {side: 'top'} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "}, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" " }; " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
+    printf "%s \n" " var chart = new google.visualization.ComboChart(document.getElementById('chart_hits'));" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
+
+
+    printf "%s \n" "function drawFree() {" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    for i in `seq $numNodes`; do
+        printf "%s %s %s \n" "data.addColumn('number', 'Node"$i"');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    done
+    local ctime=0
+    local firsttimestamp=0
+    local first=0
+    printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    while read line; do
+        if [ $first -eq 0 ]; then
+            first=1
+            continue
+        fi
+        if [ $first -eq 1 ]; then
+            first=2
+            firsttimestamp=`echo $line | awk '{print $1;}'`
+        fi
+        local timestamp=`echo $line | awk '{print $1;}'`
+        ctime=$[timestamp - firsttimestamp]
+        printf "[" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+        printf "%s," $ctime >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+        for i in `seq $numNodes`; do
+            idx=$[i + $numNodes*4 + 1]
+            val=`echo $line | cut -f $idx -d ' '`
+            printf "%s," $val >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+        done
+        printf "%s\n" "]," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
+    done < $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
+
+    printf "%s \n" "]);" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
+    printf "%s \n" "var options = { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "title : 'NUMA Free'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "vAxis: {title: 'MBs'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "hAxis: {title: 'Time'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "seriesType: 'bars'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "bar: { groupWidth: '95%' }," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "isStacked: true," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "width: 800, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "height: 600, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "axes: { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "x: { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "0: {side: 'top'} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "}, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" " }; " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" " var chart = new google.visualization.ComboChart(document.getElementById('chart_free'));" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
+
+
+
+    printf "%s \n" "function drawUsed() {" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    for i in `seq $numNodes`; do
+        printf "%s %s %s \n" "data.addColumn('number', 'Node"$i"');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    done
+    local ctime=0
+    local firsttimestamp=0
+    local first=0
+    local previous=()
+    printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    while read line; do
+        if [ $first -eq 0 ]; then
+            first=1
+            continue
+        fi
+        if [ $first -eq 1 ]; then
+            first=2
+            firsttimestamp=`echo $line | awk '{print $1;}'`
+        fi
+        local timestamp=`echo $line | awk '{print $1;}'`
+        ctime=$[timestamp - firsttimestamp]
+        printf "[" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+        printf "%s," $ctime >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+        for i in `seq $numNodes`; do
+            idx=$[i + $numNodes*5 + 1]
+            val=`echo $line | cut -f $idx -d ' '`
+            printf "%s," $val >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+        done
+        printf "%s\n" "]," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
+    done < $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
+
+    printf "%s \n" "]);" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
+    printf "%s \n" "var options = { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "title : 'NUMA Used'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "vAxis: {title: 'MBs'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "hAxis: {title: 'Time'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "seriesType: 'bars'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "bar: { groupWidth: '95%' }," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "isStacked: true," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "width: 800, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "height: 600, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "axes: { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "x: { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "0: {side: 'top'} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "}, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" " }; " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" " var chart = new google.visualization.ComboChart(document.getElementById('chart_used'));" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
+    
+    printf "%s \n" "</script> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "</head> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<body> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html 
+    printf "%s \n" "<table class='columns'> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<tr> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<td><div id='chart_hits' style='border: 1px solid; color: LightGray'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<td><div style='float:left; margin: 5px; background-color: blue;'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<td><div id='chart_miss' style='border: 1px solid; color: LightGray'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<td><div style='float:left; margin: 5px; background-color: blue;'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<td><div id='chart_free' style='border: 1px solid; color: LightGray'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<td><div style='float:left; margin: 5px; background-color: blue;'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<td><div id='chart_used' style='border: 1px solid; color: LightGray'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "</tr> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "</table>" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "</body> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html 
+    printf "%s \n" "</html> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html 
 }

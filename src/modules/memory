@@ -95,8 +95,6 @@ monitor_data_memory()
 
 finalize_module_memory()
 {
-    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-
     # Generate the plot
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     printf "%s \n" "<html>" > $REMORA_TMPDIR/memory_${REMORA_NODE}.html
