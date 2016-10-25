@@ -68,7 +68,7 @@ monitor_data_power()
   :
 }
 
-finalize_module_cpu()
+finalize_module_power()
 {
   :
 }
