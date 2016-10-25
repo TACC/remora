@@ -92,5 +92,77 @@ monitor_data_cpu()
 
 finalize_module_cpu()
 {
-  :
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    printf "%s \n" "<html>" > $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    printf "%s \n" "<head>" >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    printf "%s \n" "google.charts.load('current', {'packages':['line']});" >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+
+    printf "%s \n" "google.charts.setOnLoadCallback(drawChart);" >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+
+    local cpus=`grep $REMORA_TMPDIR/cpu_${REMORA_NODE}.txt -e "usr" | head -n 1 | tr -d '%usr' | xargs | wc -w`
+    cpus=$[cpus - 2]
+    local idx=0
+
+    while  [ $idx -le $cpus ]; do
+        printf "%s %d %s \n" "data.addColumn('number', 'core" $idx "');" >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+        idx=$[idx + 1]
+    done
+    printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    local ctime=0
+    local first=0
+    local oldtimestamp=0
+    while read line; do
+        if [[ "$line" == *"time"* ]]; then
+            timestamp=`echo $line | awk '{print $2;}'`
+            if [ $first = 0 ]; then
+                first=1
+                oldtimestamp=$timestamp
+            else
+                ctime=$[timestamp - oldtimestamp]
+            fi
+        fi
+        if [[ "$line" == *"usr"* ]]; then
+            line=`echo $line | tr -d '%usr'`
+            idx=0
+            sout=$ctime
+            for i in $line;
+            do
+                if [ $idx -gt 0 ]; then
+                    sout=$sout","$i
+                fi
+                idx=$[idx + 1]
+            done
+            printf "%s%s%s \n" "[" $sout "]," >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+        fi
+    done < $REMORA_TMPDIR/cpu_${REMORA_NODE}.txt
+    printf "%s \n" "]);" >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    printf "%s \n" "var options = { " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    printf "%s \n" "chart: {" >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    printf "%s \n" "title: 'CPU Utilization'," >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    printf "%s \n" "subtitle: 'in percentage' " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    printf "%s \n" "}," >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    printf "%s \n" "legend: {position: 'none', textStyle: {fontSize: 16}}," >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+    printf "%s \n" "width: 1024, " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
+    printf "%s \n" "height: 800, " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
+    printf "%s \n" "axes: { " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
+    printf "%s \n" "x: { " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
+    printf "%s \n" "0: {side: 'top'} " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
+    printf "%s \n" "} " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
+    printf "%s \n" "}, " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
+    printf "%s \n" " }; " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
+
+    printf "%s \n" "var chart = new google.charts.Line(document.getElementById('line_top_x')); " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
+    printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
+    printf "%s \n" "} " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
+    printf "%s \n" "</script> " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
+    printf "%s \n" "</head> " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
+    printf "%s \n" "<body> " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
+    printf "%s \n" "  <div id=\"line_top_x\"></div> " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
+    printf "%s \n" "</body> " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
+    printf "%s \n" "</html> " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
 }
