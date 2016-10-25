@@ -70,5 +70,60 @@ monitor_data_power()
 
 finalize_module_power()
 {
-  :
+    printf "%s \n" "<html>" > $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    printf "%s \n" "<head>" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    printf "%s \n" "google.charts.load('current', {'packages':['line']});" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+
+    printf "%s \n" "google.charts.setOnLoadCallback(drawChart);" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Power (W)');" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    local ctime=0
+    local first=0
+    local firsttimestamp=0
+    while read line; do
+        #Skip first line
+        if [ $first -eq 0 ]; then
+            first=1
+            continue
+        fi
+        #Read first timestamp
+        if [ $first -eq 1 ]; then
+            first=2
+            firsttimestamp=`echo $line | awk '{print $1;}'`
+        fi
+        local timestamp=`echo $line | awk '{print $1;}'`
+        local power=`echo $line | awk '{print $2;}'`
+        ctime=$[timestamp - firsttimestamp]
+        printf "[%s,%s],\n" $ctime $power >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    done < $REMORA_TMPDIR/power_${REMORA_NODE}.txt
+
+    printf "%s \n" "]);" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    printf "%s \n" "var options = { " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    printf "%s \n" "chart: {" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    printf "%s \n" "title: 'Power Utilization'," >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    printf "%s \n" "subtitle: 'in watts' " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    printf "%s \n" "}," >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    printf "%s \n" "width: 1024, " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
+    printf "%s \n" "height: 800, " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
+    printf "%s \n" "axes: { " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
+    printf "%s \n" "x: { " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
+    printf "%s \n" "0: {side: 'top'} " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
+    printf "%s \n" "} " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
+    printf "%s \n" "}, " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
+    printf "%s \n" " }; " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+
+    printf "%s \n" "var chart = new google.charts.Line(document.getElementById('line_top_x')); " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
+    printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
+    printf "%s \n" "} " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
+    printf "%s \n" "</script> " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
+    printf "%s \n" "</head> " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
+    printf "%s \n" "<body> " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
+    printf "%s \n" "  <div id=\"line_top_x\"></div> " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
+    printf "%s \n" "</body> " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
+    printf "%s \n" "</html> " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
 }
