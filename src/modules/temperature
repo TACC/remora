@@ -79,5 +79,77 @@ monitor_data_temperature()
 
 finalize_module_temperature()
 {
-  :
+     printf "%s \n" "<html>" > $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    printf "%s \n" "<head>" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    printf "%s \n" "google.charts.load('current', {'packages':['line']});" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+
+    printf "%s \n" "google.charts.setOnLoadCallback(drawChart);" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    line=`head -n 1 $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt`
+    local cpus=0
+    for i in $line; do
+        printf "%s %s %s \n" "data.addColumn('number', '" $i "');" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+        cpus=$[cpus + 1]
+    done
+
+    printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    local ctime=0
+    local first=0
+    local firsttimestamp=0
+    while read line; do
+        if [ $first -eq 0 ]; then
+            first=1
+            continue
+        fi
+        if [ $first -eq 1 ]; then
+            first=2
+            firsttimestamp=`echo $line | awk '{print $1;}'`
+        fi
+        local timestamp=`echo $line | awk '{print $1;}'`
+        ctime=$[timestamp - firsttimestamp]
+        local idx=0
+        sout=$ctime
+        for i in $line;
+        do
+            if [ $idx -gt 0 ]; then
+                sout=$sout","$i
+            fi
+            idx=$[idx + 1]
+        done
+        printf "%s%s%s \n" "[" $sout "]," >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    done < $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt
+
+    printf "%s \n" "]);" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    printf "%s \n" "var options = { " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    printf "%s \n" "chart: {" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    printf "%s \n" "title: 'CPU Temperature'," >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    printf "%s \n" "subtitle: 'in Celsius' " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    printf "%s \n" "}," >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    #Only show the legend when there are few cores. Otherwise (think KNL), there are too many
+    #cores and the legend is difficult to read
+    if [ $cpus -gt 24 ]; then
+        printf "%s \n" "legend: {position: 'none', textStyle: {fontSize: 16}}," >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    fi
+    printf "%s \n" "width: 1024, " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" "height: 800, " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" "axes: { " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" "x: { " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" "0: {side: 'top'} " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" "} " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" "}, " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" " }; " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+
+    printf "%s \n" "var chart = new google.charts.Line(document.getElementById('line_top_x')); " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" "} " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" "</script> " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" "</head> " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" "<body> " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" "  <div id=\"line_top_x\"></div> " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" "</body> " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" "</html> " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+
 }
