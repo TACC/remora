@@ -155,8 +155,10 @@ finalize_module_memory()
     printf "%s \n" "vAxis: {title: 'GB'}," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
     printf "%s \n" "hAxis: {title: 'Time'}," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
     printf "%s \n" "seriesType: 'bars'," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "bar: { groupWidth: '95%' }," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
     printf "%s \n" "isStacked: true," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
-    printf "%s \n" "series: {5: {type: 'line'}}," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "series: { 0: {type: 'line', color:'red', lineDashStyle: [1, 1]}, 2: {type: 'line', color:'green', lineDashStyle: [1, 1]}, 5: {type: 'line',lineWidth:5}, 6: {type: 'line', color:'yellow'}},
+    " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
     
     printf "%s \n" "width: 1024, " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
     printf "%s \n" "height: 800, " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 

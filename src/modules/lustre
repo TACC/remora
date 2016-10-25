@@ -199,8 +199,11 @@ finalize_module_lustre()
     printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
     printf "%s \n" "google.charts.load('current', {'packages':['line']});" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
 
-    printf "%s \n" "google.charts.setOnLoadCallback(drawChart);" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
-    printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+    printf "%s \n" "google.charts.setOnLoadCallback(drawRQChart);" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+    printf "%s \n" "google.charts.setOnLoadCallback(drawDataChart);" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+
+    #Function to plot the requests
+    printf "%s \n" "function drawRQChart() {" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
     printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
 
     local ctime=0
@@ -210,14 +213,23 @@ finalize_module_lustre()
     local previousline=""
     while read line; do
         if [ $first -eq 0 ]; then
+            idx=0
             for i in $line; do
-                printf "%s%s%s \n" "data.addColumn('number','"$i"');" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+                local pos=`expr $idx % 3`
+                if [ $pos -eq 1 -o $idx -eq 0 ]; then
+                    if [ $idx -eq 0 ]; then
+                        printf "%s%s%s \n" "data.addColumn('number','Execution Time (s)');" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+                    else
+                        printf "%s%s%s \n" "data.addColumn('number','"$i"');" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+                    fi
+                fi
+                idx=$[idx + 1]
             done
-            printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
             first=1
             continue
         fi
         if [ $first -eq 1 ]; then
+            printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
             local idx=0
             for i in $line; do
                 if [ $idx -eq 0 ]; then
@@ -243,36 +255,125 @@ finalize_module_lustre()
             else
                 val=$[i - previous[$idx]]
             fi
-            printf "%s," $val  >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+            local pos=`expr $idx % 3`
+            if [ $pos -eq 1 -o $idx -eq 0 ]; then
+                printf "%s," $val  >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+            fi
             idx=$[idx + 1]
         done
         printf "%s\n" "]," >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
-#        sout=`echo $line | tr " " ","`
-#        printf "%s%s%s \n" "[" $sout "]," >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
     done < $REMORA_TMPDIR/lustre_stats_${REMORA_NODE}.txt
 
     printf "%s \n" "]);" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
     printf "%s \n" "var options = { " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
     printf "%s \n" "chart: {" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
     printf "%s \n" "title: 'Lustre Load'," >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
-    printf "%s \n" "subtitle: 'in Number of Operations (RQ) and Bytes Read/Write (RD/WR)' " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+    printf "%s \n" "subtitle: 'in Number of Operations' " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
     printf "%s \n" "}," >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
-    printf "%s \n" "width: 1024, " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
-    printf "%s \n" "height: 800, " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "width: 700, " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "height: 600, " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
     printf "%s \n" "axes: { " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
     printf "%s \n" "x: { " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
     printf "%s \n" "0: {side: 'top'} " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
     printf "%s \n" "} " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
     printf "%s \n" "}, " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
-    printf "%s \n" " }; " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+    printf "%s \n" "}; " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+    printf "%s \n" "var chart = new google.charts.Line(document.getElementById('dataRQ_div')); " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "} " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
 
-    printf "%s \n" "var chart = new google.charts.Line(document.getElementById('line_top_x')); " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+
+    printf "%s \n" "function drawDataChart() {" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+
+    local ctime=0
+    local first=0
+    local firsttimestamp=0
+    local previous=()
+    local previousline=""
+    while read line; do
+        if [ $first -eq 0 ]; then
+            idx=0
+            for i in $line; do
+                local pos=`expr $idx % 3`
+                if [ $pos -ne 1 ]; then
+                    if [ $idx -eq 0 ]; then
+                        printf "%s%s%s \n" "data.addColumn('number','Execution Time (s)');" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+                    else
+                        printf "%s%s%s \n" "data.addColumn('number','"$i"');" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+                    fi
+                fi
+                idx=$[idx + 1]
+            done
+            first=1
+            continue
+        fi
+        if [ $first -eq 1 ]; then
+            printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+            local idx=0
+            for i in $line; do
+                if [ $idx -eq 0 ]; then
+                    firsttimestamp=$i
+                fi
+                previous[$idx]=$i
+                idx=$[idx + 1]
+            done
+            first=2
+        else
+            local idx=0
+            for i in $previousline; do
+                previous[$idx]=$i
+                idx=$[idx + 1]
+            done
+        fi
+        previousline=$line
+        local idx=0
+        printf "%s" "[" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+        for i in $line; do
+            if [ $idx -eq 0 ]; then
+                val=$[i - firsttimestamp]
+            else
+                val=$[i - previous[$idx]]
+            fi
+            local pos=`expr $idx % 3`
+            if [ $pos -ne 1 ]; then
+                printf "%s," $val  >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+            fi
+            idx=$[idx + 1]
+        done
+        printf "%s\n" "]," >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    done < $REMORA_TMPDIR/lustre_stats_${REMORA_NODE}.txt
+
+    printf "%s \n" "]);" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+    printf "%s \n" "var options = { " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+    printf "%s \n" "chart: {" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+    printf "%s \n" "title: 'Lustre Load'," >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+    printf "%s \n" "subtitle: 'in Bytes Read/Write' " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+    printf "%s \n" "}," >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+    printf "%s \n" "width: 700, " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "height: 600, " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "axes: { " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "x: { " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "0: {side: 'top'} " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "} " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "}, " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "}; " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+
+    printf "%s \n" "var chart = new google.charts.Line(document.getElementById('data_div')); " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
     printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
     printf "%s \n" "} " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
     printf "%s \n" "</script> " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
     printf "%s \n" "</head> " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
     printf "%s \n" "<body> " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
-    printf "%s \n" "  <div id=\"line_top_x\"></div> " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+
+    printf "%s \n" "<table class='columns'>" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "<tr>" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "<td><div id='dataRQ_div' style='border: 1px solid; color: LightGray'></div></td>" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "<td><div style='float:left; margin: 5px; background-color: blue;'></div></td>" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
+    printf "%s \n" "<td><div id='data_div' style='border: 1px solid; color: LightGray'></div></td>" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "</tr>" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+    printf "%s \n" "</table>" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+
     printf "%s \n" "</body> " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
     printf "%s \n" "</html> " >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
 
