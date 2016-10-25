@@ -82,7 +82,7 @@ monitor_data_memory()
 		max_mem=0; max_mem_global=0
 		for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`
 		do
-                        # WARNING - No remote file validation check
+            # WARNING - No remote file validation check
 			COMMAND="tail -n 1 $REMORA_TMPDIR/memory_stats_${NODE}.txt"
 			max_mem=`ssh $NODE $COMMAND`
 			max_mem=`echo $max_mem | awk '{print $3}'`
@@ -96,6 +96,90 @@ monitor_data_memory()
 finalize_module_memory()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+
+    # Generate the plot
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    printf "%s \n" "<html>" > $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "<head>" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "google.charts.load('current', {'packages':['corechart']});" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+
+    printf "%s \n" "google.charts.setOnLoadCallback(drawChart);" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'VMEM (Max)');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'VMEM');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'RMEM (Max)');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'RMEM');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'SHMEM');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'MEM (Free)');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'TMEM (Max)');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+
+    local ctime=0
+    local first=0
+    local firsttimestamp=0
+    printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    while read line; do
+        #Skip first line
+        if [ $first -eq 0 ]; then
+            first=1
+            continue
+        fi
+        #Get first timestamp
+        if [ $first -eq 1 ]; then
+            firsttimestamp=`echo $line | awk '{print $1;}'`
+            first=2
+        fi
+        #Calculate time as the difference between current timestamp and initial timestamp
+        local timestamp=`echo $line | awk '{print $1;}'`
+        ctime=$[timestamp - firsttimestamp]
+        #Put data into the chart
+        printf "[" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+        printf "%s," $ctime >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+        printf "%s," `echo $line | awk '{print $2;}'` >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+        printf "%s," `echo $line | awk '{print $3;}'` >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+        printf "%s," `echo $line | awk '{print $4;}'` >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+        printf "%s," `echo $line | awk '{print $5;}'` >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+        printf "%s," `echo $line | awk '{print $6;}'` >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+        printf "%s," `echo $line | awk '{print $7;}'` >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+        printf "%s" `echo $line | awk '{print $8;}'` >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+        printf "%s\n" "]," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    done < $REMORA_TMPDIR/memory_stats_${REMORA_NODE}.txt
+
+    printf "%s \n" "]);" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+   
+    printf "%s \n" "var options = { " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "title : 'Memory Utilization'," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "vAxis: {title: 'GB'}," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "hAxis: {title: 'Time'}," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "seriesType: 'bars'," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "isStacked: true," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "series: {5: {type: 'line'}}," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    
+    printf "%s \n" "width: 1024, " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" "height: 800, " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" "axes: { " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" "x: { " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" "0: {side: 'top'} " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" "} " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" "}, " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" " }; " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+
+    printf "%s \n" " var chart = new google.visualization.ComboChart(document.getElementById('chart_div'));" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" "} " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" "</script> " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" "</head> " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" "<body> " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" "  <div id=\"chart_div\"></div> " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" "</body> " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" "</html> " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+
+    ######
+    # Postprocessing of the memory data to show the final summary
+    ######
     vmax_mem=`tail -n 1 $REMORA_OUTDIR/memory_stats_${REMORA_NODE}.txt | awk '{printf "%6.4f\n",$2}'`
     tmax_mem=`tail -n 1 $REMORA_OUTDIR/memory_stats_${REMORA_NODE}.txt | awk '{printf "%6.4f\n",$8}'`
     free_mem=$(awk ' NR == 1 {max=$7; min=$7} NR > 1 && $7 < min {min=$7} END {printf "%6.4f\n",min }' $REMORA_OUTDIR/memory_stats_${REMORA_NODE}.txt)
