@@ -130,5 +130,73 @@ monitor_data_eth()
 
 finalize_module_eth()
 {
-  :
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    printf "%s \n" "<html>" > $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "<head>" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "google.charts.load('current', {'packages':['line']});" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+
+    printf "%s \n" "google.charts.setOnLoadCallback(drawChart);" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Transmitted Packets');" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Received Packets');" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Transmitted Bytes');" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Received Bytes');" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Transmitted Errors');" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Transmitted Dropped');" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Received Frame Errors');" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Received CRC Errors');" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    local ctime=0
+    local first=0
+    local firsttimestamp=0
+    while read line; do
+        #Skip first line
+        if [ $first -eq 0 ]; then
+            first=1
+            continue
+        fi
+        #Read first timestamp
+        if [ $first -eq 1 ]; then
+            first=2
+            firsttimestamp=`echo $line | awk '{print $1;}'`
+        fi
+        local timestamp=`echo $line | awk '{print $1;}'`
+        ctime=$[timestamp - firsttimestamp]
+        printf "[%s," $ctime >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+        idx=0
+        out=""
+        for i in `seq 2 9`; do
+            colval=`echo $line | xargs | cut -f $i -d ' '`
+            printf "%s," $colval >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+        done
+        printf "%s, \n" "]" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    done < $REMORA_TMPDIR/network_eth_traffic-${REMORA_NODE}.txt
+
+    printf "%s \n" "]);" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "var options = { " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "chart: {" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "title: 'Ethernet Stats'," >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "}," >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+    printf "%s \n" "width: 1024, " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
+    printf "%s \n" "height: 800, " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
+    printf "%s \n" "axes: { " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
+    printf "%s \n" "x: { " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
+    printf "%s \n" "0: {side: 'top'} " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
+    printf "%s \n" "} " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
+    printf "%s \n" "}, " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
+    printf "%s \n" " }; " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+
+    printf "%s \n" "var chart = new google.charts.Line(document.getElementById('line_top_x')); " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
+    printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
+    printf "%s \n" "} " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
+    printf "%s \n" "</script> " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
+    printf "%s \n" "</head> " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
+    printf "%s \n" "<body> " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
+    printf "%s \n" "  <div id=\"line_top_x\"></div> " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
+    printf "%s \n" "</body> " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
+    printf "%s \n" "</html> " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
 }
