@@ -19,6 +19,7 @@
 #
 #========================================================================
 #  HISTORY
+#       2016/10/26: Add support for local runs (no scheduler)
 #       2015/12/08: Initial version
 #========================================================================
 
@@ -38,8 +39,11 @@ get_node_list()
         REMORA_JOB_ID=$PBS_JOBID
         NODES=`cat $PBS_NODEFILE | sort | uniq`
     else
-        print_error "Unknown scheduler - unable to generate host list"
-        exit 1
+        REMORA_SCHEDULER=none
+        REMORA_JOB_ID=`date +%s`
+        NODES=`hostname -a` 
+        #print_error "Unknown scheduler - unable to generate host list"
+        #exit 1
     fi
 }
 
