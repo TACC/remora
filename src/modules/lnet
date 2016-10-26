@@ -112,7 +112,7 @@ finalize_module_lnet()
     printf "%s \n" "]);" >> $REMORA_TMPDIR/lnet_${REMORA_NODE}.html
     printf "%s \n" "var options = { " >> $REMORA_TMPDIR/lnet_${REMORA_NODE}.html
     printf "%s \n" "chart: {" >> $REMORA_TMPDIR/lnet_${REMORA_NODE}.html
-    printf "%s \n" "title: 'Ethernet Stats'," >> $REMORA_TMPDIR/lnet_${REMORA_NODE}.html
+    printf "%s \n" "title: 'LNET Stats'," >> $REMORA_TMPDIR/lnet_${REMORA_NODE}.html
     printf "%s \n" "}," >> $REMORA_TMPDIR/lnet_${REMORA_NODE}.html
     printf "%s \n" "width: 1024, " >> $REMORA_TMPDIR/lnet_${REMORA_NODE}.html 
     printf "%s \n" "height: 800, " >> $REMORA_TMPDIR/lnet_${REMORA_NODE}.html 
