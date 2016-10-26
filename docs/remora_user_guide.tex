@@ -130,7 +130,7 @@ Our intention is to create a simple runtime resource monitoring tool that provid
 
 Version 1.6.0 is a new release that adds a new monitoring execution mode for remora. This new mode is enabled by setting \verb+REMORA_MODE=MONITOR+, and continuously processes the data collected so that REMORA can be used as a real time monitoring system.
 
-Remora is an open-source project. Funding to keep researchers working on Remora depends on the value of this tool to the scientific community. We would appreciate if you could include the following citation in your scientific articles:
+REMORA is an open-source project. Funding to keep researchers working on REMORA depends on the value of this tool to the scientific community. We would appreciate if you could include the following citation in your scientific articles:
 
 C. Rosales, A. G\'{o}mez-Iglesias, A. Predoehl. ``REMORA: a Resource Monitoring Tool for Everyone''. HUST2015 November 15-20, 2015, Austin, TX, USA. DOI: 10.1145/2834996.2834999 \cite{remora}
 
@@ -139,7 +139,7 @@ C. Rosales, A. G\'{o}mez-Iglesias, A. Predoehl. ``REMORA: a Resource Monitoring 
 \tableofcontents
 
 \chapter{Installation}
-Remora is simple to install. In order to use all of its features you will need GNU Make and a C compiler. If testing the Xeon Phi you will also need a compiler with support for compilation of native code for the Xeon Phi - currently limited to Intel 13+ compilers.
+REMORA is simple to install. In order to use all of its features you will need GNU Make and a C compiler. If testing the Xeon Phi you will also need a compiler with support for compilation of native code for the Xeon Phi - currently limited to Intel 13+ compilers.
 
 First of all obtain the latest version tarball, currently remora-1.6.0.tar.gz \footnote{\href{https://github.com/TACC/remora/archive/v1.6.0.tar.gz}{https://github.com/TACC/remora/archive/v1.6.0.tar.gz}}, and expand it in a convenient location in your system:
 
@@ -166,7 +166,7 @@ PHI\_BUILD      & Enable (1) or disable (0) Xeon Phi build  & 0 \\\hline
 \end{tabular}
 \end{table}
 
-The modules are configured in the \verb+src\config\modules+ file. Simply remove any modules that you don't want to be available in your system. Also, you can create your own modules and add them into this file (see Section \ref{expand-remora} for more information about how to expand Remora's functionality).
+The modules are configured in the \verb+src\config\modules+ file. Simply remove any modules that you don't want to be available in your system. Also, you can create your own modules and add them into this file (see Section \ref{expand-remora} for more information about how to expand REMORA's functionality).
 
 Once these variables are set the tool can be installed by using:
 
@@ -181,7 +181,7 @@ The executable tests will be placed in the \verb+remora/bin+ directory unless th
 \end{verbatim}
 
 \FloatBarrier
-\chapter{Using Remora}
+\chapter{Using REMORA}
 
 \section{Collecting Data}
 After installing remora please make sure the remora \verb+bin+ directory is in your \verb+PATH+ and the remora \verb+lib+ directory is in your \verb|LD_LIBRARY_PATH|. You should also define the environmental variable \verb+REMORA_BIN+ tot eh remora \verb+bin+ directory. If you are using a system wide installation this has probably been done by your system administrator. If you are doing it yourself the set of commands you need for an installation under \verb+/home/carlos/remora+ is the following:
@@ -280,9 +280,9 @@ All the data is collected in a set of files with the statistics organized in col
 
 \FloatBarrier
 \chapter{Design and Implementation}
-Remora is designed with ease of use in mind. Our goal is to create a usage model that users can take advantage of with minimal effort. While there are models where the tool could run transparently, just by loading a module that would change the environment to collect all the information at runtime, we decided to opt for a model where the user loads the module, and then changes the submission script to invoke our tool by prepending its name to the actual command that has to be analyzed. This has the advantage of preventing unnecessary overhead when the module is loaded and runs that do not require instrumentation are submitted. It also simplifies the data collection for serial jobs and scripts, which do not use an MPI launcher that can be easily hijacked or modified. For example, if the original command is \textit{mpirun ./myparallelapp}, the new command will be \textit{remora mpirun ./myparallelapp}. A more complicated scenario is when the user wants to run a set of different scripts in the same job. In that case, the user will have to put all the commands regarding the execution in a shell script (i.e. a shell script called \textit{myjob}). Then, all the user has to do is to call the script as follows \textit{remora ./myjob}. The tool can be used in a batch script or interactively in the command prompt.
+REMORA is designed with ease of use in mind. Our goal is to create a usage model that users can take advantage of with minimal effort. While there are models where the tool could run transparently, just by loading a module that would change the environment to collect all the information at runtime, we decided to opt for a model where the user loads the module, and then changes the submission script to invoke our tool by prepending its name to the actual command that has to be analyzed. This has the advantage of preventing unnecessary overhead when the module is loaded and runs that do not require instrumentation are submitted. It also simplifies the data collection for serial jobs and scripts, which do not use an MPI launcher that can be easily hijacked or modified. For example, if the original command is \textit{mpirun ./myparallelapp}, the new command will be \textit{remora mpirun ./myparallelapp}. A more complicated scenario is when the user wants to run a set of different scripts in the same job. In that case, the user will have to put all the commands regarding the execution in a shell script (i.e. a shell script called \textit{myjob}). Then, all the user has to do is to call the script as follows \textit{remora ./myjob}. The tool can be used in a batch script or interactively in the command prompt.
 
-Although we mention modules in the previous paragraph, modules are only used as a way to make easier for users to use Remora. It is not required to install Remora as a module.
+Although we mention modules in the previous paragraph, modules are only used as a way to make easier for users to use REMORA. It is not required to install REMORA as a module.
 
 In its current implementation the tool generates a flat ssh tree with a single connection from the master node in the execution to all other nodes. This connection initiates a background process that collects the statistics for each node with a frequency specified by the user. The remote background tasks execute a loop over all processes owned by the user, and aggregate the data before committing it to file.
 
@@ -335,11 +335,11 @@ As it is well known, NUMA (Non-Uniform Memory Access) can have a large impact on
 
 \paragraph{Lustre} 
 
-A new Lustre module was included in Remora 1.4.0. This module looks at the content of the files located in \verb+/proc/fs/lustre/{mdc,osc}/*/+ . In particular, it looks for the content of the stats file. In order to generate a more user-friendly data, and it extracts the name of the filesystems and the different lustre mounts from the \texttt{df} command.
+A new Lustre module was included in REMORA 1.4.0. This module looks at the content of the files located in \verb+/proc/fs/lustre/{mdc,osc}/*/+ . In particular, it looks for the content of the stats file. In order to generate a more user-friendly data, and it extracts the name of the filesystems and the different lustre mounts from the \texttt{df} command.
 
 \paragraph{DVS}
 
-A new Data Virtualization Service (DVS) module was added in Remora 1.5.0. This module captures information in the \verb+/proc/fs/dvs/mounts/*/+ files to provide the number of requests per second for every DVS served file system that is not in the blacklist under \verb+/config/fs\_blacklist+.
+A new Data Virtualization Service (DVS) module was added in REMORA 1.5.0. This module captures information in the \verb+/proc/fs/dvs/mounts/*/+ files to provide the number of requests per second for every DVS served file system that is not in the blacklist under \verb+/config/fs\_blacklist+.
 
 
 \paragraph{LNET Stats}
@@ -480,9 +480,9 @@ Simply by not including a module name in the configuration file will de-activate
 \end{tikzpicture}
 
 \FloatBarrier
-\chapter{Expanding Remora's Functionality}\label{expand-remora}
+\chapter{Expanding REMORA's Functionality}\label{expand-remora}
 
-Since version 1.6.0, Remora allows system administrators to easily change the functionality provided by Remora and extend its capabilities. The configuration file \verb+src\config\modules+ defines the modules used by Remora. Each module provides a specific capability in terms of data collection. By default, these are the modules available in Remora:
+Since version 1.6.0, REMORA allows system administrators to easily change the functionality provided by REMORA and extend its capabilities. The configuration file \verb+src\config\modules+ defines the modules used by REMORA. Each module provides a specific capability in terms of data collection. By default, these are the modules available in REMORA:
 
 \begin{itemize}
 \item cpu
@@ -496,11 +496,11 @@ Since version 1.6.0, Remora allows system administrators to easily change the fu
 \item network
 \end{itemize}
 
-These modules are currently specified in the configuration file. At runtime, Remora will read this file and execute all the modules listed on it.
+These modules are currently specified in the configuration file. At runtime, REMORA will read this file and execute all the modules listed on it.
 
 We are trying to provide modules that required no elevated privileges in the system. If you are willing to run remora as root, or using a setuid binary then you can easily extend it to support GPFS data collection.
 
-\IntroBox{If you are installing Remora system-wide, you can modify the configuration file before installing it. If you have Remora installed in your user account, you can modify this file at any time.}
+\IntroBox{If you are installing REMORA system-wide, you can modify the configuration file before installing it. If you have REMORA installed in your user account, you can modify this file at any time.}
 
 \section{Structure of Modules}
 
@@ -533,7 +533,7 @@ The \texttt{modulename} is exactly the same name specified in the configuration 
 
 \section{Creating a New Module}
 
-Remora has been designed so that expanding its functionality is very simple. If you want to create a new module, let's call it \texttt{newmodule}, you will need to follow these steps:
+REMORA has been designed so that expanding its functionality is very simple. If you want to create a new module, let's call it \texttt{newmodule}, you will need to follow these steps:
 
 \begin{enumerate}
 	\item Add a new line to the configuration line with the string \texttt{newmodule}.
@@ -549,10 +549,15 @@ Remora has been designed so that expanding its functionality is very simple. If 
 	\item Implement the functionality that \texttt{newmodule} requires in those functions.
 \end{enumerate}
 
-At runtime, Remora will find the new module specified in the configuration file and call the different functions at runtime.
+At runtime, REMORA will find the new module specified in the configuration file and call the different functions at runtime.
 
 \IntroBox{It is very important to make sure that all the functions contain exactly the same name of the module included in the configuration file and used as filename for the module.}
 
+It is possible to use an existing system wide installation to check new modules. Two environment variables can be used:
+\begin{itemize}
+        \item \texttt{REMORA\_CONFIG\_PATH}: path to the configuration file (named config). If defined, REMORA will only use the modules specified on that file, not the previously existing ones.
+        \item \texttt{REMORA\_MODULE\_PATH}: path to the modules. By default, REMORA looks in \texttt{REMORA\_BIN/modules}, but users can create their own modules and store them somewhere else. If defined, system modules will not be used.
+\end{itemize}
 
 \FloatBarrier
 \addcontentsline{toc}{section}{\bf References}
