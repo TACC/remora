@@ -429,13 +429,11 @@ finalize_module_numa()
     printf "%s \n" "<body> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html 
     printf "%s \n" "<table class='columns'> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "<tr> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "<td><div id='chart_hits' style='border: 1px solid; color: LightGray'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "<td><div style='float:left; margin: 5px; background-color: blue;'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "<td><div id='chart_miss' style='border: 1px solid; color: LightGray'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "<td><div style='float:left; margin: 5px; background-color: blue;'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "<td><div id='chart_free' style='border: 1px solid; color: LightGray'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "<td><div style='float:left; margin: 5px; background-color: blue;'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "<td><div id='chart_used' style='border: 1px solid; color: LightGray'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<td width='800' height='600'><div id='chart_hits' style='border: 1px solid; color: LightGray'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<td width='800' height='600'><div id='chart_miss' style='border: 1px solid; color: LightGray'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n %s \n" "</tr>" "<tr>" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<td width='800' height='600'><div id='chart_free' style='border: 1px solid; color: LightGray'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "<td width='800' height='600'><div id='chart_used' style='border: 1px solid; color: LightGray'></div></td> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "</tr> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "</table>" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "</body> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html 
