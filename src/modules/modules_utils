@@ -16,23 +16,6 @@
 #-      license     MIT
 #========================================================================
 
-#remora_read_active_modules()
-#{
-#    fileItemString=$(cat $REMORA_BIN/config/modules | cut -f1 -d "," | tr "\n" " ")
-#    outDirsString=$(cat $REMORA_BIN/config/modules | cut -f2 -d "," | tr "\n" " ")
-#    REMORA_MODULES=($fileItemString)
-#    REMORA_MODULES_OUTDIRS=($outDirsString)
-#
-##    REMORA_ACTIVE_MODS=${#REMORA_MODULES[@]}
-#    for MODULE in "${REMORA_MODULES[@]}"
-#    do
-#      source $REMORA_BIN/modules/$MODULE
-#      if [ "$REMORA_VERBOSE" == "1" ]; then
-#        echo "Module $MODULE is active"
-#      fi
-#    done
-#}
-
 #Call the init_module function of each active module
 remora_configure_modules()
 {
