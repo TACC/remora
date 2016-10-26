@@ -139,22 +139,6 @@ collect_data_numa()
     done
 
     echo  $TIMESTAMP $out  >> $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
-    #printf "%s %s\n"  $TIMESTAMP $out  >> $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
-
-#    local node0_numahit=`echo $numStat | awk '{ print $16; }'` #Memory successfully allocated on this node as intended
-#    local node1_numahit=`echo $numStat | awk '{ print $17; }'`
-#    local node0_numamiss=`echo $numStat | awk '{ print $19; }'` #Memory allocated on this node, although the process preferred another
-#    local node1_numamiss=`echo $numStat | awk '{ print $20; }'`
-#    local node0_numalocal=`echo $numStat | awk '{ print $31; }'` #Memory allocated on this node while the process was running on it
-#    local node1_numalocal=`echo $numStat | awk '{ print $32; }'`
-#    local node0_numaother=`echo $numStat | awk '{ print $35; }'` #Memory allocated on this node while the process was running on another node
-#    local node1_numaother=`echo $numStat | awk '{ print $36; }'`
-#    local numMem=`numastat -m | grep Mem`
-#    local node0_memfree=`echo $numMem | awk '{ print $6; }'`  #Memory available on this node
-#    local node1_memfree=`echo $numMem | awk '{ print $7; }'`
-#    local node0_memused=`echo $numMem | awk '{ print $10; }'` #Memory used on this node
-#    local node1_memused=`echo $numMem | awk '{ print $11; }'`
-#    printf "%-17d %-17d %-17d %-17d %-17d %-17f %-17f %-17d %-17d %-17d %-17d %-17f %-17f\n" $TIMESTAMP $node0_numahit $node0_numamiss $node0_numalocal $node0_numaother $node0_memfree $node0_memused $node1_numahit $node1_numamiss $node1_numalocal $node1_numaother $node1_memfree $node1_memused >> $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
   fi
 }
 
@@ -182,12 +166,12 @@ finalize_module_numa()
     printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "google.charts.load('current', {'packages':['corechart']});" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
 
-    printf "%s \n" "google.charts.setOnLoadCallback(drawMiss);" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "google.charts.setOnLoadCallback(drawHits);" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "google.charts.setOnLoadCallback(drawMiss);" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "google.charts.setOnLoadCallback(drawFree);" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "google.charts.setOnLoadCallback(drawUsed);" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
  
-    printf "%s \n" "function drawMiss() {" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "function drawHits() {" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     for i in `seq $numNodes`; do
@@ -228,7 +212,7 @@ finalize_module_numa()
     printf "%s \n" "]);" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
 
     printf "%s \n" "var options = { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "title : 'NUMA Miss'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "title : 'NUMA Hits'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "vAxis: {title: 'Events'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "hAxis: {title: 'Time'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "seriesType: 'bars'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
@@ -249,7 +233,7 @@ finalize_module_numa()
 
 
 
-    printf "%s \n" "function drawHits() {" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "function drawMiss() {" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     for i in `seq $numNodes`; do
@@ -291,7 +275,7 @@ finalize_module_numa()
     printf "%s \n" "]);" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
 
     printf "%s \n" "var options = { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "title : 'NUMA Hits'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "title : 'NUMA Misses'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "vAxis: {title: 'Events'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "hAxis: {title: 'Time'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "seriesType: 'bars'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
