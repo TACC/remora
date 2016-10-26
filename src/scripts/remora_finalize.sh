@@ -108,19 +108,11 @@ source $REMORA_BIN/aux/extra
 source $REMORA_BIN/modules/modules_utils
 remora_read_active_modules
 
+#Move output files to their folders based on the configuration file
+#If some files are missing, don't output the error message
 for i in "${!REMORA_MODULES[@]}"; do
-    mv $REMORA_OUTDIR/${REMORA_MODULES[$i]}* $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]}
+    mv $REMORA_OUTDIR/${REMORA_MODULES[$i]}* $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
 done
-
-#mv $REMORA_OUTDIR/cpu* $REMORA_OUTDIR/CPU
-#mv $REMORA_OUTDIR/mem* $REMORA_OUTDIR/MEMORY
-
-#if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-#  if [ "$REMORA_LUSTRE" == "1" ]; then mv $REMORA_OUTDIR/{lustre*,lnet*} $REMORA_OUTDIR/IO; fi
-#  if [ "$REMORA_DVS" == "1" ]; then mv $REMORA_OUTDIR/dvs* $REMORA_OUTDIR/IO; fi
-#  mv $REMORA_OUTDIR/{ib*,trace_*} $REMORA_OUTDIR/NETWORK/
-#  mv $REMORA_OUTDIR/numa* $REMORA_OUTDIR/NUMA
-#fi
 
 if [ "$REMORA_MODE" == "MONITOR" ]; then
     rm $REMORA_TMPDIR/.monitor
@@ -131,3 +123,5 @@ if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
     rm -rf $REMORA_TMPDIR
 fi
 
+#Clean the zz files (files used to make sure all transfers have finished)
+rm -f $REMORA_OUTDIR/zz.*
