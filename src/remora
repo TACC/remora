@@ -31,13 +31,14 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.6
+#-      version     REMORA 1.7
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
 #
 #========================================================================
 #  HISTORY
+#       2016/11/10: Added KNL support. New graphs.
 #       2016/03/11: Added real-time monitor mode
 #	    2016/01/25: Added alternative location for temp files
 #       2015/12/09: Implemented a modular design

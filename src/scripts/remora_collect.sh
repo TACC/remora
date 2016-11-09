@@ -12,7 +12,7 @@
 # remora_collect.sh "$@"
 #========================================================================
 # IMPLEMENTATION
-#      version     REMORA 1.6
+#      version     REMORA 1.7
 #      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #      license     MIT

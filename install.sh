@@ -4,7 +4,7 @@
 # Change CC, MPICC and the corresponding flags to match your own compiler in
 # file "Makefile.in". You should not have to edit this file at all.
 #
-# v1.6 (2016-03-11)  Carlos Rosales-Fernandez
+# v1.7 (2016-11-10)  Carlos Rosales-Fernandez
 #                    Antonio Gomez-Iglesias
 #
 # Thanks to Kenneth Hoste, from HPC-UGent, for his input
@@ -24,7 +24,7 @@ mkdir -p $REMORA_DIR/python
 
 REMORA_BUILD_DIR=$PWD
 
-VERSION=1.6
+VERSION=1.7
 COPYRIGHT1="Copyright 2016 The University of Texas at Austin."
 COPYRIGHT2="License: MIT <http://opensource.org/licenses/MIT>"
 COPYRIGHT3="This is free software: you are free to change and redistribute it."

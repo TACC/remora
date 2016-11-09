@@ -10,7 +10,7 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.6
+#-      version     REMORA 1.7
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
@@ -19,6 +19,10 @@
 #Call the init_module function of each active module
 remora_configure_modules()
 {
+    source $REMORA_BIN/aux/extra
+    source $REMORA_BIN/modules/modules_utils
+    remora_read_active_modules
+
     for MODULE in "${REMORA_MODULES[@]}"
     do
         if [ "$REMORA_VERBOSE" == "1" ]; then

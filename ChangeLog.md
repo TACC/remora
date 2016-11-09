@@ -1,5 +1,14 @@
 # Change Log
 
+## [1.7.0] - (2016-11-10)
+
+Added power and temperature modules.
+Added automatic discovery of NUMA nodes.
+Supports PBS scheduler.
+Supports running on a local machine (no scheduler needed).
+Multiple jobs for the same run: new folders are created.
+Use Google Charts to create plots automatically (no need for postprocessing Python script except for network trace).
+
 ## [bp-1.6.0] - (2016-08-09)
 
 Added "eth" module which tracks Ethernet statistics in a similar fashion to how "ib" module tracks InfiniBand statistics.
