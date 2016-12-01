@@ -1,0 +1,75 @@
+#!/bin/bash
+#
+#========================================================================
+# HEADER
+#========================================================================
+# DESCRIPTION
+# remora_post_crash
+# 
+# This script attempts to copy over data collection files to their final
+# location and generate a summary after a code crash.
+#
+# remora_post_crash $JOBID
+#========================================================================
+# IMPLEMENTATION
+#      version     REMORA 1.7
+#      authors     Carlos Rosales (carlos@tacc.utexas.edu)
+#                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#      license     MIT
+#========================================================================
+
+# --- Show a final report on screen
+
+source $REMORA_BIN/aux/extra
+source $REMORA_BIN/aux/report
+
+REMORA_OUTDIR=remora_${1}
+source $REMORA_OUTDIR/remora_env.txt
+
+if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
+	echo " REMORA can't generate a summary of a crashed job when"
+	echo " REMORA_TMPDIR is not the same as REMORA_OUTDIR"
+	exit 1
+fi
+
+MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+END=`grep "time" $REMORA_OUTDIR/cpu_${MASTER}.txt | tail -n 1 | awk '{print $2 "000000000"}' ` 
+START=`grep "time" $REMORA_OUTDIR/cpu_${MASTER}.txt | head -n 1 | awk '{print $2 "000000000"}' `
+
+NODES=`cat $REMORA_OUTDIR/remora_nodes.txt`
+
+for NODE in $NODES; do
+  if [ "$REMORA_VERBOSE" == "1" ]; then
+    echo "$REMORA_BIN/scripts/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE $REMORA_NODE_ID >> $REMORA_OUTDIR/.remora_out_$NODE"
+  fi
+  $REMORA_BIN/scripts/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE $REMORA_NODE_ID &>> $REMORA_OUTDIR/.remora_out_$NODE
+done
+
+show_final_report $END $START
+rm -f $REMORA_OUTDIR/*.tmp
+
+# Should write name-based loop
+mv $REMORA_OUTDIR/{remora*,runtime*} $REMORA_OUTDIR/INFO
+
+source $REMORA_BIN/aux/extra
+source $REMORA_BIN/modules/modules_utils
+remora_read_active_modules
+
+#Move output files to their folders based on the configuration file
+#If some files are missing, don't output the error message
+for i in "${!REMORA_MODULES[@]}"; do
+    mv $REMORA_OUTDIR/${REMORA_MODULES[$i]}* $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
+done
+
+if [ "$REMORA_MODE" == "MONITOR" ]; then
+    rm $REMORA_TMPDIR/.monitor
+    mv $REMORA_OUTDIR/monitor* $REMORA_OUTDIR/MONITOR/
+fi
+# Clean up TMPDIR if necessary
+if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
+    rm -rf $REMORA_TMPDIR
+fi
+
+#Clean the zz files (files used to make sure all transfers have finished)
+rm -f $REMORA_OUTDIR/zz.*
+
