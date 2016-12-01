@@ -23,13 +23,14 @@
 
 init_module_temperature()
 {
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   files=`ls -v /sys/devices/platform/coretemp.0/temp*_input`
   export REMORA_TEMPERATURE_IGNORE=$?
   if [ $REMORA_TEMPERATURE_IGNORE -ne 0 ]; then
     return 1
   fi
-  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-  rm -f $REMORA_TMPDIR/temperature*
+
+  rm -f $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt
   files=`ls -v /sys/devices/platform/coretemp.0/temp*_input`
   local header="TIME"
   local format="%-17s"

@@ -23,6 +23,7 @@
 
 init_module_ib()
 {
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
             cntr_64b="/sys/class/infiniband/mlx4_0/ports/1/counters_ext/"

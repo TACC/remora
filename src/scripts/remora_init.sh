@@ -54,15 +54,15 @@ check_hostlist_empty
 # See if this is an MPI job
 is_mpi_job "$@"
 
-# See if GPU support is required
-check_gpu
-
 # Save REMORA specific environmental variables to a file
 # Also capture runtime environment
 capture_environment
 
 # If CPU module is running we reduce sleep by 1 second
 check_cpu
+
+# See if GPU support is required
+check_gpu
 
 # Check if Lustre / DVS file systems are present
 check_io

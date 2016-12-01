@@ -10,7 +10,7 @@
 #% This script launches the data collection function for all active 
 #% modules
 #%
-#% remora_report.sh NODE_NAME OUTDIR REMORA_PERIOD SYMMETRIC REMORA_MODE REMORA_CUDA
+#% remora_report.sh NODE_NAME REMORA_BIN OUTDIR REMORA_PERIOD SYMMETRIC REMORA_MODE REMORA_CUDA
 #========================================================================
 #- IMPLEMENTATION
 #-      version     REMORA 1.7

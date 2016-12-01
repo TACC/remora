@@ -27,7 +27,7 @@ init_module_dvs()
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" = "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
 			if [ "$REMORA_DVS" == "1" ]; then
-            rm -f $REMORA_TMPDIR/dvs*
+            rm -f $REMORA_TMPDIR/dvs_stats_${REMORA_NODE}.txt
             # Capture the names of the mounts (FSNAMES)
             idx=0; hdx=1
             HEADER=()
