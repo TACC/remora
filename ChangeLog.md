@@ -1,6 +1,6 @@
 # Change Log
 
-## [1.7.0] - (2016-11-10)
+## [1.7.0] - (2016-12-01)
 
 Added power and temperature modules.
 Added automatic discovery of NUMA nodes.
@@ -8,6 +8,10 @@ Supports PBS scheduler.
 Supports running on a local machine (no scheduler needed).
 Multiple jobs for the same run: new folders are created.
 Use Google Charts to create plots automatically (no need for postprocessing Python script except for network trace).
+Added a script to monitor free memory that kill the application before the OOM does.
+Added a script to generate posprocessing files in case the node crashes.
+
+Contributions from Jacob Pollack at Shell (Eth monitoring, CPU utilization postprocessing, and 64bit counters for Infiniband monitoring), Kevin Manalo (suggestion of automation of mlx device discovery) and wpoely86 (PBS support).
 
 ## [bp-1.6.0] - (2016-08-09)
 
