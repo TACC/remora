@@ -30,36 +30,41 @@ init_module_numa()
     header="#TIME"
     for idx in `seq $numNodes`;
     do
-        header="$header Node${idx}_NumHit"
+        i=`expr $idx - 1`
+        header="$header Node${i}_NumHit"
     done
     idx=0
     for idx in `seq $numNodes`;
     do
-        header="$header Node${idx}_NumMiss"
+        i=`expr $idx - 1`
+        header="$header Node${i}_NumMiss"
     done
     idx=0
     for idx in `seq $numNodes`;
     do
-        header="$header Node${idx}_Local"
+        i=`expr $idx - 1`
+        header="$header Node${i}_Local"
     done
     idx=0
     for idx in `seq $numNodes`;
     do
-        header="$header Node${idx}_Other"
+        i=`expr $idx - 1`
+        header="$header Node${i}_Other"
     done
     idx=0
     for idx in `seq $numNodes`;
     do
-        header="$header Node${idx}_Free"
+        i=`expr $idx - 1`
+        header="$header Node${i}_Free"
     done
     idx=0
     for idx in `seq $numNodes`;
     do
-        header="$header Node${idx}_Used"
+        i=`expr $idx - 1`
+        header="$header Node${i}_Used"
     done
 
     echo $header  > $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
-#    printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "#TIME" "Node0_NumaHit" "Node0_NumaMiss" "Node0_LocalNode" "Node0_OtherNode" "Node0_MemFree" "Node0_MemUsed" "Node1_NumaHit" "Node1_NumaMiss" "Node1_LocalNode" "Node1_OtherNode" "Node1_MemFree" "Node1_MemUsed" > $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
   fi
 }
 
@@ -160,6 +165,7 @@ finalize_module_numa()
 
     local numStat=`numastat -c`
     local numNodes=`echo $numStat | grep -o ' Node' | wc -l`
+    numNodesLabels=`expr $numNodes - 1`
     printf "%s \n" "<html>" > $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "<head>" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
@@ -174,7 +180,7 @@ finalize_module_numa()
     printf "%s \n" "function drawHits() {" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    for i in `seq $numNodes`; do
+    for i in `seq 0 $numNodesLabels`; do
         printf "%s %s %s \n" "data.addColumn('number', 'Node"$i"');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     done
     local ctime=0
@@ -214,7 +220,7 @@ finalize_module_numa()
     printf "%s \n" "var options = { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "title : 'NUMA Hits'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "vAxis: {title: 'Events'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "hAxis: {title: 'Time'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "hAxis: {title: 'Time (s)'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "seriesType: 'bars'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "bar: { groupWidth: '95%' }," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "isStacked: true," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
@@ -236,7 +242,7 @@ finalize_module_numa()
     printf "%s \n" "function drawMiss() {" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    for i in `seq $numNodes`; do
+    for i in `seq 0 $numNodesLabels`; do
         printf "%s %s %s \n" "data.addColumn('number', 'Node"$i"');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     done
     local ctime=0
@@ -277,7 +283,7 @@ finalize_module_numa()
     printf "%s \n" "var options = { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "title : 'NUMA Misses'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "vAxis: {title: 'Events'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "hAxis: {title: 'Time'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "hAxis: {title: 'Time (s)'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "seriesType: 'bars'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "bar: { groupWidth: '95%' }," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "isStacked: true," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
@@ -298,15 +304,17 @@ finalize_module_numa()
 
 
     printf "%s \n" "function drawFree() {" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    for i in `seq $numNodes`; do
-        printf "%s %s %s \n" "data.addColumn('number', 'Node"$i"');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "var data = google.visualization.arrayToDataTable([ " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    #printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "['Execution Time (s)'" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    for i in `seq 0 $numNodesLabels`; do
+        printf "%s %s %s \n" ", 'Node"$i"'" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     done
+    printf "%s \n" "]," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+
     local ctime=0
     local firsttimestamp=0
     local first=0
-    printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     while read line; do
         if [ $first -eq 0 ]; then
             first=1
@@ -334,9 +342,7 @@ finalize_module_numa()
     printf "%s \n" "var options = { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "title : 'NUMA Free'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "vAxis: {title: 'MBs'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "hAxis: {title: 'Time'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "seriesType: 'bars'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "bar: { groupWidth: '95%' }," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "hAxis: {title: 'Time (s)'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "isStacked: true," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "width: 800, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "height: 600, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
@@ -346,7 +352,7 @@ finalize_module_numa()
     printf "%s \n" "} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "}, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" " }; " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" " var chart = new google.visualization.ComboChart(document.getElementById('chart_free'));" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" " var chart = new google.visualization.AreaChart(document.getElementById('chart_free'));" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
 
@@ -354,16 +360,17 @@ finalize_module_numa()
 
 
     printf "%s \n" "function drawUsed() {" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    for i in `seq $numNodes`; do
-        printf "%s %s %s \n" "data.addColumn('number', 'Node"$i"');" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "var data = google.visualization.arrayToDataTable([ " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "['Execution Time (s)'" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    for i in `seq 0 $numNodesLabels`; do
+        printf "%s %s %s \n" ", 'Node"$i"'" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     done
+    printf "%s \n" "]," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html 
     local ctime=0
     local firsttimestamp=0
     local first=0
     local previous=()
-    printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+#    printf "%s\n" "[" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     while read line; do
         if [ $first -eq 0 ]; then
             first=1
@@ -391,9 +398,7 @@ finalize_module_numa()
     printf "%s \n" "var options = { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "title : 'NUMA Used'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "vAxis: {title: 'MBs'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "hAxis: {title: 'Time'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "seriesType: 'bars'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "bar: { groupWidth: '95%' }," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "hAxis: {title: 'Time (s)'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "isStacked: true," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "width: 800, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "height: 600, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
@@ -403,7 +408,7 @@ finalize_module_numa()
     printf "%s \n" "} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "}, " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" " }; " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" " var chart = new google.visualization.ComboChart(document.getElementById('chart_used'));" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" " var chart = new google.visualization.AreaChart(document.getElementById('chart_used'));" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "} " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
 

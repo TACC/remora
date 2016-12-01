@@ -105,20 +105,12 @@ finalize_module_memory()
 
     printf "%s \n" "google.charts.setOnLoadCallback(drawChart);" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
     printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
-    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
-    printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
-    printf "%s \n" "data.addColumn('number', 'VMEM (Max)');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
-    printf "%s \n" "data.addColumn('number', 'VMEM');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
-    printf "%s \n" "data.addColumn('number', 'RMEM (Max)');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
-    printf "%s \n" "data.addColumn('number', 'RMEM');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
-    printf "%s \n" "data.addColumn('number', 'SHMEM');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
-    printf "%s \n" "data.addColumn('number', 'MEM (Free)');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
-    printf "%s \n" "data.addColumn('number', 'TMEM (Max)');" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "var data = google.visualization.arrayToDataTable([" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "['Execution Time (s)', 'VMEM (Max)', 'VMEM', 'RMEM (Max)', 'RMEM', 'SHMEM', 'MEM (Free)', 'TMEM (Max)']," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
 
     local ctime=0
     local first=0
     local firsttimestamp=0
-    printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
     while read line; do
         #Skip first line
         if [ $first -eq 0 ]; then
@@ -151,9 +143,7 @@ finalize_module_memory()
     printf "%s \n" "var options = { " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
     printf "%s \n" "title : 'Memory Utilization'," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
     printf "%s \n" "vAxis: {title: 'GB'}," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
-    printf "%s \n" "hAxis: {title: 'Time'}," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
-    printf "%s \n" "seriesType: 'bars'," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
-    printf "%s \n" "bar: { groupWidth: '95%' }," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
+    printf "%s \n" "hAxis: {title: 'Time (s)'}," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
     printf "%s \n" "isStacked: true," >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
     printf "%s \n" "series: { 0: {type: 'line', color:'red', lineDashStyle: [1, 1]}, 2: {type: 'line', color:'green', lineDashStyle: [1, 1]}, 5: {type: 'line',lineWidth:5}, 6: {type: 'line', color:'yellow'}},
     " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
@@ -167,7 +157,7 @@ finalize_module_memory()
     printf "%s \n" "}, " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
     printf "%s \n" " }; " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
 
-    printf "%s \n" " var chart = new google.visualization.ComboChart(document.getElementById('chart_div'));" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+    printf "%s \n" " var chart = new google.visualization.AreaChart(document.getElementById('chart_div'));" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
     printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
     printf "%s \n" "} " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
     printf "%s \n" "</script> " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
