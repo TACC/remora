@@ -137,9 +137,7 @@ Our intention is to create a simple runtime resource monitoring tool that provid
 
 Version 1.7.0 is a feature release that adds power and temperature monitoring, support for Infiniband devices other than mlx4, support for PBS schedulers, improved Inifiniband and Ethernet network monitoring, full support for Intel Knights Landing with automated NUMA node detection, protection from output directory being overwritten, and improved graphics.
 
-We'd like to thank Jacob Pollack at Shell for his contributions to Ethernet monitoring, average CPU utilization post-processing and the use of 64 bit counters for infiniband monitoring when available.
-
-We'd also like to acknowledge Kevin Manalo's (Ohio Supercomputing Center) suggestion to automate mlx device discovery, and wpoely86 for adding PBS support.
+This version also includes two new scripts, one that can generate a summary after a code crash, and one that can monitor memory utilization and kill the job before it exceeds the available memory on the node.
 
 REMORA is an open-source project. Funding to keep researchers working on REMORA depends on the value of this tool to the scientific community. We would appreciate if you could include the following citation in your scientific articles:
 
@@ -290,6 +288,42 @@ In addition to these variables a list of file systems that should be ignored dur
 
 \section{Post-Processing}
 All the data is collected in a set of files with the statistics organized in columns. Users can take those files and run any postprocessing tool that they develop. However, for simplicity, REMORA already provides a plotting script called \verb+remora_post+ that takes all the statistics generated during collection and generates a number of plots. These plots show the most relevant information previously collected and represent a visual alternative while analyzing the results. This is a Python script that requires Numpy, matplotlib and blockdiag. The script can be called from the batch script or from the login nodes after the job has finished. In this second scenario, the script requires the id of the job to be analyzed as argument.
+
+The post-processing script can be invoked simply as:
+
+\begin{verbatim}
+	remora_post -j <JobID>
+\end{verbatim}
+
+\section{Post-Crash Summary}
+In a typical situation, when an application crashes, the remora collection is interrupted and no final summary is produced (or an incomplete summary is shown). We now provide an independent script \texttt{remora\_post\_crash} that attempts to produce a final summary of the collected data. This script can be executed as:
+
+\begin{verbatim}
+	remora_post_crash <JobID>
+\end{verbatim}
+
+\section{Automated Memory Protection}
+Following user requests we have developed a simplified version of remora that does not produce any data collection records but simply monitors application memory usage and kills the user application if available memory on each node reaches a minimum threshold.
+
+For a serial job:
+
+\begin{verbatim}
+	remora_mem_safe ./myexe [myexe_arguments]
+\end{verbatim} 
+
+For a parallel job (assuming \verb+mpirun+ is your parallel launcher, change for mpiexec.hydra, ibrun or other as needed):
+
+\begin{verbatim}
+	remora_mem_safe mpirun [mpirun_options] ./myexe [myexe_arguments]
+\end{verbatim} 
+
+The minimum memory available is configured by default to be 0.5GB, and the sampling period is 0.01 seconds. The sampling period is not configurable, but the memory threshold can be modified.
+
+\IntroBox{
+\begin{itemize}
+	\item \texttt{REMORA\_FREEMEM}: this variable sets the minimum available memory (in KB) for \texttt{remora\_mem\_free}. If available memory falls below this threshold all user processes under monitoring will be killed.
+\end{itemize}
+}
 
 \FloatBarrier
 \chapter{Design and Implementation}
