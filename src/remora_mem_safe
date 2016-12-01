@@ -1,0 +1,77 @@
+#!/bin/bash
+#
+#==============================================================================
+# HEADER
+#==================================================++++++======================
+#% SYNOPSIS
+#+  remora_mem_safe ./myapp [args]                  (serial applications)
+#+  remora_mem_safe ibrun [options] ./myapp [args]  (parallel MPI applications)
+#%
+#% DESCRIPTION
+#% REMORA: REsource MOnitoring for Remote Applications
+#%
+#% REMORA is an easy to use monitoring tool that allows users to extract
+#% valuable information from their jobs.
+#% 
+#% This script simply monitors available memory and kills the application if
+#% memory goes below a given threshold (REMORA_FREEMEM)
+#%
+#========================================================================
+#- IMPLEMENTATION
+#-      version     REMORA 1.7
+#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      license     MIT
+#
+#========================================================================
+#  HISTORY
+#       2016/12/01: Initial version
+#========================================================================
+#  CITE REMORA
+#       If you use REMORA please cite it, it will help us secure support
+#       for further development
+#                   REMORA: A Resource Monitoring Tool For Everyone
+#                   C. Rosales, A. Gomez-Iglesias, A. Predoehl
+#                   HUST2015 November 15-20, 2015, Austin, TX, USA
+#                   DOI: 10.1145/2834996.2834999
+#
+#========================================================================
+# END_OF_HEADER
+#========================================================================
+
+# Abort because we will not find any of the functions
+# if REMORA_BIN is not defined
+if [ -z "$REMORA_BIN" ]; then
+    echo "ERROR: REMORA_BIN undefined"
+    exit
+fi
+
+#First check if this script is running in parallel. If so
+#(mpirun remora_mem_safe), it kills the process.
+source $REMORA_BIN/aux/extra
+check_running_parallel
+
+source $REMORA_BIN/aux/scheduler
+
+#Retrieve the list of nodes involved in the computation
+get_node_list
+
+PIDS=()
+idx=0
+#Launch remora_monitor_memory on each node
+for NODE in $NODES; do
+    COMMAND="$REMORA_BIN/scripts/remora_monitor_memory.sh"
+    ssh -f -n $NODE $COMMAND
+    idx=$((idx+1))
+done
+
+#Run the command
+$@ 
+
+#Kill the monitoring processes
+for NODE in $NODES; do
+    ids=`ssh -f -n $NODE ps aux | grep -e remora_monitor_memory | awk '{print $2;}'`
+    for i in $ids; do
+        ssh -f -n $NODE kill -9 $i > /dev/null 2>&1 
+    done
+done
