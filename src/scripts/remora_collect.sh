@@ -29,21 +29,21 @@ do
   # This is the core of REMORA. It connects to all the nodes allocated to this job and runs the remora_report.sh script
   # remora_report.sh will run an infinite loop where, in each iteration of the loop, it calls the different modules
   # that are available (specified in the configuration file)
-  COMMAND="$REMORA_BIN/scripts/remora_report.sh $NODE $REMORA_BIN $REMORA_OUTDIR 1>> $REMORA_OUTDIR/.remora_out_$NODE 2>> $REMORA_OUTDIR/.remora_out_$NODE & echo \$!"
+  COMMAND="$REMORA_BIN/scripts/remora_report.sh $NODE $REMORA_BIN $REMORA_OUTDIR >> $REMORA_OUTDIR/.remora_out_$NODE & echo \$!"
   if [ "$REMORA_VERBOSE" == "1" ]; then
     echo ""; echo "ssh -f -n $NODE $COMMAND"
   fi
   # Capture the PID of the remote process running remora_report.sh
   # so taht we can kill it once the job has finished
-  PID[$idx]=`ssh -f -n $NODE $COMMAND 2> /dev/null | sed -e's/\[.*\]//' `
+  PID[$idx]=`ssh -f -n $NODE $COMMAND | tail -n 1 `
 
   # Only do this if MONITOR mode is active
   if [ "$REMORA_MODE" == "MONITOR" ]; then
-      COMMAND="$REMORA_BIN/scripts/remora_monitor.sh $NODE $REMORA_BIN $REMORA_OUTDIR 1>> $REMORA_OUTDIR/.remora_out_${NODE} 2>> $REMORA_OUTDIR/.remora_out_${NODE} & echo \$!"
+      COMMAND="$REMORA_BIN/scripts/remora_monitor.sh $NODE $REMORA_BIN $REMORA_OUTDIR >> $REMORA_OUTDIR/.remora_out_${NODE} & echo \$!"
       if [ "$REMORA_VERBOSE" == "1" ]; then
           echo ""; echo "ssh -f -n $NODE $COMMAND"
       fi
-      PID_MON[$idx]=`ssh -f -n $NODE $COMMAND 2> /dev/null | sed -e's/\[.*\]//' `
+      PID_MON[$idx]=`ssh -f -n $NODE $COMMAND | tail -n 1 `
   fi
 
   # Repeat the same for the MIC

@@ -63,7 +63,7 @@ idx=0; for elem in `cat $REMORA_OUTDIR/remora_pid_mic.txt`; do PID_MIC[$idx]=$el
 idx=0
 for NODE in $NODES; do
   REMORA_NODE_ID=$idx
-  ssh -f $NODE 'kill '${PID[$idx]} 2> /dev/null
+  ssh -f $NODE 'kill '${PID[$idx]} 
   if [ "$REMORA_SYMMETRIC" == "1" ]; then
     ssh -q -f $NODE-mic0 'kill '${PID_MIC[$idx]}
   fi  
@@ -72,7 +72,7 @@ for NODE in $NODES; do
     echo "ssh -q -n $NODE $COMMAND"
   fi  
   #Right now this is putting the command in the background and continuing (so the remora can finish, therefore epilog might  #kill everything! We need to fix it
-  FINAL_PID+=(`ssh -q -n $NODE $COMMAND 2> /dev/null`)
+  FINAL_PID+=(`ssh -q -n $NODE $COMMAND | tail -n 1`)
   idx=$((idx+1))
 done
 
@@ -92,7 +92,7 @@ if [ "$REMORA_MODE" == "MONITOR" ]; then
     for elem in `cat $REMORA_OUTDIR/remora_pid_mon.txt`; do PID_MON[$idx]=$elem; idx=$((idx+1)); done
     idx=0   
     for NODE in $NODES; do
-        ssh -f $NODE 'kill '${PID_MON[$idx]} 2> /dev/null
+        ssh -f $NODE 'kill '${PID_MON[$idx]} 
         idx=$((idx+1))
     done
     rm $REMORA_OUTDIR/remora_pid_mon.txt
