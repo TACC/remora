@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.7.1] - (2016-12-07)
+
+Now collection and post-processing work for users with default csh/tsh shells.
+
+Thansk to Mark Reed (UNC) for the suggested changes.
+
 ## [1.7.0] - (2016-12-01)
 
 Added power and temperature modules.

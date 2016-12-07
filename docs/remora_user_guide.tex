@@ -87,7 +87,7 @@
 \verb+ +
 \vspace{1em}
 \begin{flushright}
-\huge\bf REMORA v1.7.0\\
+\huge\bf REMORA v1.7.1\\
 \rule{\textwidth}{4pt}
 \large{\bf REsource MOnitoring for Remote Applications\\
 Document Revision 1.0\\
@@ -117,7 +117,7 @@ Copyright 2016 The University of Texas at Austin.
 
 \begin{abstract}
 
-REMORA is a modular tool to monitor runtime resource utilization in HPC environments. As of version 1.7.0 the suite contains code designed to test:
+REMORA is a modular tool to monitor runtime resource utilization in HPC environments. As of version 1.7.1 the suite contains code designed to test:
 
 \begin{itemize}
 \item Memory utilization in CPUs, Xeon Phi co-processors, and NVIDIA GPUs
@@ -135,9 +135,7 @@ Throughout the text we have used text boxes to highlight important information. 
 
 Our intention is to create a simple runtime resource monitoring tool that provides both simple to understand high level information to the user, as well as detailed statistics for in-depth analysis. We welcome all feedback. Feedback that includes suggestions for improvement in the usability, reliability, and accuracy of this tool is particularly welcome. 
 
-Version 1.7.0 is a feature release that adds power and temperature monitoring, support for Infiniband devices other than mlx4, support for PBS schedulers, improved Inifiniband and Ethernet network monitoring, full support for Intel Knights Landing with automated NUMA node detection, protection from output directory being overwritten, and improved graphics.
-
-This version also includes two new scripts, one that can generate a summary after a code crash, and one that can monitor memory utilization and kill the job before it exceeds the available memory on the node.
+Version 1.7.1 is a bug fix release that adds support for csh and tcsh users.
 
 REMORA is an open-source project. Funding to keep researchers working on REMORA depends on the value of this tool to the scientific community. We would appreciate if you could include the following citation in your scientific articles:
 
@@ -150,10 +148,10 @@ C. Rosales, A. G\'{o}mez-Iglesias, A. Predoehl. ``REMORA: a Resource Monitoring 
 \chapter{Installation}
 REMORA is simple to install. In order to use all of its features you will need GNU Make and a C compiler. If testing the Xeon Phi you will also need a compiler with support for compilation of native code for the Xeon Phi - currently limited to Intel 13+ compilers.
 
-First of all obtain the latest version tarball, currently remora-1.7.0.tar.gz \footnote{\href{https://github.com/TACC/remora/archive/v1.7.0.tar.gz}{https://github.com/TACC/remora/archive/v1.7.0.tar.gz}}, and expand it in a convenient location in your system:
+First of all obtain the latest version tarball, currently remora-1.7.1.tar.gz \footnote{\href{https://github.com/TACC/remora/archive/v1.7.1.tar.gz}{https://github.com/TACC/remora/archive/v1.7.1.tar.gz}}, and expand it in a convenient location in your system:
 
 \begin{verbatim}
-    tar xzvf ./remora-1.7.0.tar.gz
+    tar xzvf ./remora-1.7.1.tar.gz
 \end{verbatim}
 
 Alternatively clone the git repository with the latest development version (not recommended):
