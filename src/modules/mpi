@@ -1,0 +1,67 @@
+#!/bin/sh
+#
+#========================================================================
+# HEADER
+#========================================================================
+#% DESCRIPTION
+#% mpi
+#%
+#% DO NOT call this script directly. This is called by REMORA
+#%
+#========================================================================
+#- IMPLEMENTATION
+#-      version     REMORA 1.7
+#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      license     MIT
+#========================================================================
+
+# All the functions take three arguments:
+#  1.- The name of the node where this function is running
+#  2.- The full path where the output will be stored/read
+#  3.- The full path to an optional temporary storage location
+
+init_module_mpi()
+{
+  :
+#  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+#  source $REMORA_OUTDIR/remora_env.txt
+#  export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so:$LD_PRELOAD
+}
+
+collect_data_mpi()
+{
+  :
+}
+
+# This function might perform some processing on the data.
+# If nothing needs to be done, it can be empty (but declared)
+process_data_mpi()
+{
+  :
+}
+
+monitor_data_mpi()
+{
+  :
+}
+
+finalize_module_mpi()
+{
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+  source $REMORA_OUTDIR/remora_env.txt
+  REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+  if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+	if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+	    outfile=`ls -ltr *.mpiP | tail -n 1 | awk '{print $9}'`
+	    mpiNum=`grep -c "MPI Task Assignment" $outfile` 
+	    nodeNum=`cat $REMORA_OUTDIR/remora_nodes.txt | wc -l`
+	    appTime=`grep "*" ./outfile | head -n 1 | awk '{print $2}'`
+            mpiTime=`grep "*" ./outfile | head -n 1 | awk '{print $3}'`
+            mpiFrac=`grep "*" ./outfile | head -n 1 | awk '{print $4}'`
+	    echo "Number of Nodes     : $nodeNum"    >  $REMORA_OUTDIR/mpi_info.txt
+	    echo "Number of MPI Tasks : $mpiTaskNum" >> $REMORA_OUTDIR/mpi_info.txt
+	    echo "Communication Time  : $mpiFrac %"  >> $REMORA_OUTDIR/mpi_info.txt	
+	fi
+  fi
+}

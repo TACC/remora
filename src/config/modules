@@ -1,5 +1,6 @@
 cpu,CPU
 memory,MEMORY
+mpi,MPI
 numa,NUMA
 dvs,IO
 lustre,IO

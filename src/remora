@@ -108,6 +108,8 @@ if [ "$REMORA_VERBOSE" == "1" ]; then
   echo "REMORA: Running command: $@ "
   echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 fi
+export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so
+#export MPIP="-f $REMORA_OUTDIR"
 START=$(date +%s%N)
 $@
 END=$(date +%s%N)

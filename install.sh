@@ -64,6 +64,22 @@ make mpstat |  tee -a $BUILD_LOG
 echo "Installing mpstat ..."
 cp mpstat $REMORA_DIR/bin
 
+#Now build mpiP
+echo "Building mpiP ..." | tee -a $BUILD_LOG
+cd $REMORA_BUILD_DIR/extra
+mpipfile=`ls -ld mpiP* | awk '{print $9}' | head -n 1`
+mpipdir=`echo  ${mpipfile%%.tar.gz}`
+tar xzvf ${mpipfile}
+cd ${mpipdir}
+export ARCH=x86_64
+export CC=mpicc
+export F77=mpif77
+./configure CFLAGS="-g" --enable-demangling --disable-bfd --disable-libunwind --prefix=${REMORA_DIR} | tee -a $BUILD_LOG
+make        | tee -a $BUILD_LOG
+make shared | tee -a $BUILD_LOG
+echo "Installing mpiP ..."
+make install
+
 if [ "$PHI_BUILD" == "1" ]; then
 	echo "Building Xeon Phi affinity script ..."   |  tee -a $BUILD_LOG
 	cd $REMORA_BUILD_DIR/extra/
