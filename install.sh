@@ -57,8 +57,10 @@ echo             | tee -a $BUILD_LOG
 #Now build mpstat
 echo "Building mpstat ..." | tee -a $BUILD_LOG
 cd $REMORA_BUILD_DIR/extra
-git clone https://github.com/sysstat/sysstat | tee -a $BUILD_LOG
-cd sysstat
+sysfile=`ls -ld sysstat*.tar.gz | awk '{print $9}' | head -n 1`
+sysdir=`echo  ${sysfile%%.tar.gz}`
+tar xzvf ${sysfile}
+cd ${sysdir}
 ./configure | tee -a $BUILD_LOG
 make mpstat |  tee -a $BUILD_LOG
 echo "Installing mpstat ..."
@@ -67,7 +69,7 @@ cp mpstat $REMORA_DIR/bin
 #Now build mpiP
 echo "Building mpiP ..." | tee -a $BUILD_LOG
 cd $REMORA_BUILD_DIR/extra
-mpipfile=`ls -ld mpiP* | awk '{print $9}' | head -n 1`
+mpipfile=`ls -ld mpiP*.tar.gz | awk '{print $9}' | head -n 1`
 mpipdir=`echo  ${mpipfile%%.tar.gz}`
 tar xzvf ${mpipfile}
 cd ${mpipdir}
