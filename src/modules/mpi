@@ -61,7 +61,7 @@ finalize_module_mpi()
             mpiTime=`grep "*" $outfile | head -n 1 | awk '{print $3}'`
             mpiFrac=`grep "*" $outfile | head -n 1 | awk '{print $4}'`
 	    echo "Number of Nodes     : $nodeNum"    >  $REMORA_OUTDIR/mpi_info.txt
-	    echo "Number of MPI Tasks : $mpiTaskNum" >> $REMORA_OUTDIR/mpi_info.txt
+	    echo "Number of MPI Tasks : $mpiNum"     >> $REMORA_OUTDIR/mpi_info.txt
 	    echo "Communication Time  : $mpiFrac %"  >> $REMORA_OUTDIR/mpi_info.txt	
 	fi
   fi
