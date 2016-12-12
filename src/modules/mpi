@@ -24,7 +24,9 @@
 init_module_mpi()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-  echo "export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so:$LD_PRELOAD" >> $REMORA_OUTDIR/remora_env.txt
+  if [ -e "$REMORA_BIN/../lib/libmpiP.so" ]; then
+      echo "export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so:$LD_PRELOAD" >> $REMORA_OUTDIR/remora_env.txt
+  fi
 }
 
 collect_data_mpi()
@@ -49,9 +51,9 @@ finalize_module_mpi()
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   source $REMORA_OUTDIR/remora_env.txt
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-  if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+  if [ "$REMORA_NODE" == "$REMORA_MASTER" ] && [ -e "$REMORA_BIN/../lib/libmpiP.so" ] ; then
 	if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-            cd $REMORA_OUTDIR/..
+        cd $REMORA_OUTDIR/..
 	    outfile=`ls -ltr *.mpiP | tail -n 1 | awk '{print $9}'`
 	    mpiNum=`grep -c "MPI Task Assignment" $outfile` 
 	    nodeNum=`cat $REMORA_OUTDIR/remora_nodes.txt | wc -l`
