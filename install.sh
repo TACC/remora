@@ -67,20 +67,28 @@ echo "Installing mpstat ..."
 cp mpstat $REMORA_DIR/bin
 
 #Now build mpiP
-echo "Building mpiP ..." | tee -a $BUILD_LOG
-cd $REMORA_BUILD_DIR/extra
-mpipfile=`ls -ld mpiP*.tar.gz | awk '{print $9}' | head -n 1`
-mpipdir=`echo  ${mpipfile%%.tar.gz}`
-tar xzvf ${mpipfile}
-cd ${mpipdir}
-export ARCH=x86_64
+# Check if MPI compiler is available. If not, disable MPI module and skip mpiP build
 export CC=mpicc
 export F77=mpif77
-./configure CFLAGS="-g" --enable-demangling --disable-bfd --disable-libunwind --prefix=${REMORA_DIR} | tee -a $BUILD_LOG
-make        | tee -a $BUILD_LOG
-make shared | tee -a $BUILD_LOG
-echo "Installing mpiP ..."
-make install
+export ARCH=x86_64
+haveMPICC=1; $CC --version || echo "0"
+haveMPIFC=1; $F77 --version || echo "0"
+if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ]; then
+    echo "Building mpiP ..." | tee -a $BUILD_LOG
+    cd $REMORA_BUILD_DIR/extra
+    mpipfile=`ls -ld mpiP*.tar.gz | awk '{print $9}' | head -n 1`
+    mpipdir=`echo  ${mpipfile%%.tar.gz}`
+    tar xzvf ${mpipfile}
+    cd ${mpipdir}
+    ./configure CFLAGS="-g" --enable-demangling --disable-bfd --disable-libunwind --prefix=${REMORA_DIR} | tee -a $BUILD_LOG
+    make        | tee -a $BUILD_LOG
+    make shared | tee -a $BUILD_LOG
+    echo "Installing mpiP ..."
+    make install
+else
+    echo " WARNING : mpicc / mpif77 not found " | tee -a $BUILD_LOG
+    echo " WARNING : REMORA will be built without MPI support" | tee -a $BUILD_LOG
+fi
 
 if [ "$PHI_BUILD" == "1" ]; then
 	echo "Building Xeon Phi affinity script ..."   |  tee -a $BUILD_LOG
@@ -93,7 +101,10 @@ fi
 echo "Copying all scripts to installation folder ..." |  tee -a $INSTALL_LOG
 cd $REMORA_BUILD_DIR
 cp -vr ./src/* $REMORA_DIR/bin
-
+if [ "$haveMPICC" == "0" ] && [ "$haveMPIFC" == "0" ]; then
+    sed 's/mpi,MPI//g' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
+	mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/configure/modules
+fi
 echo "Installing python module blockdiag ..." | tee -a $INSTALL_LOG
 module load python
 pip install blockdiag --target=$REMORA_DIR/python
