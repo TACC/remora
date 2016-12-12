@@ -23,10 +23,8 @@
 
 init_module_mpi()
 {
-  :
-#  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-#  source $REMORA_OUTDIR/remora_env.txt
-#  export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so:$LD_PRELOAD
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+  echo "export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so:$LD_PRELOAD" >> $REMORA_OUTDIR/remora_env.txt
 }
 
 collect_data_mpi()
@@ -62,7 +60,8 @@ finalize_module_mpi()
             mpiFrac=`grep "*" $outfile | head -n 1 | awk '{print $4}'`
 	    echo "Number of Nodes     : $nodeNum"    >  $REMORA_OUTDIR/mpi_info.txt
 	    echo "Number of MPI Tasks : $mpiNum"     >> $REMORA_OUTDIR/mpi_info.txt
-	    echo "Communication Time  : $mpiFrac %"  >> $REMORA_OUTDIR/mpi_info.txt	
+	    echo "Communication Time  : $mpiFrac %"  >> $REMORA_OUTDIR/mpi_info.txt
+        mv $outfile $REMORA_OUTDIR/mpi_data.txt	
 	fi
   fi
 }
