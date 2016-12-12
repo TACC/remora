@@ -71,8 +71,8 @@ cp mpstat $REMORA_DIR/bin
 export CC=mpicc
 export F77=mpif77
 export ARCH=x86_64
-haveMPICC=1; $CC --version || echo "0"
-haveMPIFC=1; $F77 --version || echo "0"
+haveMPICC=1; haveMPICC=$( $CC --version >& /dev/null || echo "0" )
+haveMPIFC=1; haveMPIFC=$( $F77 --version >& /dev/null || echo "0" )
 if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ]; then
     echo "Building mpiP ..." | tee -a $BUILD_LOG
     cd $REMORA_BUILD_DIR/extra
@@ -86,8 +86,10 @@ if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ]; then
     echo "Installing mpiP ..."
     make install
 else
+    echo ""
     echo " WARNING : mpicc / mpif77 not found " | tee -a $BUILD_LOG
     echo " WARNING : REMORA will be built without MPI support" | tee -a $BUILD_LOG
+    echo ""
 fi
 
 if [ "$PHI_BUILD" == "1" ]; then
@@ -101,9 +103,9 @@ fi
 echo "Copying all scripts to installation folder ..." |  tee -a $INSTALL_LOG
 cd $REMORA_BUILD_DIR
 cp -vr ./src/* $REMORA_DIR/bin
-if [ "$haveMPICC" == "0" ] && [ "$haveMPIFC" == "0" ]; then
-    sed 's/mpi,MPI//g' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
-	mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/configure/modules
+if [ "$haveMPICC" == "0" ] || [ "$haveMPIFC" == "0" ]; then
+    sed '/mpi,MPI/d' $REMORA_DIR/bin/config/modules #> $REMORA_DIR/remora.tmp
+	#mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/config/modules
 fi
 echo "Installing python module blockdiag ..." | tee -a $INSTALL_LOG
 module load python
