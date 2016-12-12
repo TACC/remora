@@ -63,7 +63,7 @@ tar xzvf ${sysfile}
 cd ${sysdir}
 ./configure | tee -a $BUILD_LOG
 make mpstat |  tee -a $BUILD_LOG
-echo "Installing mpstat ..."
+echo "Installing mpstat ..." | tee -a $INSTALL_LOG
 cp mpstat $REMORA_DIR/bin
 
 #Now build mpiP
@@ -71,8 +71,18 @@ cp mpstat $REMORA_DIR/bin
 export CC=mpicc
 export F77=mpif77
 export ARCH=x86_64
-haveMPICC=1; haveMPICC=$( $CC --version >& /dev/null || echo "0" )
-haveMPIFC=1; haveMPIFC=$( $F77 --version >& /dev/null || echo "0" )
+if [ "$( $CC --version >& /dev/null || echo "0")" == "0" ]; then 
+    haveMPICC=0
+else 
+    haveMPICC=1
+fi
+if [ "$( $F77 --version >& /dev/null || echo "0")" == "0" ]; then
+     haveMPIFC=0
+else 
+     haveMPIFC=1 
+fi
+#haveMPICC=1; haveMPICC=$( $CC --version >& /dev/null || echo "0" )
+#haveMPIFC=1; haveMPIFC=$( $F77 --version >& /dev/null || echo "0" )
 if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ]; then
     echo "Building mpiP ..." | tee -a $BUILD_LOG
     cd $REMORA_BUILD_DIR/extra
@@ -83,7 +93,7 @@ if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ]; then
     ./configure CFLAGS="-g" --enable-demangling --disable-bfd --disable-libunwind --prefix=${REMORA_DIR} | tee -a $BUILD_LOG
     make        | tee -a $BUILD_LOG
     make shared | tee -a $BUILD_LOG
-    echo "Installing mpiP ..."
+    echo "Installing mpiP ..." | tee -a $INSTALL_LOG
     make install
 else
     echo ""
@@ -104,8 +114,8 @@ echo "Copying all scripts to installation folder ..." |  tee -a $INSTALL_LOG
 cd $REMORA_BUILD_DIR
 cp -vr ./src/* $REMORA_DIR/bin
 if [ "$haveMPICC" == "0" ] || [ "$haveMPIFC" == "0" ]; then
-    sed '/mpi,MPI/d' $REMORA_DIR/bin/config/modules #> $REMORA_DIR/remora.tmp
-	#mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/config/modules
+    sed '/mpi,MPI/d' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
+	mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/config/modules
 fi
 echo "Installing python module blockdiag ..." | tee -a $INSTALL_LOG
 module load python
