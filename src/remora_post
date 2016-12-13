@@ -219,8 +219,10 @@ def plot_avg_cpu(cpu_files, cpu_xvalues, cpu_yvalues):
   #plot
   ax = plt.subplot(111)
   for i in xrange(len(cpu_yvalues)):
-    nodename = re.search('(cpu_)(\w+)(.txt)', cpu_files[i])
-    ax.plot(cpu_xvalues[i], cpu_yvalues[i], label=nodename.group(2), linestyle='--')
+#    nodename = re.search('(cpu_)(\w+)(.txt)', cpu_files[i])
+    nodename = cpu_files[i].split('_', 1)[-1].split(".txt")[0]
+    #ax.plot(cpu_xvalues[i], cpu_yvalues[i], label=nodename.group(2), linestyle='--')
+    ax.plot(cpu_xvalues[i], cpu_yvalues[i], label=nodename, linestyle='--')
   ax.plot(x_avg, y_avg, label="cpu avg")
   ax.set_title('Average CPU Utilization Across All Machines')
   ax.set_ylabel('Utilization %')
@@ -469,7 +471,7 @@ def plot_stats(folder):
     except Exception, e:
       tacc_log.print_error (" While processing file %s: %s" %(file, e))
 
-  mem_files = glob.glob(folder+"/MEMORY/mem_stats*txt")
+  mem_files = glob.glob(folder+"/MEMORY/memory_stats*txt")
   for file in mem_files:
     try:
       plot_mem (file)
@@ -490,7 +492,7 @@ def plot_stats(folder):
     except Exception, e:
       tacc_log.print_error (" While processing file %s: %s" %(file, e))
 
-  eth_files = glob.glob(folder+"/NETWORK/eth_traffic*txt")
+  eth_files = glob.glob(folder+"/NETWORK/network_eth_traffic*txt")
   for file in eth_files:
     try:
       plot_eth(file)
@@ -617,6 +619,7 @@ if __name__ == "__main__":
     tacc_log.print_critical ("Impossible to find folder remora_%s" %(jobid))
     exit(1)
 
+  tacc_log.print_info("This script is deprecated starting on REMORA 1.7")
   get_period (os.getcwd()+"/remora_"+str(jobid))
   plot_stats(os.getcwd()+"/remora_"+str(jobid))
   plot_network(os.getcwd()+"/remora_"+str(jobid))
