@@ -47,7 +47,9 @@ collect_data_memory()
     shmem_used=`du /dev/shm 2>/dev/null | tail -n 1 | awk '{print $1} '`
     shmem=$(echo "scale=4; $shmem_used/(1024*1024)" | bc)
 
-    for i in `ps -u $USER | awk 'NR > 1 {print $1}'`; do cat /proc/$i/status 2> /dev/null 1>> $REMORA_TMPDIR/mem_${REMORA_NODE}.tmp; done
+    MEM_PID=(); idx=0
+    for i in `ps -u $USER -o pid=`; do MEM_PID[$idx]=$i; idx=$((idx+1)); done
+    for pid in ${MEM_PID[@]}; do cat /proc/$pid/status 2> /dev/null 1>> $REMORA_TMPDIR/mem_${REMORA_NODE}.tmp; done
     vmem_max=$(grep VmPeak $REMORA_TMPDIR/mem_${REMORA_NODE}.tmp | awk '{sum+=$2} END {print sum/1024/1024}')
     rmem_max=$(grep VmHWM $REMORA_TMPDIR/mem_${REMORA_NODE}.tmp  | awk '{sum+=$2} END {print sum/1024/1024}')
     vmem=$(grep VmSize $REMORA_TMPDIR/mem_${REMORA_NODE}.tmp     | awk '{sum+=$2} END {print sum/1024/1024}')
