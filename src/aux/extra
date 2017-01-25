@@ -241,6 +241,8 @@ init_folders() {
     # Determine directory for temporary files
     if [ -z "$REMORA_TMPDIR" ]; then
         export REMORA_TMPDIR=$REMORA_OUTDIR
+    else
+		export REMORA_TMPDIR=$REMORA_TMPDIR/remora_$REMORA_JOB_ID
     fi
 	mkdir -p $REMORA_TMPDIR
 	rm -rf $REMORA_TMPDIR/*
