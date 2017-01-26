@@ -25,19 +25,21 @@ init_module_mpi()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
-  # Run check to see what MPI stack is in use
-  mpiexec --version | grep Intel
-  isIntelMPI=$( echo $? )
-  if [ $isIntelMPI ]; then
-    echo "REMORA_MPI=INTEL" >> $REMORA_OUTDIR/remora_env.txt
-    echo "export I_MPI_STATS=ipm" >> $REMORA_OUTDIR/remora_env.txt
-    echo "export I_MPI_STATS_FILE=mpi_data.txt" >> $REMORA_OUTDIR/remora_env.txt
-  else
-	echo "This is NOT Intel MPI"
-    echo "REMORA_MPI=NOT_INTEL" >> $REMORA_OUTDIR/remora_env.txt
-    if [ -e "$REMORA_BIN/../lib/libmpiP.so" ]; then
-        echo "export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so:$LD_PRELOAD" >> $REMORA_OUTDIR/remora_env.txt
-    fi
+  REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+  if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+      # Run check to see what MPI stack is in use
+      mpiexec --version | grep Intel
+      isIntelMPI=$( echo $? )
+      if [ "$isIntelMPI" == "0" ]; then
+          echo "export REMORA_MPI=INTEL" >> $REMORA_OUTDIR/remora_env.txt
+          echo "export I_MPI_STATS=ipm" >> $REMORA_OUTDIR/remora_env.txt
+          echo "export I_MPI_STATS_FILE=mpi_data.txt" >> $REMORA_OUTDIR/remora_env.txt
+      else
+          echo "export REMORA_MPI=NOT_INTEL" >> $REMORA_OUTDIR/remora_env.txt
+          if [ -e "$REMORA_BIN/../lib/libmpiP.so" ]; then
+              echo "export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so:$LD_PRELOAD" >> $REMORA_OUTDIR/remora_env.txt
+          fi
+      fi
   fi
 }
 
