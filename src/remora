@@ -86,20 +86,19 @@ SCRIPT_NAME="$(basename ${0})"
 
 # Parse input and setup data collection
 REMORA_OUTDIR=$($REMORA_BIN/scripts/remora_init.sh "$@")
+export REMORA_OUTDIR
 export NODES=`cat $REMORA_OUTDIR/remora_nodes.txt`
+
+$REMORA_BIN/scripts/remora_collect.sh "$@"
 source $REMORA_OUTDIR/remora_env.txt
 
 # Output real time results if running in monitor mode
 if [ "$REMORA_MODE" == "MONITOR" ]; then
-#	touch $REMORA_OUTDIR/monitor.txt
-#	tail -f $REMORA_OUTDIR/monitor.txt --pid=$REMORA_TOP_PID &
 	echo ""
 	echo "REMORA: Running in monitor mode. For real time updates use:"
 	echo "        tail -f $REMORA_OUTDIR/monitor.txt"
 	echo ""
 fi
-
-$REMORA_BIN/scripts/remora_collect.sh "$@"
 
 # Now that we are collecting data in the background
 # We can start he actual application
@@ -108,6 +107,8 @@ if [ "$REMORA_VERBOSE" == "1" ]; then
   echo "REMORA: Running command: $@ "
   echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 fi
+#export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so
+#export MPIP="-f $REMORA_OUTDIR"
 START=$(date +%s%N)
 $@
 END=$(date +%s%N)

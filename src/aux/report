@@ -80,6 +80,14 @@ show_final_report() {
         sed -i '1i #HOST     MAX  FREE_MIN' $REMORA_OUTDIR/gpu_memory_all_nodes.txt
     fi
 
+    # Show MPI communication time if available
+    # Check both for "data" from mpiP collection and "info" for sanity
+	if [ -e "$REMORA_OUTDIR/mpi_data.txt" ] && [ -e "$REMORA_OUTDIR/mpi_info.txt" ]; then
+        mpiTime=$(awk '{print $4}' $REMORA_OUTDIR/mpi_info.txt | tail -n 1 )
+        printf "%-29s %-1s %-4.2f %%\n" " MPI Communication Time" ":" $mpiTime | tee -a $REMORA_OUTDIR/remora_summary.txt
+    fi
+
+
     #Show some timings (h:m:s.ms)
     show_time $((END-START))
 

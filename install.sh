@@ -24,7 +24,7 @@ mkdir -p $REMORA_DIR/python
 
 REMORA_BUILD_DIR=$PWD
 
-VERSION=1.7
+VERSION=1.8
 COPYRIGHT1="Copyright 2016 The University of Texas at Austin."
 COPYRIGHT2="License: MIT <http://opensource.org/licenses/MIT>"
 COPYRIGHT3="This is free software: you are free to change and redistribute it."
@@ -57,12 +57,50 @@ echo             | tee -a $BUILD_LOG
 #Now build mpstat
 echo "Building mpstat ..." | tee -a $BUILD_LOG
 cd $REMORA_BUILD_DIR/extra
-git clone https://github.com/sysstat/sysstat | tee -a $BUILD_LOG
-cd sysstat
+sysfile=`ls -ld sysstat*.tar.gz | awk '{print $9}' | head -n 1`
+sysdir=`echo  ${sysfile%%.tar.gz}`
+tar xzvf ${sysfile}
+cd ${sysdir}
 ./configure | tee -a $BUILD_LOG
 make mpstat |  tee -a $BUILD_LOG
-echo "Installing mpstat ..."
+echo "Installing mpstat ..." | tee -a $INSTALL_LOG
 cp mpstat $REMORA_DIR/bin
+
+#Now build mpiP
+# Check if MPI compiler is available. If not, disable MPI module and skip mpiP build
+export CC=mpicc
+export F77=mpif77
+export ARCH=x86_64
+if [ "$( $CC --version >& /dev/null || echo "0")" == "0" ]; then 
+    haveMPICC=0
+else 
+    haveMPICC=1
+fi
+if [ "$( $F77 --version >& /dev/null || echo "0")" == "0" ]; then
+     haveMPIFC=0
+else 
+     haveMPIFC=1 
+fi
+#haveMPICC=1; haveMPICC=$( $CC --version >& /dev/null || echo "0" )
+#haveMPIFC=1; haveMPIFC=$( $F77 --version >& /dev/null || echo "0" )
+if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ]; then
+    echo "Building mpiP ..." | tee -a $BUILD_LOG
+    cd $REMORA_BUILD_DIR/extra
+    mpipfile=`ls -ld mpiP*.tar.gz | awk '{print $9}' | head -n 1`
+    mpipdir=`echo  ${mpipfile%%.tar.gz}`
+    tar xzvf ${mpipfile}
+    cd ${mpipdir}
+    ./configure CFLAGS="-g" --enable-demangling --disable-bfd --disable-libunwind --prefix=${REMORA_DIR} | tee -a $BUILD_LOG
+    make        | tee -a $BUILD_LOG
+    make shared | tee -a $BUILD_LOG
+    echo "Installing mpiP ..." | tee -a $INSTALL_LOG
+    make install
+else
+    echo ""
+    echo " WARNING : mpicc / mpif77 not found " | tee -a $BUILD_LOG
+    echo " WARNING : REMORA will be built without MPI support" | tee -a $BUILD_LOG
+    echo ""
+fi
 
 if [ "$PHI_BUILD" == "1" ]; then
 	echo "Building Xeon Phi affinity script ..."   |  tee -a $BUILD_LOG
@@ -75,7 +113,10 @@ fi
 echo "Copying all scripts to installation folder ..." |  tee -a $INSTALL_LOG
 cd $REMORA_BUILD_DIR
 cp -vr ./src/* $REMORA_DIR/bin
-
+if [ "$haveMPICC" == "0" ] || [ "$haveMPIFC" == "0" ]; then
+    sed '/mpi,MPI/d' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
+	mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/config/modules
+fi
 echo "Installing python module blockdiag ..." | tee -a $INSTALL_LOG
 module load python
 pip install blockdiag --target=$REMORA_DIR/python
