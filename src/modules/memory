@@ -47,18 +47,18 @@ collect_data_memory()
     shmem_used=`du /dev/shm 2>/dev/null | tail -n 1 | awk '{print $1} '`
     shmem=$(echo "scale=4; $shmem_used/(1024*1024)" | bc)
 
-    for i in `ps -u $USER | awk 'NR > 1 {print $1}'`; do cat /proc/$i/status 2> /dev/null 1>> $REMORA_TMPDIR/mem_${REMORA_NODE}.tmp; done
-    vmem_max=$(grep VmPeak $REMORA_TMPDIR/mem_${REMORA_NODE}.tmp | awk '{sum+=$2} END {print sum/1024/1024}')
-    rmem_max=$(grep VmHWM $REMORA_TMPDIR/mem_${REMORA_NODE}.tmp  | awk '{sum+=$2} END {print sum/1024/1024}')
+    MEM_PID=(); idx=0
+    for i in `ps -u $USER -o pid=`; do MEM_PID[$idx]=$i; idx=$((idx+1)); done
+    for pid in ${MEM_PID[@]}; do cat /proc/$pid/status 2> /dev/null 1>> $REMORA_TMPDIR/mem_${REMORA_NODE}.tmp; done
     vmem=$(grep VmSize $REMORA_TMPDIR/mem_${REMORA_NODE}.tmp     | awk '{sum+=$2} END {print sum/1024/1024}')
     rmem=$(grep VmRSS $REMORA_TMPDIR/mem_${REMORA_NODE}.tmp      | awk '{sum+=$2} END {print sum/1024/1024}')
     mem_free=`grep MemFree /proc/meminfo | awk '{ print $2/1024/1024 }'`
     tmem=$(echo "$rmem + $shmem" | bc)
-    if [ $(echo "$vmem_max > $vmem_max_global" | bc) -eq 1 ]; then
-        vmem_max_global=$vmem_max
+    if [ $(echo "$vmem > $vmem_max_global" | bc) -eq 1 ]; then
+        vmem_max_global=$vmem
     fi
-    if [ $(echo "$rmem_max > $rmem_max_global" | bc) -eq 1 ]; then
-        rmem_max_global=$rmem_max
+    if [ $(echo "$rmem > $rmem_max_global" | bc) -eq 1 ]; then
+        rmem_max_global=$rmem
     fi
     if [ $(echo "$tmem > $tmem_max_global" | bc) -eq 1 ]; then
         tmem_max_global=$tmem
@@ -170,7 +170,7 @@ finalize_module_memory()
     ######
     # Postprocessing of the memory data to show the final summary
     ######
-    vmax_mem=`tail -n 1 $REMORA_OUTDIR/memory_stats_${REMORA_NODE}.txt | awk '{printf "%6.4f\n",$2}'`
+    vmax_mem=`tail -n 1 $REMORA_OUTDIR/memory_stats_${REMORA_NODE}.txt | awk '{printf "%6.4f\n",$2}'` 
     tmax_mem=`tail -n 1 $REMORA_OUTDIR/memory_stats_${REMORA_NODE}.txt | awk '{printf "%6.4f\n",$8}'`
     free_mem=$(awk ' NR == 1 {max=$7; min=$7} NR > 1 && $7 < min {min=$7} END {printf "%6.4f\n",min }' $REMORA_OUTDIR/memory_stats_${REMORA_NODE}.txt)
     echo "${REMORA_NODE} $vmax_mem $tmax_mem $free_mem" >> $REMORA_OUTDIR/memory_all_nodes.txt
