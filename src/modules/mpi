@@ -24,8 +24,20 @@
 init_module_mpi()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-  if [ -e "$REMORA_BIN/../lib/libmpiP.so" ]; then
-      echo "export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so:$LD_PRELOAD" >> $REMORA_OUTDIR/remora_env.txt
+
+  # Run check to see what MPI stack is in use
+  mpiexec --version | grep Intel
+  isIntelMPI=$( echo $? )
+  if [ $isIntelMPI ]; then
+    echo "REMORA_MPI=INTEL" >> $REMORA_OUTDIR/remora_env.txt
+    echo "export I_MPI_STATS=ipm" >> $REMORA_OUTDIR/remora_env.txt
+    echo "export I_MPI_STATS_FILE=mpi_data.txt" >> $REMORA_OUTDIR/remora_env.txt
+  else
+	echo "This is NOT Intel MPI"
+    echo "REMORA_MPI=NOT_INTEL" >> $REMORA_OUTDIR/remora_env.txt
+    if [ -e "$REMORA_BIN/../lib/libmpiP.so" ]; then
+        echo "export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so:$LD_PRELOAD" >> $REMORA_OUTDIR/remora_env.txt
+    fi
   fi
 }
 
@@ -51,23 +63,42 @@ finalize_module_mpi()
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   source $REMORA_OUTDIR/remora_env.txt
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-  if [ "$REMORA_NODE" == "$REMORA_MASTER" ] && [ -e "$REMORA_BIN/../lib/libmpiP.so" ] ; then
+  if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
 	if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-        cd $REMORA_OUTDIR/..
-        # Check for mpiP output in case code was not MPI based
-        fileNum=$( ls -ltr *.mpiP )
-        if [ -n "$fileNum" ]; then
-	        outfile=$( ls -ltr *.mpiP | tail -n 1 | awk '{print $9}' )
-	        mpiNum=$( grep -c "MPI Task Assignment" $outfile ) 
-	        nodeNum=$( cat $REMORA_OUTDIR/remora_nodes.txt | wc -l )
-	        appTime=$( grep "*" $outfile | head -n 1 | awk '{print $2}' )
-            mpiTime=$(grep "*" $outfile | head -n 1 | awk '{print $3}' )
-            mpiFrac=$( grep "*" $outfile | head -n 1 | awk '{print $4}' )
-	        echo "Number of Nodes     : $nodeNum"    >  $REMORA_OUTDIR/mpi_info.txt
-	        echo "Number of MPI Tasks : $mpiNum"     >> $REMORA_OUTDIR/mpi_info.txt
-	        echo "Communication Time  : $mpiFrac %"  >> $REMORA_OUTDIR/mpi_info.txt
-            mv $outfile $REMORA_OUTDIR/mpi_data.txt	
-        fi
-	fi
+      if [ "$REMORA_MPI" == "NOT_INTEL" ] && [ -e "$REMORA_BIN/../lib/libmpiP.so" ] ; then
+          cd $REMORA_OUTDIR/..
+          # Check for mpiP output in case code was not MPI based
+          fileNum=$( ls -ltr *.mpiP )
+          if [ -n "$fileNum" ]; then
+	          outfile=$( ls -ltr *.mpiP | tail -n 1 | awk '{print $9}' )
+	          mpiNum=$( grep -c "MPI Task Assignment" $outfile ) 
+	          nodeNum=$( cat $REMORA_OUTDIR/remora_nodes.txt | wc -l )
+	          appTime=$( grep "*" $outfile | head -n 1 | awk '{print $2}' )
+              mpiTime=$(grep "*" $outfile | head -n 1 | awk '{print $3}' )
+              mpiFrac=$( grep "*" $outfile | head -n 1 | awk '{print $4}' )
+	          echo "Number of Nodes     : $nodeNum"    >  $REMORA_OUTDIR/mpi_info.txt
+	          echo "Number of MPI Tasks : $mpiNum"     >> $REMORA_OUTDIR/mpi_info.txt
+	          echo "Communication Time  : $mpiFrac %"  >> $REMORA_OUTDIR/mpi_info.txt
+              mv $outfile $REMORA_OUTDIR/mpi_data.txt	
+          fi
+      elif [ "$REMORA_MPI" == "INTEL" ]; then
+          cd $REMORA_OUTDIR/..
+          # Check for mpiP output in case code was not MPI based
+          fileNum=$( ls -ltr mpi_data.txt )
+          if [ -n "$fileNum" ]; then
+              outfile=mpi_data.txt
+              mpiNum=$( grep "mpi_tasks" $outfile | awk '{print $7}' )
+              nodeNum=$( grep "mpi_tasks" $outfile | awk '{print $9}' )
+              usrTime=$( grep "# user" $outfile | awk '{print $6}' )
+              sysTime=$(grep "# system" $outfile | awk '{print $6}' )
+              mpiTime=$(grep "# mpi" $outfile | awk '{print $6}' )
+              mpiFrac=$( echo "scale=4; 100.0 * $mpiTime / ( $usrTime + $sysTime +$mpiTime )" | bc ) 
+              echo "Number of Nodes     : $nodeNum"    >  $REMORA_OUTDIR/mpi_info.txt
+              echo "Number of MPI Tasks : $mpiNum"     >> $REMORA_OUTDIR/mpi_info.txt
+              echo "Communication Time  : $mpiFrac %"  >> $REMORA_OUTDIR/mpi_info.txt
+              mv $outfile $REMORA_OUTDIR/mpi_data.txt
+          fi
+	  fi
+    fi
   fi
 }
