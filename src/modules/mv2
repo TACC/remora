@@ -21,53 +21,43 @@
 #  2.- The full path where the output will be stored/read
 #  3.- The full path to an optional temporary storage location
 
-init_module_mpi()
+init_module_mv2()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
   if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
-      # Run check to see what MPI stack is in use
-      mpiexec --version | grep Intel
-      isIntelMPI=$( echo $? )
-      if [ "$isIntelMPI" == "0" ]; then
-          echo "export REMORA_MPI=INTEL" >> $REMORA_OUTDIR/remora_env.txt
-          echo "export I_MPI_STATS=ipm" >> $REMORA_OUTDIR/remora_env.txt
-          echo "export I_MPI_STATS_FILE=mpi_data.txt" >> $REMORA_OUTDIR/remora_env.txt
-      else
-          echo "export REMORA_MPI=NOT_INTEL" >> $REMORA_OUTDIR/remora_env.txt
-          if [ -e "$REMORA_BIN/../lib/libmpiP.so" ]; then
-              echo "export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so:$LD_PRELOAD" >> $REMORA_OUTDIR/remora_env.txt
-          fi
+      if [ -e "$REMORA_BIN/../lib/libmpiP.so" ]; then
+          echo "export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so:$LD_PRELOAD" >> $REMORA_OUTDIR/remora_env.txt
       fi
   fi
 }
 
-collect_data_mpi()
+collect_data_mv2()
 {
   :
 }
 
 # This function might perform some processing on the data.
 # If nothing needs to be done, it can be empty (but declared)
-process_data_mpi()
+process_data_mv2()
 {
   :
 }
 
-monitor_data_mpi()
+monitor_data_mv2()
 {
   :
 }
 
-finalize_module_mpi()
+finalize_module_mv2()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   source $REMORA_OUTDIR/remora_env.txt
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
   if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
 	if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-      if [ "$REMORA_MPI" == "NOT_INTEL" ] && [ -e "$REMORA_BIN/../lib/libmpiP.so" ] ; then
+      if [ -e "$REMORA_BIN/../lib/libmpiP.so" ] ; then
           cd $REMORA_OUTDIR/..
           # Check for mpiP output in case code was not MPI based
           fileNum=$( ls -ltr *.mpiP )
@@ -82,23 +72,6 @@ finalize_module_mpi()
 	          echo "Number of MPI Tasks : $mpiNum"     >> $REMORA_OUTDIR/mpi_info.txt
 	          echo "Communication Time  : $mpiFrac %"  >> $REMORA_OUTDIR/mpi_info.txt
               mv $outfile $REMORA_OUTDIR/mpi_data.txt	
-          fi
-      elif [ "$REMORA_MPI" == "INTEL" ]; then
-          cd $REMORA_OUTDIR/..
-          # Check for mpiP output in case code was not MPI based
-          fileNum=$( ls -ltr mpi_data.txt )
-          if [ -n "$fileNum" ]; then
-              outfile=mpi_data.txt
-              mpiNum=$( grep "mpi_tasks" $outfile | awk '{print $7}' )
-              nodeNum=$( grep "mpi_tasks" $outfile | awk '{print $9}' )
-              usrTime=$( grep "# user" $outfile | awk '{print $6}' )
-              sysTime=$(grep "# system" $outfile | awk '{print $6}' )
-              mpiTime=$(grep "# mpi" $outfile | awk '{print $6}' )
-              mpiFrac=$( echo "scale=4; 100.0 * $mpiTime / ( $usrTime + $sysTime +$mpiTime )" | bc ) 
-              echo "Number of Nodes     : $nodeNum"    >  $REMORA_OUTDIR/mpi_info.txt
-              echo "Number of MPI Tasks : $mpiNum"     >> $REMORA_OUTDIR/mpi_info.txt
-              echo "Communication Time  : $mpiFrac %"  >> $REMORA_OUTDIR/mpi_info.txt
-              mv $outfile $REMORA_OUTDIR/mpi_data.txt
           fi
 	  fi
     fi
