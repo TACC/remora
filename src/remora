@@ -110,7 +110,7 @@ fi
 #export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so
 #export MPIP="-f $REMORA_OUTDIR"
 START=$(date +%s%N)
-$@
+"$@"
 END=$(date +%s%N)
 $REMORA_BIN/scripts/remora_finalize.sh $END $START
 
