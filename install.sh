@@ -84,7 +84,7 @@ fi
 #haveMPICC=1; haveMPICC=$( $CC --version >& /dev/null || echo "0" )
 #haveMPIFC=1; haveMPIFC=$( $F77 --version >& /dev/null || echo "0" )
 mpiexec --version | grep Intel
-haveIMPI=$( $? )
+haveIMPI=$?
 if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ] && [ "$haveIMPI" == "0" ]; then
     echo " REMORA built with support for Mvapich2 MPI statistics" | tee -a $BUILD_LOG
     echo "Building mpiP ..." | tee -a $BUILD_LOG
@@ -98,7 +98,7 @@ if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ] && [ "$haveIMPI" == "0" ];
     make shared | tee -a $BUILD_LOG
     echo "Installing mpiP ..." | tee -a $INSTALL_LOG
     make install
-elif [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ] && [ "$haveIMPI" == "1" ]
+elif [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ] && [ "$haveIMPI" == "1" ]; then
     echo "" 
     echo " REMORA built with support for Intel MPI statistics" | tee -a $BUILD_LOG
     echo ""
