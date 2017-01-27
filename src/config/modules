@@ -2,7 +2,6 @@ cpu,CPU
 memory,MEMORY
 impi,MPI
 mv2,MPI
-ompi,MPI
 numa,NUMA
 dvs,IO
 lustre,IO
