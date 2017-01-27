@@ -83,8 +83,8 @@ else
 fi
 #haveMPICC=1; haveMPICC=$( $CC --version >& /dev/null || echo "0" )
 #haveMPIFC=1; haveMPIFC=$( $F77 --version >& /dev/null || echo "0" )
-mpiexec --version | grep Intel
-haveIMPI=$?
+mpiexec --version | grep Intel >& /dev/null
+haveIMPI=$((1-$?))
 if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ] && [ "$haveIMPI" == "0" ]; then
     echo " REMORA built with support for Mvapich2 MPI statistics" | tee -a $BUILD_LOG
     echo "Building mpiP ..." | tee -a $BUILD_LOG
@@ -124,7 +124,7 @@ if [ "$haveMPICC" == "0" ] || [ "$haveMPIFC" == "0" ]; then
     sed '/impi,MPI/d' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
     sed '/mv2,MPI/d' $REMORA_DIR/remora.tmp > $REMORA_DIR/bin/config/modules
 else
-    if [ "$haveIMPI" == "0" ]; then
+    if [ "$haveIMPI" == "1" ]; then
         sed '/mv2,MPI/d' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
         mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/config/modules
 	else
