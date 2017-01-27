@@ -83,7 +83,10 @@ else
 fi
 #haveMPICC=1; haveMPICC=$( $CC --version >& /dev/null || echo "0" )
 #haveMPIFC=1; haveMPIFC=$( $F77 --version >& /dev/null || echo "0" )
-if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ]; then
+mpiexec --version | grep Intel
+haveIMPI=$( $? )
+if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ] && [ "$haveIMPI" == "0" ]; then
+    echo " REMORA built with support for Mvapich2 MPI statistics" | tee -a $BUILD_LOG
     echo "Building mpiP ..." | tee -a $BUILD_LOG
     cd $REMORA_BUILD_DIR/extra
     mpipfile=`ls -ld mpiP*.tar.gz | awk '{print $9}' | head -n 1`
@@ -95,6 +98,10 @@ if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ]; then
     make shared | tee -a $BUILD_LOG
     echo "Installing mpiP ..." | tee -a $INSTALL_LOG
     make install
+elif [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ] && [ "$haveIMPI" == "1" ]
+    echo "" 
+    echo " REMORA built with support for Intel MPI statistics" | tee -a $BUILD_LOG
+    echo ""
 else
     echo ""
     echo " WARNING : mpicc / mpif77 not found " | tee -a $BUILD_LOG
@@ -114,8 +121,16 @@ echo "Copying all scripts to installation folder ..." |  tee -a $INSTALL_LOG
 cd $REMORA_BUILD_DIR
 cp -vr ./src/* $REMORA_DIR/bin
 if [ "$haveMPICC" == "0" ] || [ "$haveMPIFC" == "0" ]; then
-    sed '/mpi,MPI/d' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
-	mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/config/modules
+    sed '/impi,MPI/d' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
+    sed '/mv2,MPI/d' $REMORA_DIR/remora.tmp > $REMORA_DIR/bin/config/modules
+else
+    if [ "$haveIMPI" == "0" ]; then
+        sed '/mv2,MPI/d' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
+        mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/config/modules
+	else
+        sed '/impi,MPI/d' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
+        mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/config/modules
+    fi
 fi
 echo "Installing python module blockdiag ..." | tee -a $INSTALL_LOG
 module load python
