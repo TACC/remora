@@ -63,13 +63,12 @@ process_data_power()
   :
 }
 
-monitor_data_power()
+plot_data_power()
 {
-  :
-}
-
-finalize_module_power()
-{
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+        return
+    fi
     printf "%s \n" "<html>" > $REMORA_TMPDIR/power_${REMORA_NODE}.html
     printf "%s \n" "<head>" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
     printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
@@ -126,4 +125,15 @@ finalize_module_power()
     printf "%s \n" "  <div id=\"line_top_x\"></div> " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
     printf "%s \n" "</body> " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
     printf "%s \n" "</html> " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+}
+
+monitor_data_power()
+{
+  :
+}
+
+finalize_module_power()
+{
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    plot_data_power $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 }

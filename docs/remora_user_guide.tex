@@ -275,6 +275,8 @@ REMORA provides two different running modes and it also allows the users to spec
 	\item \texttt{REMORA\_MONITOR\_PERIOD}: Similar to \texttt{REMORA\_PERIOD}. It corresponds to the number of seconds between updates to the monitor file which contains the real time summary of resource utilization. This is provided in case regular monitoring data is required at a different rate than the full data collection. It must always be larger than \texttt{REMORA\_PERIOD}.
 	
 	\item \texttt{REMORA\_TMPDIR}: Full path for intermediate file storage. It is recommended that this is a local disk. Default value is the location of the REMORA output directory (which must be on a shared file system). When specified by the user REMORA will collect data in this location, and only copy the files to the output directory once data collection is complete. Using a local file system for the temporary files reduces overhead. 
+
+    \item \texttt{REMORA\_PLOT\_RESULTS}: By default, REMORA automatically generates a set of HTML files with plots for the collected data. However, for very large user cases, this automatic generation can take a long time. Users can skip the generation of these files by setting this variable to 0. The default value is 1 or unset (which equals 1).
 	
 	\item \texttt{REMORA\_VERBOSE}: Enable (1) or disable (0) verbose mode. Default is disabled.
 	

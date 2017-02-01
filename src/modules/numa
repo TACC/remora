@@ -154,14 +154,12 @@ process_data_numa()
   :
 }
 
-monitor_numa()
-{
-  :
-}
-
-finalize_module_numa()
+plot_data_numa()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+        return
+    fi
 
     local numStat=`numastat -c`
     local numNodes=`echo $numStat | grep -o ' Node' | wc -l`
@@ -427,4 +425,15 @@ finalize_module_numa()
     printf "%s \n" "</table>" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "</body> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html 
     printf "%s \n" "</html> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html 
+}
+
+monitor_numa()
+{
+  :
+}
+
+finalize_module_numa()
+{
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    plot_data_numa $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 }

@@ -156,6 +156,13 @@ is_mpi_job() {
     echo "export REMORA_SYMMETRIC=$REMORA_SYMMETRIC" >> $REMORA_OUTDIR/remora_env.txt
 }
 
+check_plot() {
+    if [ -z "$REMORA_PLOT_RESULTS" ]; then
+        export REMORA_PLOT_RESULTS=1
+    fi
+    echo "export REMORA_PLOT_RESULTS=$REMORA_PLOT_RESULTS" >> $REMORA_OUTDIR/remora_env.txt
+}
+
 check_gpu() {
     # By default, do not collect GPU data
     if [ -z "$REMORA_CUDA" ]; then

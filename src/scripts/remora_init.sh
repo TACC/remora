@@ -61,6 +61,9 @@ capture_environment
 # If CPU module is running we reduce sleep by 1 second
 check_cpu
 
+# Check if we are plotting the results
+check_plot
+
 # See if GPU support is required
 check_gpu
 

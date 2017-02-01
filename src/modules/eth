@@ -125,14 +125,12 @@ process_data_eth()
   :
 }
 
-monitor_data_eth()
-{
-  :
-}
-
-finalize_module_eth()
+plot_data_eth()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+        return
+    fi
     printf "%s \n" "<html>" > $REMORA_TMPDIR/eth_${REMORA_NODE}.html
     printf "%s \n" "<head>" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
     printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
@@ -201,4 +199,15 @@ finalize_module_eth()
     printf "%s \n" "  <div id=\"line_top_x\"></div> " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
     printf "%s \n" "</body> " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html 
     printf "%s \n" "</html> " >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
+}
+
+monitor_data_eth()
+{
+  :
+}
+
+finalize_module_eth()
+{
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    plot_data_eth $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 }

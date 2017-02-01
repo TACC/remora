@@ -73,14 +73,14 @@ process_data_temperature()
   :
 }
 
-monitor_data_temperature()
+plot_data_temperature()
 {
-  :
-}
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+        return
+    fi
 
-finalize_module_temperature()
-{
-     printf "%s \n" "<html>" > $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    printf "%s \n" "<html>" > $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
     printf "%s \n" "<head>" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
     printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
     printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
@@ -152,5 +152,15 @@ finalize_module_temperature()
     printf "%s \n" "  <div id=\"line_top_x\"></div> " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
     printf "%s \n" "</body> " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
     printf "%s \n" "</html> " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+}
 
+monitor_data_temperature()
+{
+  :
+}
+
+finalize_module_temperature()
+{
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    plot_data_temperature $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 }

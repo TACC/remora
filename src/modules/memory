@@ -74,29 +74,14 @@ process_data_memory()
  :
 }
 
-monitor_data_memory()
+plot_data_memory()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-    if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
-		max_mem=0; max_mem_global=0
-		for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`
-		do
-            # WARNING - No remote file validation check
-			COMMAND="tail -n 1 $REMORA_TMPDIR/memory_stats_${NODE}.txt"
-			max_mem=`ssh $NODE $COMMAND`
-			max_mem=`echo $max_mem | awk '{print $3}'`
-			if [ $(echo "$max_mem > $max_mem_global" | bc) -eq 1 ]; then max_mem_global=$max_mem; fi
-		done
-		echo $max_mem_global >> $REMORA_TMPDIR/monitor_memory.txt 
-		printf "%9.1f" $max_mem_global >> $REMORA_TMPDIR/.monitor
-	fi
-}
+    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+        return
+    fi
 
-finalize_module_memory()
-{
     # Generate the plot
-    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     printf "%s \n" "<html>" > $REMORA_TMPDIR/memory_${REMORA_NODE}.html
     printf "%s \n" "<head>" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
     printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
@@ -166,7 +151,33 @@ finalize_module_memory()
     printf "%s \n" "  <div id=\"chart_div\"></div> " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
     printf "%s \n" "</body> " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
     printf "%s \n" "</html> " >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html 
+}
 
+monitor_data_memory()
+{
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+    if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+		max_mem=0; max_mem_global=0
+		for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`
+		do
+            # WARNING - No remote file validation check
+			COMMAND="tail -n 1 $REMORA_TMPDIR/memory_stats_${NODE}.txt"
+			max_mem=`ssh $NODE $COMMAND`
+			max_mem=`echo $max_mem | awk '{print $3}'`
+			if [ $(echo "$max_mem > $max_mem_global" | bc) -eq 1 ]; then max_mem_global=$max_mem; fi
+		done
+		echo $max_mem_global >> $REMORA_TMPDIR/monitor_memory.txt 
+		printf "%9.1f" $max_mem_global >> $REMORA_TMPDIR/.monitor
+	fi
+}
+
+finalize_module_memory()
+{
+
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+
+    plot_data_memory $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
     ######
     # Postprocessing of the memory data to show the final summary
     ######
