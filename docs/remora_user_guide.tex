@@ -87,7 +87,7 @@
 \verb+ +
 \vspace{1em}
 \begin{flushright}
-\huge\bf REMORA v1.7.1\\
+\huge\bf REMORA v1.8\\
 \rule{\textwidth}{4pt}
 \large{\bf REsource MOnitoring for Remote Applications\\
 Document Revision 1.0\\
@@ -110,14 +110,14 @@ High Performance Computing \\
 Texas Advanced Computing Center\\
 The University of Texas at Austin\\
 \vspace{1cm}
-Copyright 2016 The University of Texas at Austin.
+Copyright 2017 The University of Texas at Austin.
 \end{flushleft}
 \newpage
 \end{titlepage}
 
 \begin{abstract}
 
-REMORA is a modular tool to monitor runtime resource utilization in HPC environments. As of version 1.7.1 the suite contains code designed to test:
+REMORA is a modular tool to monitor runtime resource utilization in HPC environments. As of version 1.8 the suite contains code designed to test:
 
 \begin{itemize}
 \item Memory utilization in CPUs, Xeon Phi co-processors, and NVIDIA GPUs
@@ -135,7 +135,7 @@ Throughout the text we have used text boxes to highlight important information. 
 
 Our intention is to create a simple runtime resource monitoring tool that provides both simple to understand high level information to the user, as well as detailed statistics for in-depth analysis. We welcome all feedback. Feedback that includes suggestions for improvement in the usability, reliability, and accuracy of this tool is particularly welcome. 
 
-Version 1.7.1 is a bug fix release that adds support for csh and tcsh users.
+Version 1.8 is a new release that includes MPI support and improved visualization of the results.
 
 REMORA is an open-source project. Funding to keep researchers working on REMORA depends on the value of this tool to the scientific community. We would appreciate if you could include the following citation in your scientific articles:
 
@@ -148,10 +148,10 @@ C. Rosales, A. G\'{o}mez-Iglesias, A. Predoehl. ``REMORA: a Resource Monitoring 
 \chapter{Installation}
 REMORA is simple to install. In order to use all of its features you will need GNU Make and a C compiler. If testing the Xeon Phi you will also need a compiler with support for compilation of native code for the Xeon Phi - currently limited to Intel 13+ compilers.
 
-First of all obtain the latest version tarball, currently remora-1.7.1.tar.gz \footnote{\href{https://github.com/TACC/remora/archive/v1.7.1.tar.gz}{https://github.com/TACC/remora/archive/v1.7.1.tar.gz}}, and expand it in a convenient location in your system:
+First of all obtain the latest version tarball, currently remora-1.8.tar.gz \footnote{\href{https://github.com/TACC/remora/archive/v1.8.tar.gz}{https://github.com/TACC/remora/archive/v1.8.tar.gz}}, and expand it in a convenient location in your system:
 
 \begin{verbatim}
-    tar xzvf ./remora-1.7.1.tar.gz
+    tar xzvf ./remora-1.8.tar.gz
 \end{verbatim}
 
 Alternatively clone the git repository with the latest development version (not recommended):
@@ -197,7 +197,6 @@ After installing remora please make sure the remora \verb+bin+ directory is in y
 	export REMORA_BIN=/home/carlos/remora/bin
 	export PATH=$PATH:$REMORA_BIN
 	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/carlos/remora/lib
-	export PYTHONPATH=$PYTHONPATH:/home/carlos/remora/python
 \end{verbatim}
 
 You may want to add these to your startup files to ensure REMORA is available every time you login. Once this setup has been done running remora is extremely simple.
@@ -287,7 +286,7 @@ REMORA provides two different running modes and it also allows the users to spec
 In addition to these variables a list of file systems that should be ignored during data collection can be provided to REMORA in the file \verb+config/fs_blacklist+. This is a simple text file with a names of mounts hat should be ignored during runtime.
 
 \section{Post-Processing}
-All the data is collected in a set of files with the statistics organized in columns. Users can take those files and run any postprocessing tool that they develop. However, for simplicity, REMORA already provides a plotting script called \verb+remora_post+ that takes all the statistics generated during collection and generates a number of plots. These plots show the most relevant information previously collected and represent a visual alternative while analyzing the results. This is a Python script that requires Numpy, matplotlib and blockdiag. The script can be called from the batch script or from the login nodes after the job has finished. In this second scenario, the script requires the id of the job to be analyzed as argument.
+All the data is collected in a set of files with the statistics organized in columns. Users can take those files and run any postprocessing tool that they develop. However, for simplicity, REMORA already provides a plotting script called \verb+remora_post+ that takes all the statistics generated during collection and generates a number of plots. These plots show the most relevant information previously collected and represent a visual alternative while analyzing the results. The script can be called from the batch script or from the login nodes after the job has finished. In this second scenario, the script requires the id of the job to be analyzed as argument.
 
 The post-processing script can be invoked simply as:
 
