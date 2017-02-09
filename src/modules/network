@@ -45,7 +45,71 @@ monitor_data_network()
 
 plot_data_network()
 {
-  :
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+  
+  if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+    return
+  fi
+
+  # Generate the plot
+  printf "%s \n" "<html>" > $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "<head>" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "google.charts.load('current', {packages:[\"orgchart\"]});" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+
+  printf "%s \n" "google.charts.setOnLoadCallback(drawChart);" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "data.addColumn('string', 'Node');" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "data.addColumn('string', 'Top');" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "data.addRows([" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+
+  cat $REMORA_TMPDIR/network_trace.txt | awk -v RS="_____________" '{ print $0 > "trace" NR }'
+  FILES=trace*
+  for f in $FILES; do
+    sed -i '/^$/d' $f
+
+    lines=`cat $f | sed '/^\s*$/d' | wc -l`
+    if [ "$lines" == "0" ]; then
+        continue
+    fi
+    line=`sed '1q;d' $f`
+
+    previous_machine=`echo $line | cut -d'"' -f 2`
+    idx=2
+    half=$((lines / 2))
+    while [ $idx -le $half ]; do
+        line=`sed "${idx}q;d" $f`
+        machine=`echo $line | cut -d'"' -f 2`
+        printf "%s \n" "['$previous_machine', '$machine']," >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+        previous_machine=$machine
+        let idx=idx+1
+    done
+    let idx=$((lines-1))
+    line=`sed "${idx}q;d" $f`
+    previous_machine=`echo $line | cut -d'"' -f 2`
+    let idx=idx-1
+    while [ $idx -ge $half ]; do
+        line=`sed "${idx}q;d" $f`
+        machine=`echo $line | cut -d'"' -f 2`
+        printf "%s \n" "['$previous_machine', '$machine']," >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+        previous_machine=$machine
+        let idx=idx-1
+    done
+  done
+
+  rm trace*
+  printf "%s \n" " ]);" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "var chart = new google.visualization.OrgChart(document.getElementById('chart_div'));" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "chart.draw(data, {allowHtml:true});" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "}" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "</script>" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "</head>" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "<body>" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "<div id="chart_div"></div>" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "</body>" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "</html>" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
 }
 
 finalize_module_network()
@@ -73,4 +137,6 @@ finalize_module_network()
     done
 	fi
   fi
+
+  plot_data_network $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 }
