@@ -43,6 +43,11 @@ monitor_data_network()
   :
 }
 
+plot_data_network()
+{
+  :
+}
+
 finalize_module_network()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3

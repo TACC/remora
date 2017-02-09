@@ -92,7 +92,7 @@ plot_data_lnet()
             first=2
             firsttimestamp=`echo $line | awk '{print $1;}'`
             for i in `seq 12`; do
-                previousdata[$i]=`echo $line | xargs | cut -f $i ' '`
+                previousdata[$i]=`echo $line | xargs | cut -f $i -d ' '`
             done
         fi
         local timestamp=`echo $line | awk '{print $1;}'`
@@ -101,7 +101,7 @@ plot_data_lnet()
         out=""
         colval=""
         for i in `seq 2 12`; do
-            colval=`echo $line | xargs | cut -f $i ' '`
+            colval=`echo $line | xargs | cut -f $i -d ' '`
             colval=$[colval-previousdata[$i]]
             printf "%s," $colval >> $REMORA_TMPDIR/lnet_${REMORA_NODE}.html
         done

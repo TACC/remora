@@ -52,6 +52,11 @@ monitor_data_gpu()
   :
 }
 
+plot_data_gpu()
+{
+  :
+}
+
 finalize_module_gpu()
 {
   :

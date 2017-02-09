@@ -50,6 +50,11 @@ monitor_data_mv2()
   :
 }
 
+plot_data_mv2()
+{
+  :
+}
+
 finalize_module_mv2()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3

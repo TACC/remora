@@ -174,7 +174,6 @@ monitor_data_memory()
 
 finalize_module_memory()
 {
-
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
     plot_data_memory $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR

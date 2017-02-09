@@ -427,7 +427,7 @@ plot_data_numa()
     printf "%s \n" "</html> " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html 
 }
 
-monitor_numa()
+monitor_data_numa()
 {
   :
 }

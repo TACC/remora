@@ -69,6 +69,14 @@ plot_data_power()
     if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
         return
     fi
+
+    if [ ! -e $REMORA_TMPDIR/power_${REMORA_NODE}.txt ]; then
+        if [ "$REMORA_VERBOSE" == "1" ]; then
+            echo "File $REMORA_TMPDIR/power_${REMORA_NODE}.txt not found"                                                      
+        fi  
+        return
+    fi
+
     printf "%s \n" "<html>" > $REMORA_TMPDIR/power_${REMORA_NODE}.html
     printf "%s \n" "<head>" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
     printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html

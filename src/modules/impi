@@ -49,6 +49,10 @@ monitor_data_impi()
   :
 }
 
+plot_data_impi() {
+  :
+}
+
 finalize_module_impi()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3

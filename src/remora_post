@@ -1,626 +1,97 @@
-#!/usr/bin/env python
+#!/bin/sh                                                                                   
 #
 #========================================================================
 # HEADER
 #========================================================================
-#% SYNOPSIS
-#+  remora_post            (from the batch script, after REMORA finishes)
-#+  remora_post JOBID      (from the commandline)
-#%
 #% DESCRIPTION
-#% REMORA: REsource MOnitoring for Remote Applications
+#% remora_post
 #%
-#%
-#% remora_post plots the data collected by REMORA. It needs a Python
-#% module loaded.
-#%
-#% This script receives as input a jobid. If the argument is notprovided,
-#% it assumes that it has been called from a job and takes the jobid from
-#% there.
-#%
+#% This script generates the graphical representation of the results 
+#% previously collected by REMORA.
+#% This script needs a parameter, the job id to plot or the output
+#% folder name.
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.7
+#-      version     REMORA 1.8
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
-#
-#========================================================================
-#
-#
-#========================================================================
-# END_OF_HEADER
 #========================================================================
 
-import os
-import os.path
 
-import sys
-
-#Avoid issues with X11
-try:
-  import matplotlib
-except ImportError:
-  print "ERROR: matplotlib could not be imported. Make sure you have matplotlib installed"
-  sys.exit(1)
-matplotlib.use('Agg')
-
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-try:
-  import numpy as np
-except ImportError:
-  print "ERROR: NumPy could not be imported. Make sure you have NumPy installed"
-  sys.exit(1)
-
-from itertools import ifilter
-import re
-from StringIO import StringIO
-#import csv
-import argparse
-
-period = 10
-
-line_styles=['-','--',':','-.']
-
-class text_colors:
-  OKBLUE = '\033[94m'
-  OKGREEN = '\033[92m'
-  WARNING = '\033[93m'
-  FAIL = '\033[31m'
-  ENDC = '\033[0m'
-  REMORA ='\033[91m'
-
-class headers:
-  REMORA=text_colors.REMORA + "REMORA: "
-  ERROR=text_colors.FAIL+"(ERROR) " + REMORA + text_colors.ENDC
-  WARNING=text_colors.WARNING+"(WARNING) " + REMORA + text_colors.ENDC
-  CONTACT=text_colors.OKGREEN + "\nPlease contact the developers if you need help" + text_colors.ENDC
-  CRITICAL=text_colors.FAIL + "(CRITICAL) " + REMORA + text_colors.ENDC
-  INFO=REMORA + text_colors.ENDC
-
-class tacc_log:
-  @staticmethod
-  def print_warning (text):
-    print headers.WARNING + text
-
-  @staticmethod
-  def print_error (text):
-    print headers.ERROR + text + headers.CONTACT
-
-  @staticmethod
-  def print_critical (text):
-    print headers.CRITICAL + text + headers.CONTACT
-
-  @staticmethod
-  def print_info (text):
-    print headers.INFO + text
-
-def print_help():
-  tacc_log.print_info("\n\tUsage:\n\t\t remora_post          (from batch script) \n\t\t remora_post JOBID    (from commandline)\n")
-
-def get_period(path):
-  try:
-    global period
-    file = path+"/INFO/remora_env.txt"
-    with open(file, 'r') as f:
-      lines = f.readlines()
-    for l in lines:
-      if "PERIOD" in l:
-        period = int(l.split('=')[1])
-        break
-  except Exception, e:
-    tacc_log.print_error (" While reading configuration file %s: %s" %(file, e))
-
-def plot_cpu (file):
-  """ Plot the cpu usage.
-      The argument is the path to a file that contains the cpu utilization of a given node in this format:
-        %time 4598452394
-        %usr 0.00 0.00 1.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00
-        %sys 2.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.99
-        %idle 98.00 100.00 99.00 100.00 100.00 100.00 100.00 100.00 100.00 100.00 100.00 100.00 100.00 100.00 100.00 99.01
-  """
-  text = ""
-  times = ""
-  numcolumns = 0
-  regex=re.compile('time')
-  with open(file,'r') as f:
-    for l in ifilter (regex.search, f):
-      times+=l
-
-  xvalues = np.empty(0, np.int)
-  for t in times.split('\n'):
-    parts = t.split()
-    if (len(parts)<1):
-      continue
-    if len(xvalues)==0:
-      xvalues = np.append(xvalues, 0)
-      first_val = int(parts[1])
-    else:
-      xvalues = np.append(xvalues, int(parts[1])-first_val)
-
-  regex=re.compile ('usr')
-  with open(file, 'r') as f:
-    for l in ifilter (regex.search, f):
-      text+=l
-      if not numcolumns:
-        numcolumns = len(l.split())
-  if numcolumns==0:
-    tacc_log.print_error (" While processing file %s: Incorrect number of columns (%d)" %(file, numcolumns))
-    return
-  color=cm.rainbow(np.linspace(0,1,numcolumns-1))
-  values = np.loadtxt(StringIO(text), usecols=range(1,numcolumns))
-  if (values.ndim<=1):
-    tacc_log.print_warning (" While processing file %s: it seems that there is not much information to plot. Think of decreasing REMORA_PERIOD" %(file))
-    return
-
-  ax = plt.subplot(111)
-  for i in xrange (values.shape[1] - 1):
-    ax.plot (xvalues, values[:,i], linestyle=line_styles[i%4], label="cpu"+str(i), c = color[i])
-
-  ax.plot (xvalues, values[:,0], linestyle="-", label = "cpu_avg", c = "black")
-
-  ax.set_title('CPU Utilization')
-  ax.set_ylabel('Utilization %')
-  ax.set_xlabel('Execution Time (s)')
-  box = ax.get_position()
-  ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-  ax.legend(loc='center left', bbox_to_anchor=(1,0.5), prop={'size':10})
-  plt.savefig (file.replace("txt", "png"))
-  plt.clf()
-  return xvalues, values[:,0]
-
-
-#  This is naive averaging which does not account for differences in sampling times.  
-#  Results will be skewed as sampling period approaches 1-2s
-def plot_avg_cpu(cpu_files, cpu_xvalues, cpu_yvalues):
-  #x-axis = time
-  #y-axis = user cpu usage
-
-  global period
-  num_samples = []
-  numcolumns = 0
-
-  #determine the number of samples to consider
-  #some nodes may get one or two more samples than others
-  #these extra samples are ignored
-  ###
-  #this is the naive part
-  for xvals in cpu_xvalues:
-    num_samples.append(len(xvals))
-  min_num_samples = min(num_samples)
-
-  #generate x-values based on the period and number of samples
-  #it is not a precise representation of the actual sample time,
-  #but it is close enough.
-  x_avg = []
-  time = 0
-  for i in range(0, min_num_samples):
-    x_avg.append(time)
-    time += period
-
-  y_avg = []
-  #each period (default 10 sec.) the cpu utilization is determined
-  #for each core on all machines involved in the job.
-  #here we take the average of the cores to get a CPU AVERAGE for
-  #each machine. We then take the average of the CPU AVERAGE on each machine.
-  #this is done for each period. 
-  for i in range(0, min_num_samples):
-    #keep track of the total for this iteration (each iteration represents a period)
-    iter_total = 0
-    for yvals in cpu_yvalues:
-      #np.average(yvals[i]) represents the CPU AVERAGE
-      #on one of the machines at a given period (i).
-      iter_total += np.average(yvals[i])
-    #divide the total by the number of machines.
-    y_avg.append(iter_total/len(cpu_yvalues))
-
-  #plot
-  ax = plt.subplot(111)
-  for i in xrange(len(cpu_yvalues)):
-#    nodename = re.search('(cpu_)(\w+)(.txt)', cpu_files[i])
-    nodename = cpu_files[i].split('_', 1)[-1].split(".txt")[0]
-    #ax.plot(cpu_xvalues[i], cpu_yvalues[i], label=nodename.group(2), linestyle='--')
-    ax.plot(cpu_xvalues[i], cpu_yvalues[i], label=nodename, linestyle='--')
-  ax.plot(x_avg, y_avg, label="cpu avg")
-  ax.set_title('Average CPU Utilization Across All Machines')
-  ax.set_ylabel('Utilization %')
-  ax.set_xlabel('Execution Time (s)')
-  box = ax.get_position()
-  ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-  ax.legend(loc='center left', bbox_to_anchor=(1,0.5), prop={'size':10})
-  file = cpu_files[0].split('/')
-  file[-1] = "cpu_all_nodes.png"
-  file = "/".join(file)
-  plt.savefig (file)
-  plt.clf()
-     
-def plot_ibxmit(file):
-  """ Plot InfiniBand transmited packets.
-      The argument is the path to a file that contains the a list of numbers
-  """
-  vals =  np.loadtxt (file)
-  ax = plt.subplot(111)
-  vals[:,0]=vals[:,0]-vals[:,0][0]
-  ax.plot (vals[:,0], vals[:,1], label="TX Packets", c='blue', linestyle=line_styles[0])
-  ax.plot (vals[:,0], vals[:,2], label="RX Packets", c='red', linestyle=line_styles[1])
-  ax.plot (vals[:,0], vals[:,3], label="TX Bytes", c='green', linestyle=line_styles[0])
-  ax.plot (vals[:,0], vals[:,4], label="RX Bytes", c='yellow', linestyle=line_styles[1])
-  ax.set_ylabel('Number of Packets/Bytes')
-  ax.set_xlabel('Execution Time (s)')
-  ax.set_title('InfiniBand Traffic')
-  box = ax.get_position()
-  ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-  ax.legend(loc='center left', bbox_to_anchor=(1,0.5), prop={'size':10})
-  plt.savefig (file.replace("txt","png"))
-  plt.clf()
-
-
-def plot_eth(file):
-  """ Plot Ethernet traffic.
-      The argument is the path to a file that contains the a list of numbers
-  """
-  #skip header row
-  vals =  np.loadtxt (file,skiprows=1)
-  ax = plt.subplot(111)
-  #subtract time x+1 from time x to determine the amount of time that transpired.
-  vals[:,0]=vals[:,0]-vals[:,0][0]
-  #plot the various columns
-  ax.plot (vals[:,0], vals[:,1], label="Tx Packets", c='blue', linestyle=line_styles[0], linewidth=2)
-  ax.plot (vals[:,0], vals[:,2], label="Rx Packets", c='red', linestyle=line_styles[1], linewidth=2)
-  ax.plot (vals[:,0], vals[:,3], label="Tx Bytes", c='green', linestyle=line_styles[0], linewidth=2)
-  ax.plot (vals[:,0], vals[:,4], label="Rx Bytes", c='yellow', linestyle=line_styles[1], linewidth=2)
-  ax.plot (vals[:,0], vals[:,5], label="Tx Errors", c='purple', linestyle=line_styles[1])
-  ax.plot (vals[:,0], vals[:,6], label="Tx Dropped", c='pink', linestyle=line_styles[1])
-  ax.plot (vals[:,0], vals[:,7], label="Rx Frame Errors", c='brown', linestyle=line_styles[1])
-  ax.plot (vals[:,0], vals[:,8], label="Rx CRC Errors", c='aqua', linestyle=line_styles[1])
-  ax.set_ylabel('Number of Packets/Bytes')
-  ax.set_xlabel('Execution Time (s)')
-  ax.set_title('Ethernet Traffic')
-  box = ax.get_position()
-  ax.set_yscale('log')
-  ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-  ax.legend(loc='center left', bbox_to_anchor=(1,0.5), prop={'size':10})
-  plt.savefig (file.replace("txt","png"))
-  plt.clf()
-
-
-def plot_numa(file):
-  """ Plot NUMA statistics
-      The argument is the path to a file that contains the numa statistics of a node in this format:
-        Node0_Numa_Hit Node0_Numa_Miss Node0_Local_Node Node0_Other_Node Node0_MemFree Node0_MemUsed Node1_Numa_Hit Node1_Numa_Miss Node1_Lo cal_Node Node1_Other_Node Node1_MemFree Node1_MemUsed
-        119550 7156 118502 8204 15287.96 1046.65 151974 3766 127249 28491 12982.48 3401.52
-        119600 7156 118552 8204 15289.90 1044.71 154041 3766 129316 28491 10972.47 5411.53
-  """
-  fig, ax = plt.subplots()
-  values = np.genfromtxt(file, names=True)
-  labels = values.dtype.names
-  xvalues = np.array (values[labels[0]])
-  xvalues = xvalues-xvalues[0] #subtract first element from the list (to get elapsed time)
-
-  ax2=ax.twinx()
-  color=cm.rainbow(np.linspace(0,1,len(labels)+1))
-  for i in xrange (len(labels)):
-    if i==0:
-      continue
-    if (i==4 or i==10): #numa_mem_free
-      ax2.plot(xvalues, values[labels[i]]/1024, linestyle=line_styles[0], label=labels[i], lw=2, c=color[i])
-    elif (i==5 or i==11): #numa mem used
-      ax2.plot(xvalues, values[labels[i]]/1024, linestyle=line_styles[1], label=labels[i], lw=1.5, c=color[i])
-    else:
-      ax.plot (xvalues, values[labels[i]], linestyle=line_styles[3], label=labels[i], lw=0.5, c=color[i])
-  ax.set_title('NUMA Stats')
-  box = ax.get_position()
-  ax.set_position([box.x0+box.width*0.25, box.y0, box.width * 0.6, box.height])
-  ax2.set_position([box.x0+box.width*0.25, box.y0, box.width * 0.6, box.height])
-  ax2.set_ylabel('Memory (GB)', position=(1.1,1))
-  ax.set_xlabel('Execution Time (s)')
-  ax.legend(loc='center left', bbox_to_anchor=(-0.65,0.5), prop={'size':9})
-  ax2.legend(loc='center left', bbox_to_anchor=(1,0.5), prop={'size':9})
-  plt.savefig (file.replace("txt", "png"))
-  plt.clf()
-
-
-def plot_mem(file):
-  """ Plot memory usage.
-      The argument is the path to a file that contains the following columns:
-        TIME VMEM_MAX VMEM RMEM_MAX RMEM SHMEM MEM_FREE
-  """
-  values = np.genfromtxt(file, names=True)
-  labels = values.dtype.names
-  xvalues = np.array (values[labels[0]])
-  xvalues = xvalues-xvalues[0] #subtract first element from the list (to get elapsed time)
-  color=cm.rainbow(np.linspace(0,1,len(labels)))
-  ax = plt.subplot(111)
-  for i in xrange (len(labels)):
-    if i==0:
-      continue
-    if i==(len(labels)-2):
-      ax.plot (xvalues, values[labels[i]], label=labels[i], lw=2.0, c=color[i])
-    elif i==(len(labels)-1):
-      ax.plot (xvalues, values[labels[i]], label=labels[i], lw=1.5, c=color[i])
-    else:
-      ax.plot (xvalues, values[labels[i]], label=labels[i], linestyle=line_styles[(i/2)], c=color[i])
-  ax.set_title('Memory Utilization - ' + file[file.find ("mem_stats_"):].replace("mem_stats_","").replace(".txt",""))
-  ax.set_ylabel ('Memory (GB)')
-  ax.set_xlabel ('Execution Time (s)')
-  ax.yaxis.grid(b=True, which='major', color='0.75',linestyle=':')
-  box = ax.get_position()
-  ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-  ax.legend(loc='center left', bbox_to_anchor=(1,0.5), prop={'size':10})
-  plt.savefig (file.replace("txt", "png"))
-  plt.clf()
-
-
-def is_number(s):
-  """ Trivial method to detect whether a string is a number or not.
-  """
-  try:
-    float(s)
-    return True
-  except:
-    return False
-
-
-def plot_lustre(file):
-  """ The new format of this files is as follows"
-      TIMESTAMP fs-RQ       fs-RD         fs-WR
-      123456    5368950       1917334       524528
-      123457    5368992       1917334       524560
-      123458    5369034       1917334       524560
-  """
-
-
-  """ The format of this file is as follows"
-      work       scratch       home1
-      5368950       1917334       524528
-      5368992       1917334       524560
-      5369034       1917334       524560
-      5369076       1917334       524590
-  """
-
-  if not os.path.isfile (file):
-    return
-
-  fig, ax = plt.subplots()
-  values = np.genfromtxt(file, names=True)
-  labels = values.dtype.names
-  xvalues = xrange(0, len(values[labels[0]])) #np.array (values[labels[0]])
-
-  color=cm.rainbow(np.linspace(0,1,len(labels)+1))
-  for i in xrange (1, len(labels)):
-    ax.plot (xvalues, values[labels[i]], linestyle=line_styles[0], label=labels[i], lw=0.5, c=color[i])
-
-  ax.set_title('Lustre Load')
-  box = ax.get_position()
-  ax.set_position([box.x0+box.width*0.25, box.y0, box.width * 0.6, box.height])
-  ax.set_xlabel('Execution Time (seconds)')
-  ax.legend(loc='center left', bbox_to_anchor=(-0.65,0.5), prop={'size':9})
-  plt.savefig (file.replace("txt", "png"))
-  plt.clf()
-
-
-
-def plot_lnstats(file):
-
-  """ Plot some lustre stats.
-      The format of this file is (the values must be recalculated so that the first row is reset to 0 and the other rows are row[i]=row[i-1]) :
-        msgs_alloc msgs_max errors send_count recv_count route_count drop_count send_length recv_length route_length drop_length
-        0 4621 0 17244807 17313557 0 0 214284416775 350284694519 0 0
-        0 4621 0 17244859 17313608 0 0 214284439895 350284716623 0 0
-  """
-  vals = np.loadtxt (file, usecols=(0, 1, 2, 4, 5, 7, 8, 9, 11), skiprows=1)
-  if (vals.ndim<=1):
-    tacc_log.print_warning (" While processing file %s: it seems that there is not much information to plot. Think of decreasing REMORA_PERIOD" %(file))
-    return
-  rows, columns = vals.shape
-
-  labels = ["time", "msgs_alloc", "msgs_max", "send_count", "recv_count", "drop_count", "send_length", "recv_length", "drop_length"]
-  xvalues = np.array (vals[:,0])
-  xvalues = xvalues-xvalues[0] #subtract first element from the list (to get elapsed time)
-
-  color=cm.rainbow(np.linspace(0,1,len(labels)))
-  #Calculate difference between row[i] and row[i-1], so that we reset the stats
-  vals = np.diff (vals, axis=0)
-  #Insert a row with value 0 at row 0
-  vals = np.insert (vals, 0, np.zeros(vals.shape[1])).reshape(rows, columns)
-
-  fig = plt.figure()
-  ax = plt.subplot(111)
-
-  for i, l in enumerate(labels):
-    if i==0:
-      continue
-    ax.plot (xvalues, vals[:,i], label=l, c=color[i], linestyle=line_styles[i%4])
-  box = ax.get_position()
-  ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-  ax.set_title('Lustre Counters')
-  ax.set_xlabel('Execution Time (s)')
-  ax.legend(loc='center left', bbox_to_anchor=(1,0.5), prop={'size':10})
-  plt.savefig (file.replace("txt", "png"))
-  plt.clf()
-
-
-def plot_stats(folder):
-  """ Main method for plotting stats.
-      It simply calls other functions.
-  """
-  import glob
-
-  cpu_files = glob.glob(folder+'/CPU/cpu*txt')
-  cpu_xvalues = []
-  cpu_yvalues = []
-  for file in cpu_files:
-    try:
-      xvalues, yvalues = plot_cpu(file)
-      cpu_xvalues.append(xvalues)
-      cpu_yvalues.append(yvalues)
-    except Exception, e:
-      tacc_log.print_error (" While processing file %s: %s" %(file, e))
-
-  try:
-    plot_avg_cpu(cpu_files, cpu_xvalues, cpu_yvalues)
-  except Exception, e:
-    tacc_log.print_error (" While processing cpu avg files: %s" %(e))     
-
-  numa_files = glob.glob(folder+"/NUMA/numa*txt")
-  for file in numa_files:
-    try:
-      plot_numa (file)
-    except Exception, e:
-      tacc_log.print_error (" While processing file %s: %s" %(file, e))
-
-  mem_files = glob.glob(folder+"/MEMORY/memory_stats*txt")
-  for file in mem_files:
-    try:
-      plot_mem (file)
-    except Exception, e:
-      tacc_log.print_error (" While processing file %s: %s" %(file, e))
-
-  lustre_files = glob.glob(folder+"/IO/lustre*_rate.txt")
-  for file in lustre_files:
-    try:
-      plot_lustre (file)
-    except Exception, e:
-      tacc_log.print_error (" While processing file %s: %s" %(file, e))
-
-  ibxmit_files = glob.glob(folder+"/NETWORK/ib_packets*txt")
-  for file in ibxmit_files:
-    try:
-      plot_ibxmit(file)
-    except Exception, e:
-      tacc_log.print_error (" While processing file %s: %s" %(file, e))
-
-  eth_files = glob.glob(folder+"/NETWORK/network_eth_traffic*txt")
-  for file in eth_files:
-    try:
-      plot_eth(file)
-    except Exception, e:
-      tacc_log.print_error (" While processing file %s: %s" %(file, e))
-
-  #Plot the file with lnet stats
-  lnet_files = glob.glob(folder+'/IO/lnet_counters*.txt')
-  for file in lnet_files:
-    try:
-      plot_lnstats (file)
-    except Exception, e:
-      tacc_log.print_error (" While processing file %s: %s" %(file, e))
-
-
-def plot_network(folder):
-  """ Generates a diagram of the network
-  """
-  #Variables used
-  start =""  #Start node
-  end=""     #End node
-  switch_leaf1="" #One of the leaf switches
-  switch_leaf2="" #Another leaf switch
-  switch_core=""  #Core switch
-
-  if (not os.path.isfile (folder+"/NETWORK/network_trace.txt")):
-    return
-  with open(folder+"/NETWORK/network_trace.txt") as f:
-    lines = f.readlines()
-
-  fout = open (folder+"/NETWORK/network_diag.diag", "w")
-  #Create a set of common options for the diag file (orientation and colors)
-  fout.write ("blockdiag {\n")
-  fout.write ("orientation = portrait\n")
-  fout.write ("class core_switch [color = pink, style = dashed];\n class redline [color = red, style = dotted];\n")
-  fout.write ("class leaf_switch [color = orange];\n")
-
-  for l in lines:
-    #If the line starts with __ it means that it's a separator of ibtracert calls
-    #We use this to plot the values that we have already read (switches and nodes)
-    if l.startswith('__'):
-      #If there is a core switch, put it in the diag file. There will always be a switch_leaf1
-      if (switch_core!=""):
-        fout.write (switch_core + " -> " + switch_leaf1 + "[thick];\n")
-        #If there a switch_leaf2 it means that two different leaf switches are used (shouldn't always be like this?)
-        if (switch_leaf2!=""):
-          fout.write (switch_core + " -> " + switch_leaf2 + "[thick];\n")
-        #Apply style for the core switch
-        fout.write (switch_core + "[ class = \"core_switch\"];\n")
-      #Create the link from the start node to the switch associated to that node
-      fout.write (switch_leaf1 + " -> " + start + ";\n")
-      fout.write (switch_leaf1 + "[ class = \"leaf_switch\"];\n")
-      #If there is a second leaf switch, create the connection from the switch to the end node
-      if (switch_leaf2!=""):
-        fout.write (switch_leaf2 + " -> " + end + ";\n")
-        fout.write (switch_leaf2 + "[ class = \"leaf_switch\"];\n")
-      else:
-        #If there's not a second switch, create a link from the first switch to the end node
-        fout.write (switch_leaf1 + " -> " + end + ";\n")
-      #After writing to the diag file, reset the variables
-      start =""
-      end=""
-      switch_leaf1=""
-      switch_leaf2=""
-      switch_core=""
-      continue
-
-    #If the line starts with 'From' that indicates a connection from a node to a leaf switch
-    if l.startswith('From'):
-      start = l.split()[-2:][0].replace('"', '')
-    #A line starting with 'To' indicates a connection from a leaf switch to a node
-    if l.startswith('To'):
-      end = l.split()[-2:][0].replace('"','')
-
-    #If a line contains 'switch port', read the name of the switch
-    if "switch port" in l:
-      #If switch_leaf1 is not set, that means we are reading the first one
-      if switch_leaf1=="":
-        switch_leaf1 = l.split()[-4:][0].replace('"','') + l.split()[-5:-4][0]
-      else:
-        #If switch_leaf1 is set, but switch_core is not, then we are reading a switch core (based on the order of the lines)
-        if (switch_core==""):
-          switch_core = l.split()[-1:][0].split(':')[0].replace('"','').replace(";","-")
-        else:
-          #if switch_leaf1 is set and switch_core is also set, then we have to be reading a second leaf switch
-          switch_leaf2 = l.split()[-4:][0].replace('"','') + l.split()[-5:-4][0]
-
-  fout.write ("}")
-  fout.close()
-
-  #Now, call the program that creates the png file using the diag file
-  try:
-    from blockdiag import parser, builder, drawer
-    with open(folder+"/NETWORK/network_diag.diag") as f:
-      content = f.read()
-    tree=parser.parse_string(content)
-    diagram = builder.ScreenNodeBuilder.build(tree)
-    output_fn = folder+"/NETWORK/network_diag.png"
-    draw = drawer.DiagramDraw('PNG', diagram, filename=output_fn)
-    draw.draw()
-    draw.save()
-  except Exception, e:
-    tacc_log.print_error ("Something happened while plotting the network diagram: %s"%e)
-
-
-if __name__ == "__main__":
-  parser = argparse.ArgumentParser(description='Plots the data collected by REMORA. It can be called from the batch script or from the commmandline once the job has finished.')
-  parser.add_argument("-j", "--jobid", help="JOBID to postprocess. Only required from the commandline (nothing required in batch script)")
-
-  args = parser.parse_args()
-  jobid = ""
-
-  if (os.environ.has_key("SLURM_JOB_ID")):
-    jobid = os.environ.get("SLURM_JOB_ID")
-
-  if (os.environ.has_key("JOB_ID")):
-      jobid = os.environ.get("JOB_ID")
-
-  if jobid=="":
-    if args.jobid:
-      jobid = str(args.jobid)
-
-  if (not os.path.exists (os.getcwd()+"/remora_"+str(jobid))):
-    tacc_log.print_critical ("Impossible to find folder remora_%s" %(jobid))
-    exit(1)
-
-  tacc_log.print_info("This script is deprecated starting on REMORA 1.7")
-  get_period (os.getcwd()+"/remora_"+str(jobid))
-  plot_stats(os.getcwd()+"/remora_"+str(jobid))
-  plot_network(os.getcwd()+"/remora_"+str(jobid))
+REMORA_JOB_ID=-1
+if [ "$#" -ne 2 ]; then
+    source $REMORA_BIN/aux/scheduler
+    get_job_id
+    if [ "$REMORA_JOB_ID" == "-1" ] ; then
+        echo "Illegal number of parameters. You have to specify the job id you want to plot:"
+        echo "$ remora_post -j jobid"
+        echo "If you are running a remote job, this message should not apper"
+        return
+    fi
+else
+    if [ "$REMORA_JOB_ID" == "-1" ] && [ ! "$1" == "-j" ]; then
+        echo "Unknown option. Please call remora_post as follows: "
+        echo "$ remora_post -j jobid"
+        echo "If you are running a remote job, this message should not apper"
+        return
+    else
+        REMORA_JOB_ID=$2
+    fi
+fi
+
+RESULT_FOLDER="remora_$REMORA_JOB_ID"
+
+#Just in case, I'm going to allow users to specify "remora -j remora_XXXXX"
+if [ ! -d $RESULT_FOLDER ] ; then
+    RESULT_FOLDER=$2
+    if [ ! -d $RESULT_FOLDER ]; then
+        echo "Impossible to find the results folder. Exiting"
+        return
+    fi
+fi
+
+if [ "$REMORA_VERBOSE" == "1" ]; then
+    echo "Processing result folder: $RESULT_FOLDER"
+fi
+
+#Read the configuration
+CONFIGPATH=$REMORA_BIN/config
+
+#Get the active modules
+fileItemString=$(cat $CONFIGPATH/modules | cut -f1 -d "," | tr "\n" " ")
+#Get the output directories for the modules
+outDirsString=$(cat $CONFIGPATH/modules | cut -f2 -d "," | tr "\n" " ")
+#Get the nodes used during the execution
+nodesString=$(cat $RESULT_FOLDER/INFO/remora_nodes.txt | cut -f2 -d "," | tr "\n" " ")
+
+REMORA_MODULES=($fileItemString)
+REMORA_OUTPUTS=($outDirsString)
+NODES=($nodesString)
+
+#Save the value of REMORA_PLOT_RESULTS. We are going to set to 1 no matter what and restore
+#the value later on
+
+OLD_PLOT_RESULTS=REMORA_PLOT_RESULTS
+export REMORA_PLOT_RESULTS=1
+
+#Iterate over the active modules
+for i in "${!REMORA_MODULES[@]}"; do 
+    #Source the module file
+    if [ "$REMORA_VERBOSE" == "1" ]; then
+        echo "Sourcing $REMORA_BIN/modules/${REMORA_MODULES[$i]}"
+    fi
+    source $REMORA_BIN/modules/${REMORA_MODULES[$i]}
+    #For each node used during the execution, process its output for this module
+    for REMORA_NODE in $NODES; do
+        if [ "$REMORA_VERBOSE" == "1" ]; then
+            echo "Plotting ${REMORA_MODULES[$i]} data for node $REMORA_NODE"
+        fi
+        plot_data_${REMORA_MODULES[$i]} $REMORA_NODE $RESULT_FOLDER/${REMORA_OUTPUTS[$i]} $RESULT_FOLDER/${REMORA_OUTPUTS[$i]}
+    done
+done
+
+#Restore the REMORA_PLOT_RESULTS value
+export REMORA_PLOT_RESULTS=OLD_PLOT_RESULTS
 

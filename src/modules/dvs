@@ -191,6 +191,11 @@ monitor_data_dvs()
 	fi
 }
 
+plot_data_dvs()
+{
+  :
+}
+
 finalize_module_dvs()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
