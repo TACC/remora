@@ -11,13 +11,14 @@
 #% This script provides extra functionality used by REMORA
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.7
+#-      version     REMORA 1.8
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
 #
 #========================================================================
 #  HISTORY
+#       2017/02/14: Improved verbose mode
 #       2015/12/04: Initial version
 #========================================================================
 
@@ -87,9 +88,7 @@ parse_environment() {
     if [ -z "$REMORA_VERBOSE" ]; then
         export REMORA_VERBOSE=0
     fi
-    if [ "x$REMORA_VERBOSE" == "x1" ]; then
-        usagefull
-    fi
+    
     if [ -z "$REMORA_MODE" ]; then
         export REMORA_MODE=FULL
     fi
@@ -206,6 +205,10 @@ check_io() {
 
 remora_read_active_modules()
 {
+    if [ "$REMORA_VERBOSE" == "1" ]; then
+        echo "  Checking active modules"
+    fi
+
     local CONFIGPATH=$REMORA_BIN/config
     local MODULEPATH=$REMORA_BIN/modules
     #Check if REMORA_MODULE_PATH and REMORA_CONFIG_PATH have been defined
@@ -227,7 +230,7 @@ remora_read_active_modules()
     do  
       source $MODULEPATH/$MODULE
       if [ "$REMORA_VERBOSE" == "1" ]; then
-        echo "Module $MODULE is active"
+        echo "      Module $MODULE is active"
       fi  
     done
 }
@@ -276,7 +279,7 @@ init_folders() {
     done
 
     # Pass output directory name to parent remora script
-    echo $REMORA_OUTDIR
+#    echo $REMORA_OUTDIR
 }
 
 capture_environment() {

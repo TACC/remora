@@ -28,10 +28,15 @@
 #% REMORA_MODE    - How many stats are collected. Possible values:
 #%                  - FULL (default): cpu, memory, network, lustre
 #%                  - BASIC: cpu, memory
+#% REMORA_PLOT_RESULTS  - Whether the results are plotted. Values:
+#%                          - 1 (default): HTML files are generated.
+#%                          - 0: plots will be generated only if the
+#%                               postprocessing tool (remora_post) is
+#%                               invoked.
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.7
+#-      version     REMORA 1.8
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
@@ -85,11 +90,16 @@ SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
 SCRIPT_NAME="$(basename ${0})"
 
 # Parse input and setup data collection
-REMORA_OUTDIR=$($REMORA_BIN/scripts/remora_init.sh "$@")
-export REMORA_OUTDIR
-export NODES=`cat $REMORA_OUTDIR/remora_nodes.txt`
+#Source the remora_init script (it defines the function that initializes REMORA)
+source $REMORA_BIN/scripts/remora_init.sh
+#Call the initialization function
+remora_init "$@"
 
-$REMORA_BIN/scripts/remora_collect.sh "$@"
+#Source the remora_collect script
+source $REMORA_BIN/scripts/remora_collect.sh
+#Start data collection
+remora_collect "$@"
+
 source $REMORA_OUTDIR/remora_env.txt
 
 # Output real time results if running in monitor mode
@@ -103,14 +113,21 @@ fi
 # Now that we are collecting data in the background
 # We can start he actual application
 if [ "$REMORA_VERBOSE" == "1" ]; then
+  echo ""
   echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
   echo "REMORA: Running command: $@ "
   echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+  echo ""
 fi
-#export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so
-#export MPIP="-f $REMORA_OUTDIR"
+#Log the start time
 START=$(date +%s%N)
+#Run the command!!!!
 "$@"
+#Log the end time
 END=$(date +%s%N)
-$REMORA_BIN/scripts/remora_finalize.sh $END $START
+
+#Once the command has finished, source the finalize method
+source $REMORA_BIN/scripts/remora_finalize.sh
+#Finalize REMORA
+remora_finalize $END $START
 
