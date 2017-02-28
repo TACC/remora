@@ -35,24 +35,36 @@ remora_configure_modules()
 # Call the monitor_module function of each active module
 remora_monitor_modules()
 {
+    local NODE=$1
+    local OUTDIR=$2
+    local TMPDIR=$3
+    shift 3
+    REMORA_MODULES=("${@}")
+
     for MODULE in "${REMORA_MODULES[@]}"
     do  
         if [ "$REMORA_VERBOSE" == "1" ]; then
-            echo monitor_data_$MODULE $1 $2 $3
+            echo "monitor_data_$MODULE $NODE $OUTDIR $TMPDIR"
         fi  
-        monitor_data_$MODULE $1 $2 $3
+        monitor_data_$MODULE $NODE $OUTDIR $TMPDIR
     done
 }
 
 #Call the c llect_data_module function of each active module
 remora_execute_modules()
 {
+    local NODE=$1
+    local OUTDIR=$2
+    local TMPDIR=$3
+    shift 3
+    REMORA_MODULES=("${@}")
+
     for MODULE in "${REMORA_MODULES[@]}"
     do
         if [ "$REMORA_VERBOSE" == "1" ]; then
-            echo collect_data_$MODULE $1 $2 $3
+            echo "collect_data_$MODULE $NODE $OUTDIR $TMPDIR"
         fi
-        collect_data_$MODULE $1 $2 $3
+        collect_data_$MODULE $NODE $OUTDIR $TMPDIR
     done
 }
 

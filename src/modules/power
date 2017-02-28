@@ -28,8 +28,15 @@ init_module_power()
   #If not present, don't collect power
   #If sensors returns an error (not configured or not allowed), ignore
   #the message and configure REMORA to ignore power collection
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+
   sensors
   export REMORA_POWER_IGNORE=$?
+
+  REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+  if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+      echo "export REMORA_POWER_IGNORE=$REMORA_POWER_IGNORE" >> $REMORA_OUTDIR/remora_env.txt
+  fi
 
   if [ $REMORA_POWER_IGNORE -ne 0 ]; then
     return 1
@@ -52,7 +59,8 @@ collect_data_power()
   # We use sensors. Among other things, sensors is going to return something like this:
   # power1:      159.00 W  (interval =   1.00 s)
   local power=`sensors | grep power1 | awk '{print $2;}'`
-  printf "%-17d %-17d\n" $TIMESTAMP $power >> $REMORA_TMPDIR/power_${REMORA_NODE}.txt 
+
+  printf "%-17s %-17s\n" $TIMESTAMP $power >> $REMORA_TMPDIR/power_${REMORA_NODE}.txt
 }
 
 

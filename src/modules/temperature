@@ -26,6 +26,12 @@ init_module_temperature()
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   files=`ls -v /sys/devices/platform/coretemp.0/temp*_input`
   export REMORA_TEMPERATURE_IGNORE=$?
+
+  REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+  if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+      echo "export REMORA_TEMPERATURE_IGNORE=$REMORA_TEMPERATURE_IGNORE" >> $REMORA_OUTDIR/remora_env.txt
+  fi  
+
   if [ $REMORA_TEMPERATURE_IGNORE -ne 0 ]; then
     return 1
   fi

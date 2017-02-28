@@ -68,6 +68,6 @@ function remora_collect() {
     echo ${PID_MIC[@]} > $REMORA_OUTDIR/remora_pid_mic.txt
     echo ${PID_MON[@]} > $REMORA_OUTDIR/remora_pid_mon.txt
     if [ "$REMORA_VERBOSE" == "1" ]; then
-        echo "REMORA collection finished"
+        echo "REMORA collection finished. Processes launched."
     fi
 }

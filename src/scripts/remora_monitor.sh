@@ -39,7 +39,7 @@ while [ 1 ]; do
 	if [ "$REMORA_VERBOSE" == "1" ]; then
         echo "sleep $REMORA_MONITOR_PERIOD"
     fi
-    remora_monitor_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+    remora_monitor_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR "${REMORA_MODULES[@]}"
 	remora_monitor_summary $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR 
     sleep $REMORA_MONITOR_PERIOD
 done
