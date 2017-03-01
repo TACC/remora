@@ -100,6 +100,11 @@ source $REMORA_BIN/scripts/remora_collect.sh
 #Start data collection
 remora_collect "$@"
 
+# Need to wait for file system commit
+lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
+while [ "$lastline" != "#EOF" ]; do
+    lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
+done
 source $REMORA_OUTDIR/remora_env.txt
 
 # Output real time results if running in monitor mode
