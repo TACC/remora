@@ -119,5 +119,6 @@ finalize_module_impi()
             mv $outfile $REMORA_OUTDIR
 	  fi
     fi
+    plot_data_impi $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
   fi
 }
