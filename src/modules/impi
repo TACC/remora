@@ -89,7 +89,7 @@ plot_data_impi()
         printf "%s \n" "</script>" >> $REMORA_TMPDIR/impi_comm_fraction.html
         printf "%s \n" "</head>" >> $REMORA_TMPDIR/impi_comm_fraction.html
         printf "%s \n" "<body>" >> $REMORA_TMPDIR/impi_comm_fraction.html
-        printf "%s \n" "<div id="piechart" style="width: 900px; height: 500px;"></div>" >> $REMORA_TMPDIR/impi_comm_fraction.html
+        printf "%s \n" "<div id=\"piechart\" style=\"width: 900px; height: 500px;\"></div>" >> $REMORA_TMPDIR/impi_comm_fraction.html
         printf "%s \n" "</body>" >> $REMORA_TMPDIR/impi_comm_fraction.html
         printf "%s \n" "</html>" >> $REMORA_TMPDIR/impi_comm_fraction.html
     fi
