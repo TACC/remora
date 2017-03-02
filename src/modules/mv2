@@ -73,10 +73,10 @@ finalize_module_mv2()
 	          appTime=$( grep "*" $outfile | head -n 1 | awk '{print $2}' )
               mpiTime=$(grep "*" $outfile | head -n 1 | awk '{print $3}' )
               mpiFrac=$( grep "*" $outfile | head -n 1 | awk '{print $4}' )
-	          echo "Number of Nodes     : $nodeNum"    >  $REMORA_OUTDIR/mpi_info.txt
-	          echo "Number of MPI Tasks : $mpiNum"     >> $REMORA_OUTDIR/mpi_info.txt
-	          echo "Communication Time  : $mpiFrac %"  >> $REMORA_OUTDIR/mpi_info.txt
-              mv $outfile $REMORA_OUTDIR/mpi_data.txt	
+	          echo "Number of Nodes     : $nodeNum"    >  $REMORA_OUTDIR/mv2_info.txt
+	          echo "Number of MPI Tasks : $mpiNum"     >> $REMORA_OUTDIR/mv2_info.txt
+	          echo "Communication Time  : $mpiFrac %"  >> $REMORA_OUTDIR/mv2_info.txt
+              mv $outfile $REMORA_OUTDIR/mv2_data.txt	
           fi
 	  fi
     fi

@@ -28,7 +28,7 @@ init_module_impi()
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
   if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
       echo "export I_MPI_STATS=ipm" >> $REMORA_OUTDIR/remora_env.txt
-      echo "export I_MPI_STATS_FILE=mpi_data.txt" >> $REMORA_OUTDIR/remora_env.txt
+      echo "export I_MPI_STATS_FILE=impi_data.txt" >> $REMORA_OUTDIR/remora_env.txt
   fi
 }
 
