@@ -125,6 +125,7 @@ REMORA is a modular tool to monitor runtime resource utilization in HPC environm
 \item IO utilization for the Lustre and DVS file systems
 \item NUMA properties
 \item Network topology
+\item MPI communication statistics
 \item Power consumption
 \item CPU temperature
 \end{itemize}
@@ -135,7 +136,11 @@ Throughout the text we have used text boxes to highlight important information. 
 
 Our intention is to create a simple runtime resource monitoring tool that provides both simple to understand high level information to the user, as well as detailed statistics for in-depth analysis. We welcome all feedback. Feedback that includes suggestions for improvement in the usability, reliability, and accuracy of this tool is particularly welcome. 
 
+<<<<<<< HEAD
+Version 1.8 is a feature release that adds support for MPI communication statistics, reduced overhead in  memory data collection and several other implementation improvements.
+=======
 Version 1.8 is a new release that includes MPI support and improved visualization of the results.
+>>>>>>> bd701ed7bdecf998b922164b2afcf6c325c661b8
 
 REMORA is an open-source project. Funding to keep researchers working on REMORA depends on the value of this tool to the scientific community. We would appreciate if you could include the following citation in your scientific articles:
 
@@ -146,7 +151,7 @@ C. Rosales, A. G\'{o}mez-Iglesias, A. Predoehl. ``REMORA: a Resource Monitoring 
 \tableofcontents
 
 \chapter{Installation}
-REMORA is simple to install. In order to use all of its features you will need GNU Make and a C compiler. If testing the Xeon Phi you will also need a compiler with support for compilation of native code for the Xeon Phi - currently limited to Intel 13+ compilers.
+REMORA is simple to install. In order to use all of its features you will need GNU Make and a C compiler. If testing the Xeon Phi you will also need a compiler with support for compilation of native code for the Xeon Phi - currently limited to Intel 13+ compilers. Support for MPI statistics requires a functional MPI compiler and runtime.
 
 First of all obtain the latest version tarball, currently remora-1.8.tar.gz \footnote{\href{https://github.com/TACC/remora/archive/v1.8.tar.gz}{https://github.com/TACC/remora/archive/v1.8.tar.gz}}, and expand it in a convenient location in your system:
 
@@ -186,6 +191,11 @@ The executable tests will be placed in the \verb+remora/bin+ directory unless th
 \begin{verbatim}
     REMORA_INSTALL_PREFIX=</install/dir/location> ./install.sh
 \end{verbatim}
+
+\section{MPI Support}
+If you support multiple MPI stacks in your system you should build a version for each of them, since the collection of MPI statistics is performed differently for different MPI stacks. The installation script with test your mpiexec and mpicc / mpiF90 compilers to detect the current MPI stack and build and install the appropriate version. Simply use a different installation prefix for each of the stacks so the installations do not overwrite each other. 
+
+When no MPI compiler is present during the installation, remora will be installed with full functionality except for the missing MPI statistics support.
 
 \FloatBarrier
 \chapter{Using REMORA}
@@ -238,13 +248,14 @@ TEMPERATURE & CPU temperature\\
 
 At the end of your job execution the output directory will contain a set of subdirectories with information about different resources used by your code -- See table \ref{tab:outdir} -- as well as a summary output in your terminal screen or stdout file. An example of the summary output is shown in Figure \ref{fig:summary}.
 
-The summary shown in Figure \ref{fig:summary} indicates that the maximum memroy used per node in this particualr execution was 5.43 GB and that the code run for just over 43 seconds. From the output we can also see that the job was run out of the \verb+scratch+ file system, and that very small amounts or IO occurred both throughout the execution. As indicated by the \verb+Sampling Period+ entry data was collected using a \verb+REMORA_PERIOD+ of 2 seconds, and the complete collectad data set can be found in the \verb+remora_6707930+ directory. At this point one may be satisfied with the summary report - which will have also been saved to a text file in the \verb+remora_6707930/INFO+ directory.
+The summary shown in Figure \ref{fig:summary} indicates that the maximum memory used per node in this particualr execution was 5.43 GB and that the code run for just over 43 seconds, with 5.6\% of the total execution time spent in MPI routines (inclusive of communication and MPI IO). From the output we can also see that the job was run out of the \verb+scratch+ file system, and that very small amounts or IO occurred both throughout the execution. As indicated by the \verb+Sampling Period+ entry data was collected using a \verb+REMORA_PERIOD+ of 2 seconds, and the complete collectad data set can be found in the \verb+remora_6707930+ directory. At this point one may be satisfied with the summary report - which will have also been saved to a text file in the \verb+remora_6707930/INFO+ directory.
 
 \begin{figure}
 \begin{verbatim}
 =============================== REMORA SUMMARY ===============================
  Max Memory Used Per Node     : 5.43 GB
  Total Elapsed Time           : 0d 0h 0m 43s 289ms
+ MPI Communication Time       : 5.6 %
 ------------------------------------------------------------------------------
  Max IO Load / home1          :      68 IOPS      42 RD(MB/S)       0 WR(MB/S)
  Max IO Load / scratch        :      70 IOPS       1 RD(MB/S)       0 WR(MB/S)
@@ -346,6 +357,7 @@ REMORA collects a set of statistics that are useful in many different scenarios 
 \item NUMA information.
 \item I/O information (file system load and Lustre traffic).
 \item Network information (topology and InfiniBand traffic).
+\item MPI Statistics (time, most used MPI calls, message sizes)
 \end{itemize}
 
 Dynamic information is collected every \texttt{REMORA\_PERIOD} seconds. The following describes the data collected in more detail. 
@@ -401,6 +413,9 @@ Our tool collects information regarding the data transferred by Lustre on each n
 
 \paragraph{InfiniBand Packets}
 Number of packets transmitted using InfiniBand. This data can be used to get extra information regarding how the communication in parallel applications takes place. In particular, the time series can be used to correlate high network activity levels with sections of the code, and those sections can be revised for possible optimization.
+
+\paragraph{MPI Statistics}
+MPI statistics are collected using mpiP for Mvapich2 and the internal mechanisms for Intel MPI. The percentage of execution time spent in MPI calls is included in the summeary report, and the raw data stored in the MPI/mpi_data.txt file. No graphics for this data are provided currently, but we plan on including them in a new revision of the code.
 
 \FloatBarrier
 \section{Modular Design}
@@ -540,6 +555,7 @@ Since version 1.6.0, REMORA allows system administrators to easily change the fu
 \item ib
 \item gpu
 \item network
+\item mpi
 \end{itemize}
 
 These modules are currently specified in the configuration file. At runtime, REMORA will read this file and execute all the modules listed on it.
