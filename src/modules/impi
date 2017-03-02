@@ -61,20 +61,20 @@ finalize_module_impi()
   if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
 	if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
         cd $REMORA_OUTDIR/..
+        outfile=impi_data.txt
         # Check for mpiP output in case code was not MPI based
-        fileNum=$( ls -ltr mpi_data.txt )
+        fileNum=$( ls -ltr $outfile )
         if [ -n "$fileNum" ]; then
-            outfile=mpi_data.txt
             mpiNum=$( grep "mpi_tasks" $outfile | awk '{print $7}' )
             nodeNum=$( grep "mpi_tasks" $outfile | awk '{print $9}' )
             usrTime=$( grep "# user" $outfile | awk '{print $6}' )
             sysTime=$(grep "# system" $outfile | awk '{print $6}' )
             mpiTime=$(grep "# mpi" $outfile | awk '{print $6}' )
             mpiFrac=$( echo "scale=4; 100.0 * $mpiTime / ( $usrTime + $sysTime +$mpiTime )" | bc ) 
-            echo "Number of Nodes     : $nodeNum"    >  $REMORA_OUTDIR/mpi_info.txt
-            echo "Number of MPI Tasks : $mpiNum"     >> $REMORA_OUTDIR/mpi_info.txt
-            echo "Communication Time  : $mpiFrac %"  >> $REMORA_OUTDIR/mpi_info.txt
-            mv $outfile $REMORA_OUTDIR/mpi_data.txt
+            echo "Number of Nodes     : $nodeNum"    >  $REMORA_OUTDIR/impi_info.txt
+            echo "Number of MPI Tasks : $mpiNum"     >> $REMORA_OUTDIR/impi_info.txt
+            echo "Communication Time  : $mpiFrac %"  >> $REMORA_OUTDIR/impi_info.txt
+            mv $outfile $REMORA_OUTDIR
 	  fi
     fi
   fi
