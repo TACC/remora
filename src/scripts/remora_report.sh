@@ -44,6 +44,10 @@ remora_read_active_modules
 #Configure the modules (they might not need it)
 remora_configure_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 
+# Tag end of file so taht we know when it is OK to source / read
+# from a different shell
+echo "#EOF" >> $REMORA_OUTDIR/remora_env.txt
+
 while [ 1 ]; do
     remora_execute_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR "${REMORA_MODULES[@]}"
     if [ "$REMORA_VERBOSE" == "1" ]; then
