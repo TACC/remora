@@ -103,11 +103,11 @@ plot_data_impi()
         call3=$( head -n $((firstline+3)) $REMORA_OUTDIR/impi_data.txt | tail -n 1 | awk '{print $2}')
         call4=$( head -n $((firstline+4)) $REMORA_OUTDIR/impi_data.txt | tail -n 1 | awk '{print $2}')
         call5=$( head -n $((firstline+5)) $REMORA_OUTDIR/impi_data.txt | tail -n 1 | awk '{print $2}')
-        time1=$( head -n $((firstline+1)) $REMORA_OUTDIR/impi_data.txt | tail -n 1 | awk '{print $3}')
-        time2=$( head -n $((firstline+2)) $REMORA_OUTDIR/impi_data.txt | tail -n 1 | awk '{print $3}')
-        time3=$( head -n $((firstline+3)) $REMORA_OUTDIR/impi_data.txt | tail -n 1 | awk '{print $3}')
-        time4=$( head -n $((firstline+4)) $REMORA_OUTDIR/impi_data.txt | tail -n 1 | awk '{print $3}')
-        time5=$( head -n $((firstline+5)) $REMORA_OUTDIR/impi_data.txt | tail -n 1 | awk '{print $3}')       
+        time1=$( head -n $((firstline+1)) $REMORA_OUTDIR/impi_data.txt | tail -n 1 | awk '{print $5}')
+        time2=$( head -n $((firstline+2)) $REMORA_OUTDIR/impi_data.txt | tail -n 1 | awk '{print $5}')
+        time3=$( head -n $((firstline+3)) $REMORA_OUTDIR/impi_data.txt | tail -n 1 | awk '{print $5}')
+        time4=$( head -n $((firstline+4)) $REMORA_OUTDIR/impi_data.txt | tail -n 1 | awk '{print $5}')
+        time5=$( head -n $((firstline+5)) $REMORA_OUTDIR/impi_data.txt | tail -n 1 | awk '{print $5}')       
 
         # Generate the bar chart for the top 5 MPI calls
         printf "%s \n" "<html>" > $REMORA_TMPDIR/impi_breakdown.html
@@ -119,7 +119,7 @@ plot_data_impi()
 
         printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/impi_breakdown.html
         printf "%s \n" "var data = google.visualization.arrayToDataTable([" >> $REMORA_TMPDIR/impi_breakdown.html
-        printf "['MPI Call', 'Time in Seconds'],\n" >> $REMORA_TMPDIR/impi_breakdown.html
+        printf "['MPI Call', 'Fraction of MPI Time (%)'],\n" >> $REMORA_TMPDIR/impi_breakdown.html
         printf "['$call1', $time1]," >> $REMORA_TMPDIR/impi_breakdown.html
         printf "['$call2', $time2]," >> $REMORA_TMPDIR/impi_breakdown.html
         printf "['$call3', $time3]," >> $REMORA_TMPDIR/impi_breakdown.html
@@ -130,7 +130,7 @@ plot_data_impi()
         printf "%s \n" "var options = {" >> $REMORA_TMPDIR/impi_breakdown.html
         printf "%s \n" "chart: {" >> $REMORA_TMPDIR/impi_breakdown.html
         printf "%s \n" "title: 'Top MPI Calls'," >> $REMORA_TMPDIR/impi_breakdown.html
-        printf "%s \n" "subtitle: 'Time in Seconds'," >> $REMORA_TMPDIR/impi_breakdown.html
+        printf "%s \n" "subtitle: 'Fraction of Total MPI Time (%)'," >> $REMORA_TMPDIR/impi_breakdown.html
         printf "%s \n" "}," >> $REMORA_TMPDIR/impi_breakdown.html
         printf "%s \n" "bars: 'horizontal' // Required for Material Bar Charts." >> $REMORA_TMPDIR/impi_breakdown.html
         printf "%s \n" "};" >> $REMORA_TMPDIR/impi_breakdown.html
