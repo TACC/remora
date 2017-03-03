@@ -75,7 +75,7 @@ plot_data_mv2()
         printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/mv2_comm_fraction.html
 
         printf "%s \n" "var data = google.visualization.arrayToDataTable([" >> $REMORA_TMPDIR/mv2_comm_fraction.html
-        printf "%s \n" "['Task', 'Time in %']," >> $REMORA_TMPDIR/mv2_comm_fraction.html
+        printf "%s \n" "['Task', 'Time in Seconds']," >> $REMORA_TMPDIR/mv2_comm_fraction.html
         printf "['Sequential Work',     $serTime ], \n" >> $REMORA_TMPDIR/mv2_comm_fraction.html
         printf "['MPI',      $mpiTime ] \n" >> $REMORA_TMPDIR/mv2_comm_fraction.html
         printf "%s \n" "]);" >> $REMORA_TMPDIR/mv2_comm_fraction.html
