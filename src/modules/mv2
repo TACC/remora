@@ -121,12 +121,12 @@ plot_data_mv2()
 
         printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "var data = google.visualization.arrayToDataTable([" >> $REMORA_TMPDIR/mv2_breakdown.html
-        printf "['MPI Call', 'Fraction of MPI Time (%)'],\n" >> $REMORA_TMPDIR/mv2_breakdown.html
-        printf "['$call1', $time1]," >> $REMORA_TMPDIR/mv2_breakdown.html
-        printf "['$call2', $time2]," >> $REMORA_TMPDIR/mv2_breakdown.html
-        printf "['$call3', $time3]," >> $REMORA_TMPDIR/mv2_breakdown.html
-        printf "['$call4', $time4]," >> $REMORA_TMPDIR/mv2_breakdown.html
-        printf "['$call5', $time5]" >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "['MPI Call', 'Fraction of MPI Time (%%)'],\n" >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "['$call1', $time1],\n" >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "['$call2', $time2],\n" >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "['$call3', $time3],\n" >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "['$call4', $time4],\n" >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "['$call5', $time5]\n" >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "]);" >> $REMORA_TMPDIR/mv2_breakdown.html
 
         printf "%s \n" "var options = {" >> $REMORA_TMPDIR/mv2_breakdown.html
