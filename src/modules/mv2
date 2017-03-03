@@ -112,9 +112,10 @@ finalize_module_mv2()
 	          outfile=$( ls -ltr *.mpiP | tail -n 1 | awk '{print $9}' )
 	          mpiNum=$( grep -c "MPI Task Assignment" $outfile ) 
 	          nodeNum=$( cat $REMORA_OUTDIR/remora_nodes.txt | wc -l )
-	          appTime=$( grep "*" $outfile | head -n 1 | awk '{print $2}' )
-            mpiTime=$(grep "*" $outfile | head -n 1 | awk '{print $3}' )
-            totTime=$( echo "scale=2;  $usrTime + $sysTime + $mpiTime " | bc ) 
+	          totTime=$( grep "*" $outfile | head -n 1 | awk '{print $2}' )
+            mpiTime=$( grep "*" $outfile | head -n 1 | awk '{print $3}' )
+            totTime=$( echo "scale=2; $totTime / $mpiNum " | bc )
+            mpiTime=$( echo "scale=2; $mpiTime / $mpiNum " | bc ) 
             mpiFrac=$( echo "scale=2; 100.0 * $mpiTime / $totTime" | bc ) 
 	          echo "Number of Nodes      : $nodeNum"     >  $REMORA_OUTDIR/mv2_info.txt
 	          echo "Number of MPI Tasks  : $mpiNum"      >> $REMORA_OUTDIR/mv2_info.txt
