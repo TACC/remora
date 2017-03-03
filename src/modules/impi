@@ -59,8 +59,9 @@ plot_data_impi()
     REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
     if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
         # Get overall data from generated file
-        mpifrac=$(tail -n 1 $REMORA_OUTDIR/impi_info.txt | awk '{print $4}')
-        serialfrac=$( echo "scale=4; 100 - $mpifrac" | bc )
+        mpiTime=$(grep "MPI Execution Time" $REMORA_OUTDIR/impi_info.txt | awk '{print $5}')
+        totTime=$(grep "Total Execution Time" $REMORA_OUTDIR/impi_info.txt | awk '{print $5}')
+        serTime=$( echo "scale=2; $totTime - $mpiTime" | bc )
 
         # Generate the plot
         printf "%s \n" "<html>" > $REMORA_TMPDIR/impi_comm_fraction.html
@@ -74,8 +75,8 @@ plot_data_impi()
 
         printf "%s \n" "var data = google.visualization.arrayToDataTable([" >> $REMORA_TMPDIR/impi_comm_fraction.html
         printf "%s \n" "['Task', 'Time in %']," >> $REMORA_TMPDIR/impi_comm_fraction.html
-        printf "['Sequential Work',     $serialfrac ], \n" >> $REMORA_TMPDIR/impi_comm_fraction.html
-        printf "['MPI',      $mpifrac ] \n" >> $REMORA_TMPDIR/impi_comm_fraction.html
+        printf "['Sequential Work',     $serTime ], \n" >> $REMORA_TMPDIR/impi_comm_fraction.html
+        printf "['MPI',      $mpiTime ] \n" >> $REMORA_TMPDIR/impi_comm_fraction.html
         printf "%s \n" "]);" >> $REMORA_TMPDIR/impi_comm_fraction.html
 
         printf "%s \n" "var options = {" >> $REMORA_TMPDIR/impi_comm_fraction.html
@@ -112,10 +113,13 @@ finalize_module_impi()
             usrTime=$( grep "# user" $outfile | awk '{print $6}' )
             sysTime=$(grep "# system" $outfile | awk '{print $6}' )
             mpiTime=$(grep "# mpi" $outfile | awk '{print $6}' )
-            mpiFrac=$( echo "scale=4; 100.0 * $mpiTime / ( $usrTime + $sysTime +$mpiTime )" | bc ) 
-            echo "Number of Nodes     : $nodeNum"    >  $REMORA_OUTDIR/impi_info.txt
-            echo "Number of MPI Tasks : $mpiNum"     >> $REMORA_OUTDIR/impi_info.txt
-            echo "Communication Time  : $mpiFrac %"  >> $REMORA_OUTDIR/impi_info.txt
+            totTime=$( echo "scale=2;  $usrTime + $sysTime + $mpiTime " | bc ) 
+            mpiFrac=$( echo "scale=2; 100.0 * $mpiTime / $totTime" | bc ) 
+            echo "Number of Nodes      : $nodeNum"     >  $REMORA_OUTDIR/impi_info.txt
+            echo "Number of MPI Tasks  : $mpiNum"      >> $REMORA_OUTDIR/impi_info.txt
+            echo "Total Execution Time : $totTime (s)" >> $REMORA_OUTDIR/impi_info.txt
+            echo "MPI Execution Time   : $mpiTime (s)" >> $REMORA_OUTDIR/impi_info.txt
+            echo "MPI Fraction of Time : $mpiFrac (%)" >> $REMORA_OUTDIR/impi_info.txt
             mv $outfile $REMORA_OUTDIR
 	  fi
     fi

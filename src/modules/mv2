@@ -60,8 +60,9 @@ plot_data_mv2()
     REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
     if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
         # Get overall data from generated file
-        mpifrac=$(tail -n 1 $REMORA_OUTDIR/mv2_info.txt | awk '{print $4}')
-        serialfrac=$( echo "scale=4; 100 - $mpifrac" | bc )
+        mpiTime=$(grep "MPI Execution Time" $REMORA_OUTDIR/mv2_info.txt | awk '{print $5}')
+        totTime=$(grep "Total Execution Time" $REMORA_OUTDIR/mv2_info.txt | awk '{print $5}')
+        serTime=$( echo "scale=2; $totTime - $mpiTime" | bc )
 
         # Generate the plot
         printf "%s \n" "<html>" > $REMORA_TMPDIR/mv2_comm_fraction.html
@@ -75,8 +76,8 @@ plot_data_mv2()
 
         printf "%s \n" "var data = google.visualization.arrayToDataTable([" >> $REMORA_TMPDIR/mv2_comm_fraction.html
         printf "%s \n" "['Task', 'Time in %']," >> $REMORA_TMPDIR/mv2_comm_fraction.html
-        printf "['Sequential Work',     $serialfrac ], \n" >> $REMORA_TMPDIR/mv2_comm_fraction.html
-        printf "['MPI',      $mpifrac ] \n" >> $REMORA_TMPDIR/mv2_comm_fraction.html
+        printf "['Sequential Work',     $serTime ], \n" >> $REMORA_TMPDIR/mv2_comm_fraction.html
+        printf "['MPI',      $mpiTime ] \n" >> $REMORA_TMPDIR/mv2_comm_fraction.html
         printf "%s \n" "]);" >> $REMORA_TMPDIR/mv2_comm_fraction.html
 
         printf "%s \n" "var options = {" >> $REMORA_TMPDIR/mv2_comm_fraction.html
@@ -112,12 +113,15 @@ finalize_module_mv2()
 	          mpiNum=$( grep -c "MPI Task Assignment" $outfile ) 
 	          nodeNum=$( cat $REMORA_OUTDIR/remora_nodes.txt | wc -l )
 	          appTime=$( grep "*" $outfile | head -n 1 | awk '{print $2}' )
-              mpiTime=$(grep "*" $outfile | head -n 1 | awk '{print $3}' )
-              mpiFrac=$( grep "*" $outfile | head -n 1 | awk '{print $4}' )
-	          echo "Number of Nodes     : $nodeNum"    >  $REMORA_OUTDIR/mv2_info.txt
-	          echo "Number of MPI Tasks : $mpiNum"     >> $REMORA_OUTDIR/mv2_info.txt
-	          echo "Communication Time  : $mpiFrac %"  >> $REMORA_OUTDIR/mv2_info.txt
-              mv $outfile $REMORA_OUTDIR/mv2_data.txt	
+            mpiTime=$(grep "*" $outfile | head -n 1 | awk '{print $3}' )
+            totTime=$( echo "scale=2;  $usrTime + $sysTime + $mpiTime " | bc ) 
+            mpiFrac=$( echo "scale=2; 100.0 * $mpiTime / $totTime" | bc ) 
+	          echo "Number of Nodes      : $nodeNum"     >  $REMORA_OUTDIR/mv2_info.txt
+	          echo "Number of MPI Tasks  : $mpiNum"      >> $REMORA_OUTDIR/mv2_info.txt
+            echo "Total Execution Time : $totTime (s)" >> $REMORA_OUTDIR/mv2_info.txt
+            echo "MPI Execution Time   : $mpiTime (s)" >> $REMORA_OUTDIR/mv2_info.txt
+            echo "MPI Fraction of Time : $mpiFrac (%)" >> $REMORA_OUTDIR/mv2_info.txt
+            mv $outfile $REMORA_OUTDIR/mv2_data.txt	
           fi
 	  fi
     fi
