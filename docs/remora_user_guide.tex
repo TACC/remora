@@ -136,11 +136,7 @@ Throughout the text we have used text boxes to highlight important information. 
 
 Our intention is to create a simple runtime resource monitoring tool that provides both simple to understand high level information to the user, as well as detailed statistics for in-depth analysis. We welcome all feedback. Feedback that includes suggestions for improvement in the usability, reliability, and accuracy of this tool is particularly welcome. 
 
-<<<<<<< HEAD
-Version 1.8 is a feature release that adds support for MPI communication statistics, reduced overhead in  memory data collection and several other implementation improvements.
-=======
-Version 1.8 is a new release that includes MPI support and improved visualization of the results.
->>>>>>> bd701ed7bdecf998b922164b2afcf6c325c661b8
+Version 1.8 is a feature release that adds support for MPI communication statistics, reduced overhead in  memory data collection, improved visualization of the results using google charts, and several other implementation improvements.
 
 REMORA is an open-source project. Funding to keep researchers working on REMORA depends on the value of this tool to the scientific community. We would appreciate if you could include the following citation in your scientific articles:
 
@@ -415,7 +411,7 @@ Our tool collects information regarding the data transferred by Lustre on each n
 Number of packets transmitted using InfiniBand. This data can be used to get extra information regarding how the communication in parallel applications takes place. In particular, the time series can be used to correlate high network activity levels with sections of the code, and those sections can be revised for possible optimization.
 
 \paragraph{MPI Statistics}
-MPI statistics are collected using mpiP for Mvapich2 and the internal mechanisms for Intel MPI. The percentage of execution time spent in MPI calls is included in the summeary report, and the raw data stored in the MPI/mpi_data.txt file. No graphics for this data are provided currently, but we plan on including them in a new revision of the code.
+MPI statistics are collected using mpiP for Mvapich2 and the internal mechanisms for Intel MPI. The percentage of execution time spent in MPI calls is included in the summary report, and the raw data stored in the MPI/mpi\_data.txt file. A simple pie chart shows the percentage of time spent in MPI calls -- including communication and IO -- and a bar chart is provided showing the five MPI cals where the application spent most of its communication time.
 
 \FloatBarrier
 \section{Modular Design}
@@ -447,6 +443,7 @@ nodes used by the application. The script defines the following functions:
 	\item init\_module\_cpu
 	\item collect\_data\_cpu
 	\item process\_data\_cpu
+	\item plot\_data\_cpu
 	\item monitor\_data\_cpu
 	\item finalize\_module\_cpu
 \end{itemize}
@@ -472,6 +469,7 @@ least the following functions:
 	\item init\_module\_new\_module
 	\item collect\_data\_new\_module
 	\item process\_data\_new\_module
+	\item plot\_data\_new\_module
 	\item monitor\_data\_new\_module
 	\item finalize\_module\_new\_module
 \end{itemize}
@@ -555,7 +553,7 @@ Since version 1.6.0, REMORA allows system administrators to easily change the fu
 \item ib
 \item gpu
 \item network
-\item mpi
+\item impi
 \end{itemize}
 
 These modules are currently specified in the configuration file. At runtime, REMORA will read this file and execute all the modules listed on it.
@@ -572,15 +570,20 @@ All the modules are located in the \verb+src/modules/+ folder. They are all bash
 	\item \texttt{init\_module\_modulename()}: this function is called only once to initialize the environment or files that are required by each specific module.
 	\item \texttt{collect\_data\_modulename()}: main function of the module. This is the function called each \texttt{REMORA\_PERIOD} seconds. Depending on the module, different statistics will be collected in this function. This function can include some postprocessing.
 	\item \texttt{process\_data\_modulename()}: currently unused.
+	\item \texttt{plot\_data\_modulename()}: generate interactive html graphics from full data set.
 	\item \texttt{monitor\_data\_modulename()}: real time post-processing of captured data
 	\item \texttt{finalize\_module\_modulename()}: this function is also called only once, when the application of interest has finished. Any heavy postprocessing method can go in this function.
 \end{itemize}
 
-All these functions take two, and only two, arguments:
+Each of these functions takes exactly three arguments: 
+
 \begin{itemize}
-	\item Name of the compute node where the function is going to run.
-	\item Full path to the output folder.
+\item Name of the node where the function is running (\texttt{\$REMORA\_NODE})
+\item Full path where the output will be stored (\texttt{\$REMORA\_OUTDIR})
+\item Full path to an optional temporary storage location (\texttt{\$REMORA\_TMPDIR})
 \end{itemize}
+
+\verb+$REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR+
 
 The \texttt{modulename} is exactly the same name specified in the configuration file and also the filename of the bash script. This means that, if we have a module called \texttt{cpu} in the configuration file, there will be a file named \texttt{cpu} in the modules folder. And, inside that file, the required functions will be called:
 
@@ -588,6 +591,7 @@ The \texttt{modulename} is exactly the same name specified in the configuration 
 	\item \texttt{init\_module\_cpu()}
 	\item \texttt{collect\_data\_cpu()}
 	\item \texttt{process\_data\_cpu()}
+	\item \texttt{plot\_data\_cpu()}
 	\item \texttt{monitor\_data\_cpu()}
 	\item \texttt{finalize\_module\_cpu()}
 \end{itemize}
@@ -605,6 +609,7 @@ REMORA has been designed so that expanding its functionality is very simple. If 
 			\item \texttt{init\_module\_newmodule()}
 			\item \texttt{collect\_data\_newmodule()}
 			\item \texttt{process\_data\_newmodule()}
+			\item \texttt{plot\_data\_newmodule()}
 			\item \texttt{monitor\_data\_newmodule()}
 			\item \texttt{finalize\_module\_newmodule()}
 		\end{itemize}
@@ -613,7 +618,7 @@ REMORA has been designed so that expanding its functionality is very simple. If 
 
 At runtime, REMORA will find the new module specified in the configuration file and call the different functions at runtime.
 
-\IntroBox{It is very important to make sure that all the functions contain exactly the same name of the module included in the configuration file and used as filename for the module.}
+\IntroBox{It is very important to make sure that all the functions contain exactly the same name of the module included in the configuration file and used as filename for the module, since the remora framework will use that name to automate several of the processing stages.}
 
 It is possible to use an existing system wide installation to check new modules. Two environment variables can be used:
 \begin{itemize}
