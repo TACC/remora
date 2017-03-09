@@ -10,7 +10,7 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-    version   REMORA 1.7
+#-    version   REMORA 1.8
 #-    authors   Carlos Rosales (carlos@tacc.utexas.edu)
 #-          Antonio Gomez  (agomez@tacc.utexas.edu)
 #-    license   MIT
@@ -91,7 +91,7 @@ collect_data_lustre()
     #
     # cat /proc/fs/lustre/mdc/home*/stats
     # snapshot_time       1452890000.568766 secs.usecs
-    # req_waittime        3851885 samples [usec] 37 49056921 800336413 2410726275303557
+    # req_waittime        3851885 samples [usec] 37 49056921 800336413 241.826275303557
     #
     # cat /proc/fs/lustre/llite/home*/stats
     # snapshot_time       1452890065.50567 secs.usecs

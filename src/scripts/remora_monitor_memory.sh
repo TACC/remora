@@ -4,7 +4,7 @@
 #
 #========================================================================
 # IMPLEMENTATION
-#      version     REMORA 1.7
+#      version     REMORA 1.8
 #      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #      license     MIT

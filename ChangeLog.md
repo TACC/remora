@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.8.0] - (2017-03-09)
+
+Added MPI statistics collection for Intel MPI and Mvapich2
+Modified how top level functions are called in order to improve overall handling
+Improved verbose mode information
+
 ## [1.7.1] - (2016-12-07)
 
 Now collection and post-processing work for users with default csh/tsh shells.
