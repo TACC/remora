@@ -28,6 +28,7 @@ source $REMORA_OUTDIR/remora_env.txt
 
 #Source the script that has the modules' functionality
 source $REMORA_BIN/aux/extra
+source $REMORA_BIN/modules/modules_utils
 
 #Read the list of active modules from the configuration file
 remora_read_active_modules
