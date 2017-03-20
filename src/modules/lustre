@@ -457,5 +457,5 @@ finalize_module_lustre()
             fi
         fi
     fi
-    rm $REMORA_TMPDIR/remora_lustre_names_${REMORA_NODE}.tmp
+#    rm $REMORA_TMPDIR/remora_lustre_names_${REMORA_NODE}.tmp
 }
