@@ -43,6 +43,7 @@
 #
 #========================================================================
 #  HISTORY
+#       2017/03/09: Added MPI support. Improved sourcing of functionality
 #       2016/11/10: Added KNL support. New graphs.
 #       2016/03/11: Added real-time monitor mode
 #	    2016/01/25: Added alternative location for temp files
