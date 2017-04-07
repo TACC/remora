@@ -189,7 +189,7 @@ The executable tests will be placed in the \verb+remora/bin+ directory unless th
 \end{verbatim}
 
 \section{MPI Support}
-If you support multiple MPI stacks in your system you should build a version for each of them, since the collection of MPI statistics is performed differently for different MPI stacks. The installation script with test your mpiexec and mpicc / mpiF90 compilers to detect the current MPI stack and build and install the appropriate version. Simply use a different installation prefix for each of the stacks so the installations do not overwrite each other. 
+If you support multiple MPI stacks in your system you should build a version for each of them, since the collection of MPI statistics is performed differently for different MPI stacks. The installation script with test your mpiexec and mpicc / mpif90 compilers to detect the current MPI stack and build and install the appropriate version. Simply use a different installation prefix for each of the stacks so the installations do not overwrite each other. 
 
 When no MPI compiler is present during the installation, remora will be installed with full functionality except for the missing MPI statistics support.
 
@@ -197,7 +197,7 @@ When no MPI compiler is present during the installation, remora will be installe
 \chapter{Using REMORA}
 
 \section{Collecting Data}
-After installing remora please make sure the remora \verb+bin+ directory is in your \verb+PATH+ and the remora \verb+lib+ directory is in your \verb|LD_LIBRARY_PATH|. You should also define the environmental variable \verb+REMORA_BIN+ tot eh remora \verb+bin+ directory. If you are using a system wide installation this has probably been done by your system administrator. If you are doing it yourself the set of commands you need for an installation under \verb+/home/carlos/remora+ is the following:
+After installing remora please make sure the remora \verb+bin+ directory is in your \verb+PATH+ and the remora \verb+lib+ directory is in your \verb|LD_LIBRARY_PATH|. You should also define the environmental variable \verb+REMORA_BIN+ to the remora \verb+bin+ directory. If you are using a system wide installation this has probably been done by your system administrator. If you are doing it yourself the set of commands you need for an installation under \verb+/home/carlos/remora+ is the following:
 
 \begin{verbatim}
 	export REMORA_BIN=/home/carlos/remora/bin
@@ -244,7 +244,7 @@ TEMPERATURE & CPU temperature\\
 
 At the end of your job execution the output directory will contain a set of subdirectories with information about different resources used by your code -- See table \ref{tab:outdir} -- as well as a summary output in your terminal screen or stdout file. An example of the summary output is shown in Figure \ref{fig:summary}.
 
-The summary shown in Figure \ref{fig:summary} indicates that the maximum memory used per node in this particualr execution was 5.43 GB and that the code run for just over 43 seconds, with 5.6\% of the total execution time spent in MPI routines (inclusive of communication and MPI IO). From the output we can also see that the job was run out of the \verb+scratch+ file system, and that very small amounts or IO occurred both throughout the execution. As indicated by the \verb+Sampling Period+ entry data was collected using a \verb+REMORA_PERIOD+ of 2 seconds, and the complete collectad data set can be found in the \verb+remora_6707930+ directory. At this point one may be satisfied with the summary report - which will have also been saved to a text file in the \verb+remora_6707930/INFO+ directory.
+The summary shown in Figure \ref{fig:summary} indicates that the maximum memory used per node in this particular execution was 5.43 GB and the executable ran for just over 43 seconds, with 5.6\% of the total execution time spent in MPI routines (inclusive of communication and MPI IO). From the output we can also see that the job was run out of the \verb+scratch+ file system, and that very small amounts of IO occurred throughout the execution. As indicated by the \verb+Sampling Period+ entry data was collected using a \verb+REMORA_PERIOD+ of 2 seconds, and the complete collected data set can be found in the \verb+remora_6707930+ directory. At this point one may be satisfied with the summary report - which will have also been saved to a text file in the \verb+remora_6707930/INFO+ directory.
 
 \begin{figure}
 \begin{verbatim}
@@ -274,7 +274,7 @@ REMORA provides two different running modes and it also allows the users to spec
 
 \IntroBox{
 \begin{itemize}
-	\item \texttt{REMORA\_MODE}: this variable accepts three possible values (BASIC, FULL, and MONITOR). The FULL mode runs all the tests that the tool allows. The BASIC mode only reports memory and cpu usage. MONITOR mode is equivalent to FULL, with the added advantage that data is post-processed inline and a summary file is generated in real time for application monitoring. BASIC is the recommended mode when the users now that the application of interest does not create problems in the distributed file system. The default is FULL.
+	\item \texttt{REMORA\_MODE}: this variable accepts three possible values (BASIC, FULL, and MONITOR). The FULL mode runs all the tests that the tool allows. The BASIC mode only reports memory and cpu usage. MONITOR mode is equivalent to FULL, with the added advantage that data is post-processed inline and a summary file is generated in real time for application monitoring. BASIC is the recommended mode when the users know that the application of interest does not create problems in the distributed file system. The default is FULL.
 	
 	\item \texttt{REMORA\_PERIOD}: Time in seconds between consecutive data records. This is the time from the end of a collection event until the start of the next collection event. Depending on the platform where the tool is running, the overhead introduced by the application can make the duration of the collection event to vary, in which case there will be less data points in the collected results than expected. However, in the systems that we have tested the overhead of the application is small enough that the total number of collection points (CP) is almost equal to $CP = ET/RP$ where ET is the execution time (in seconds) and RP is the period (in seconds).
 	
@@ -282,18 +282,18 @@ REMORA provides two different running modes and it also allows the users to spec
 	
 	\item \texttt{REMORA\_TMPDIR}: Full path for intermediate file storage. It is recommended that this is a local disk. Default value is the location of the REMORA output directory (which must be on a shared file system). When specified by the user REMORA will collect data in this location, and only copy the files to the output directory once data collection is complete. Using a local file system for the temporary files reduces overhead. 
 
-    \item \texttt{REMORA\_PLOT\_RESULTS}: By default, REMORA automatically generates a set of HTML files with plots for the collected data. However, for very large user cases, this automatic generation can take a long time. Users can skip the generation of these files by setting this variable to 0. The default value is 1 or unset (which equals 1).
-	
+    \item \texttt{REMORA\_PLOT\_RESULTS}: When this variable is unset, by default, REMORA automatically generates a set of HTML files with plots for the collected data. However, for very large use cases, this automatic generation can take a long time. Users can skip the generation of these files by setting this variable to 0. A value of 1 designates automatic generation.
+
 	\item \texttt{REMORA\_VERBOSE}: Enable (1) or disable (0) verbose mode. Default is disabled.
 	
 	\item \texttt{REMORA\_WARNING}: Verbosity level for REMORA issued warnings. Acceptable values are 0, 1, 2 in increasing level of verbosity. Critical errors will always be reported independently of the chosen value.
 \end{itemize}
 }
 
-In addition to these variables a list of file systems that should be ignored during data collection can be provided to REMORA in the file \verb+config/fs_blacklist+. This is a simple text file with a names of mounts hat should be ignored during runtime.
+In addition to these variables a list of file systems that should be ignored during data collection can be provided to REMORA in the file \verb+config/fs_blacklist+. This is a simple text file with a names of mounts that should be ignored during runtime.
 
 \section{Post-Processing}
-All the data is collected in a set of files with the statistics organized in columns. Users can take those files and run any postprocessing tool that they develop. However, for simplicity, REMORA already provides a plotting script called \verb+remora_post+ that takes all the statistics generated during collection and generates a number of plots. These plots show the most relevant information previously collected and represent a visual alternative while analyzing the results. The script can be called from the batch script or from the login nodes after the job has finished. In this second scenario, the script requires the id of the job to be analyzed as argument.
+All the data is collected in a set of files with the statistics organized in columns. Users can take those files and run any postprocessing tool that they develop. However, for simplicity, REMORA already provides a plotting script called \verb+remora_post+ that takes all the statistics generated during collection and generates a number of plots. These plots show the most relevant information previously collected and represent a visual alternative while analyzing the results. The script can be called from the batch script or from the login nodes after the job has finished. In this second scenario, the script requires an argument with the id of the job to be analyzed.
 
 The post-processing script can be invoked simply as:
 
