@@ -1,7 +1,6 @@
 # REMORA
 
-![REMORA Logo]
-(https://raw.githubusercontent.com/TACC/remora/master/docs/logos/Remora-logo-300px.png)
+![REMORA Logo](https://raw.githubusercontent.com/TACC/remora/master/docs/logos/Remora-logo-300px.png)
 
 ## REMORA: REsource MOnitoring for Remote Applications
 
