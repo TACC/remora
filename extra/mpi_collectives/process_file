@@ -1,5 +1,23 @@
-#!/bin/bash
+#!/bin/sh
+#
+#========================================================================
+# HEADER
+#========================================================================
+#% DESCRIPTION
+#% process_file: this is a temporary file for EuroMPI. We will further
+#%               improve this file and move it to another location
+#%
+#% DO NOT call this script directly. This is called by REMORA
+#%
+#========================================================================
+#- IMPLEMENTATION
+#-      version     REMORA 1.8.1
+#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      license     MIT
+#========================================================================
 
+# Need to change this
 input="/work/02658/agomez/tools/remora/testfiles/collectives.pst"
 basepath="/work/02658/agomez/tools/remora/extra/mpi_collectives"
 
@@ -80,14 +98,18 @@ do
         arr=($baseline)
         base_sz=`echo ${arr[0]}`
         base_alg=`echo ${arr[1]}`
+        #While the message size in the file is smaller than the current
+        #message size, update the value of the return value
         if [ $base_sz -le $msgsize ]; then
             found_sz=$base_sz
             found_alg=$base_alg
         else
+            #Read the next value (if any). This is used for showing a range
             next_sz=$base_sz
             break
         fi
-    done < "$foundfile"
+    done < "$foundfile" # $foundfile is the base file that we found before
+
     echo "Current size: " $msgsize
     echo "Best similar size: " $found_sz
     echo "Best algorithm: " $found_alg
