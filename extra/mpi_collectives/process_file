@@ -1,0 +1,70 @@
+#!/bin/bash
+
+input="/work/02658/agomez/tools/remora/testfiles/collectives.pst"
+basepath="/work/02658/agomez/tools/remora/extra/mpi_collectives"
+
+while IFS= read -r line
+do
+    #Skip lines starting with '#' (prob. not needed, but helpful)
+    if [[ $line == \#* ]]; then
+        continue
+    fi
+    arr=($line)
+    #Using individual variables so that it is easier to understand
+    #convert the function call to lowercase
+    call=`echo ${arr[0]} | tr '[:upper:]' '[:lower:]'`
+    nodes=${arr[1]}
+    tasks=${arr[2]}
+    msgsize=${arr[3]}
+
+    time=${arr[4]}
+    file="$basepath/$call/$nodes"
+    file+="N"
+    file+="$tasks"
+    file+="n"
+    foundfile=""
+    if [ -f $file ]; then
+        foundfile=$file
+    else
+        file="$basepath/$call/$nodes"
+        file+="N"
+        n=1
+        found=0
+        while [ $n -le $tasks ] ; do
+            filenew="$file"
+            filenew+="$n"
+            filenew+="n"
+            if [ -f $filenew ]; then
+                found=1
+                file=$filenew
+            fi
+            n=$[$n+1]
+        done
+        #Check if there is a file with the same number of nodes
+        if [ $found -eq 1 ]; then
+            #Find the closest number of tasks
+            foundfile=$file
+        else
+            #there's no file with the same number of nodes
+            #iterate over the files and get the one with the closest
+            #number of nodes (floor)
+            idx=1
+            while [ $idx -le $nodes ] ; do
+                file="$basepath/$call/$idx"
+                file+="N"
+                n=1
+                while [ $n -le $tasks ]; do
+                    filenew="$file"
+                    filenew+="$n"
+                    filenew+="n"
+                    if [ -f $filenew ]; then
+                        foundfile=$filenew
+                    fi
+                    n=$[$n+1]
+                done
+                idx=$[$idx+1]
+            done
+        fi 
+    fi
+    echo "Found match $foundfile"
+done < "$input"
