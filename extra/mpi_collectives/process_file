@@ -67,4 +67,34 @@ do
         fi 
     fi
     echo "Found match $foundfile"
+
+    #Read the baseline file and get the best fit
+    found_sz=1
+    next_sz=4194304
+    found_alg="default"
+    while IFS= read -r baseline
+    do
+        if [[ $baseline == \#* ]]; then
+            continue
+        fi
+        arr=($baseline)
+        base_sz=`echo ${arr[0]}`
+        base_alg=`echo ${arr[1]}`
+        if [ $base_sz -le $msgsize ]; then
+            found_sz=$base_sz
+            found_alg=$base_alg
+        else
+            next_sz=$base_sz
+            break
+        fi
+    done < "$foundfile"
+    echo "Current size: " $msgsize
+    echo "Best similar size: " $found_sz
+    echo "Best algorithm: " $found_alg
+#    if [ "$found_alg" == "default" ]; then
+#        continue
+#    fi
+
+    mpi_func=`echo $call | tr '[:lower:]' '[:upper:]'`
+    echo "Set I_MPI_ADJUST_$mpi_func=\"$found_alg:$found_sz-$next_sz\""
 done < "$input"
