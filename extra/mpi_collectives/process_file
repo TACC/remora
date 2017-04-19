@@ -21,6 +21,19 @@
 input="/work/02658/agomez/tools/remora/testfiles/collectives.pst"
 basepath="/work/02658/agomez/tools/remora/extra/mpi_collectives"
 
+#To make the reporting easier, I would like to simply have an array for
+#each collective. Each position in the array indicates the algorithm
+#that should be used for the datasize in that index in the baseline file.
+#This is not as simple as it looks though
+
+allgather=()
+allreduce=()
+alltoall=()
+bcast=()
+gather=()
+reduce=()
+scatter=()
+
 while IFS= read -r line
 do
     #Skip lines starting with '#' (prob. not needed, but helpful)
