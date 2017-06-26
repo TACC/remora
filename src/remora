@@ -87,6 +87,17 @@ trap "exit_clean" TERM SIGINT
 #Save the PID of REMORA in case we need it
 export REMORA_TOP_PID=$$
 
+remora_pids=`pgrep remora`
+
+for pid in $remora_pids; do
+    if [ $pid != $REMORA_TOP_PID ]; then
+        echo "ERROR: there is another instance of REMORA already running."
+        echo "Your application will run without REMORA monitoring."
+        "$@"
+        exit
+    fi
+done
+
 SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
 SCRIPT_NAME="$(basename ${0})"
 
