@@ -24,7 +24,7 @@
 init_module_cpu()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-  rm $REMORA_TMPDIR/cpu_${REMORA_NODE}.txt
+  rm -f $REMORA_TMPDIR/cpu_${REMORA_NODE}.txt
   if [ "$REMORA_MODE" == "MONITOR" ]; then
 	REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
 	if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then

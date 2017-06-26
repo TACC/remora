@@ -39,8 +39,9 @@ function remora_collect() {
             echo ""; echo "ssh -f -n $NODE $COMMAND"
         fi
         # Capture the PID of the remote process running remora_report.sh
-        # so taht we can kill it once the job has finished
-        PID[$idx]=`ssh -f -n $NODE $COMMAND | tail -n 1 `
+        # so that we can kill it once the job has finished
+        # We export the PATH to make sure that the required tools are found (i.e. mpstat)
+        PID[$idx]=`ssh -f -n $NODE PATH=$PATH $COMMAND | tail -n 1 `
 
         # Only do this if MONITOR mode is active
         if [ "$REMORA_MODE" == "MONITOR" ]; then
