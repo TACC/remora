@@ -161,4 +161,5 @@ show_final_report() {
     fi
     printf "%s\n" $dbar | tee -a $REMORA_OUTDIR/remora_summary.txt
     echo ""
+
 }

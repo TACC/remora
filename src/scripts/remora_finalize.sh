@@ -128,7 +128,7 @@ function remora_finalize() {
         echo "REMORA: Cleaning. Moving everything to the correct place"
     fi
 
-    sleep 0.5
+    sleep 1.0 
 
     rm -f $REMORA_OUTDIR/*.tmp
 
@@ -159,7 +159,10 @@ function remora_finalize() {
         printf "%s \n" "<a href=\"https://github.com/TACC/remora\" target=\"_blank\"><img src=\"https://raw.githubusercontent.com/TACC/remora/master/docs/logos/Remora-logo-300px.png\" alt=\"REMORA Logo\" style=\"max-width:100%;\"></a>" >> $REMORA_OUTDIR/remora_summary.html
         printf "<h1>REMORA REPORT - JOB %s </h1>\n" "$REMORA_JOB_ID" >> $REMORA_OUTDIR/remora_summary.html
         for i in "${!REMORA_MODULES[@]}"; do
-            printf "<h2>%s utilization</h2> \n" ${REMORA_MODULES[$i]} >> $REMORA_OUTDIR/remora_summary.html 
+            printf "<h2>%s utilization</h2> \n" ${REMORA_MODULES[$i]} >> $REMORA_OUTDIR/remora_summary.html
+            if [ "${REMORA_MODULES[$i]}" == "lustre" ]; then
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/lustre_aggregated.html" "Aggregated" >> $REMORA_OUTDIR/remora_summary.html
+            fi
             for node in $NODES; do
                 if [ -f  $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]}/${REMORA_MODULES[$i]}_${node}.html ]; then
                     printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/${REMORA_MODULES[$i]}_${node}.html" ${node} >> $REMORA_OUTDIR/remora_summary.html
