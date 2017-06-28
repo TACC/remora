@@ -198,15 +198,19 @@ plot_data_lustre()
         previousline=$line
         local idx=0
         printf "%s" "[" >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+        local elapsedtime=1
+        local diff=0
         for i in $line; do
             if [ $idx -eq 0 ]; then
                 val=$[i - firsttimestamp]
+                elapsedtime=$[i-previous[$idx]]
             else
-                val=$[i - previous[$idx]]
+                diff=$[i - previous[$idx]]
+                val=`echo "scale=2;  $diff / $elapsedtime" | bc`
             fi
             local pos=`expr $idx % 3`
             if [ $pos -eq 1 -o $idx -eq 0 ]; then
-                printf "%s," $val  >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
+                printf "%s," "$val"  >> $REMORA_TMPDIR/lustre_${REMORA_NODE}.html 
             fi
             idx=$[idx + 1]
         done
