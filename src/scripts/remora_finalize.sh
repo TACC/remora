@@ -27,10 +27,13 @@ source $REMORA_OUTDIR/remora_env.txt
 
 function remora_finalize() {
     if [ "$REMORA_VERBOSE" == "1" ]; then
-        echo "Starting REMORA finalize"
+        echo ""
+        echo "REMORA: Starting REMORA finalize"
     fi
     END=$1
     START=$2
+
+    local remora_timeout=120
 
     # Copy data from temporary location to output dir
     # This assumes OUTDIR is in a shared location
@@ -38,6 +41,7 @@ function remora_finalize() {
         for NODE in $NODES
             do
                 if [ "$REMORA_VERBOSE" == "1" ]; then
+                    echo "REMORA: Copying files from temporary location to output folder"
                     echo "scp $NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR"
                 fi  
                 scp $NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR 2> /dev/null 1> /dev/null
@@ -47,7 +51,7 @@ function remora_finalize() {
     # Ensure all data has been copied over or issue warning
     NodeCount=`wc -l $REMORA_OUTDIR/remora_nodes.txt | awk '{print $1}'`
     waiting=1; completed=0
-    while [ "$waiting" -lt 60 ] && [ "$completed" -lt "$NodeCount" ]; do
+    while [ "$waiting" -lt $remora_timeout ] && [ "$completed" -lt "$NodeCount" ]; do
         completed=0
         for node in $NODES; do
             if [ -a $REMORA_OUTDIR/zz.$node ]; then
@@ -57,8 +61,9 @@ function remora_finalize() {
         sleep 1
     done
 
-    if [ "$waiting" -ge 60 ]; then
-        printf "*** REMORA: WARNING - Slow file system response. Post-processing may be incomplete\n"
+    if [ "$waiting" -ge $remora_timeout ]; then
+        printf "\n*** REMORA: WARNING - Slow file system response. Post-processing may be incomplete\n\n"
+        printf "*** REMORA: WARNING - %s out of %s nodes successfully processed\n" "$completed" "$NodeCount"
     fi
 
     # Kill remote remora processes running in the backgroud
@@ -74,6 +79,7 @@ function remora_finalize() {
         fi  
         COMMAND="$REMORA_BIN/scripts/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE $REMORA_NODE_ID >> $REMORA_OUTDIR/.remora_out_$NODE  &  echo \$! "
         if [ "$REMORA_VERBOSE" == "1" ]; then
+            echo "REMORA: launching remote postprocessing (plotting, etc)"
             echo "ssh -q -n $NODE $COMMAND"
         fi  
         #Right now this is putting the command in the background and continuing (so the remora can finish, therefore epilog might  #kill everything! We need to fix it
@@ -82,13 +88,14 @@ function remora_finalize() {
     done
 
     if [ "$REMORA_VERBOSE" == "1" ]; then
-        echo "Waiting for REMORA postprocesses to finish"
+        echo ""
+        echo "REMORA: Waiting for postprocesses to finish"
     fi
 
     #Wait until all remora_remote_post processes have finished
     for pid in "${FINAL_PID[@]}"; do
         while [ -e /proc/$pid ]; do
-            sleep 0.1
+            sleep 0.05
             if [ "$REMORA_VERBOSE" == "1" ]; then
                 printf "."
             fi
@@ -97,7 +104,7 @@ function remora_finalize() {
 
     if [ "$REMORA_VERBOSE" == "1" ]; then
         echo ""
-        echo "All REMORA postprocesses have finished"
+        echo "REMORA: All REMORA postprocesses have finished"
     fi
 
     rm $REMORA_OUTDIR/remora_pid.txt
@@ -116,6 +123,13 @@ function remora_finalize() {
     fi
 
     show_final_report $END $START
+
+    if [ "$REMORA_VERBOSE" == "1" ]; then
+        echo "REMORA: Cleaning. Moving everything to the correct place"
+    fi
+
+    sleep 0.5
+
     rm -f $REMORA_OUTDIR/*.tmp
 
     # Should write name-based loop
@@ -129,14 +143,15 @@ function remora_finalize() {
     #If some files are missing, don't output the error message
     for i in "${!REMORA_MODULES[@]}"; do
         if [ "$REMORA_VERBOSE" == "1" ]; then
-            echo "  Moving output files for ${REMORA_MODULES[$i]}"
+            echo "REMORA: Moving output files for ${REMORA_MODULES[$i]}"
         fi
         mv $REMORA_OUTDIR/${REMORA_MODULES[$i]}* $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
+        sleep 0.2
     done
 
     if [ "$REMORA_MODE" == "MONITOR" ]; then
         if [ "$REMORA_VERBOSE" == "1" ]; then
-            echo "Handling MONITOR files"
+            echo "REMORA: Handling MONITOR files"
         fi
         rm $REMORA_TMPDIR/.monitor
         mv $REMORA_OUTDIR/monitor* $REMORA_OUTDIR/MONITOR/
@@ -145,7 +160,7 @@ function remora_finalize() {
     # Clean up TMPDIR if necessary
     if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
         if [ "$REMORA_VERBOSE" == "1" ]; then
-            echo "Removing $REMORA_TMPDIR"
+            echo "REMORA: Removing $REMORA_TMPDIR"
         fi
         rm -rf $REMORA_TMPDIR
     fi
@@ -154,6 +169,7 @@ function remora_finalize() {
     rm -f $REMORA_OUTDIR/zz.*
 
     if [ "$REMORA_VERBOSE" == "1" ]; then
+        echo ""
         echo "REMORA finalize finished"
     fi
 }

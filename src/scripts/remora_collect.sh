@@ -22,7 +22,9 @@
 
 function remora_collect() {
     if [ "$REMORA_VERBOSE" == "1" ]; then
-        echo "REMORA collection started"
+        echo ""
+        echo "REMORA: collection started"
+        echo "" 
     fi
 
     source $REMORA_OUTDIR/remora_env.txt
@@ -36,7 +38,8 @@ function remora_collect() {
         # that are available (specified in the configuration file)
         COMMAND="$REMORA_BIN/scripts/remora_report.sh $NODE $REMORA_BIN $REMORA_OUTDIR >> $REMORA_OUTDIR/.remora_out_$NODE & echo \$!"
         if [ "$REMORA_VERBOSE" == "1" ]; then
-            echo ""; echo "ssh -f -n $NODE $COMMAND"
+            echo "REMORA: Launching background process on " $NODE
+            echo "ssh -f -n $NODE $COMMAND"
         fi
         # Capture the PID of the remote process running remora_report.sh
         # so that we can kill it once the job has finished
@@ -69,6 +72,7 @@ function remora_collect() {
     echo ${PID_MIC[@]} > $REMORA_OUTDIR/remora_pid_mic.txt
     echo ${PID_MON[@]} > $REMORA_OUTDIR/remora_pid_mon.txt
     if [ "$REMORA_VERBOSE" == "1" ]; then
-        echo "REMORA collection finished. Processes launched."
+        echo ""
+        echo "REMORA: all collection processes launched."
     fi
 }
