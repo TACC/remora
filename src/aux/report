@@ -156,6 +156,9 @@ show_final_report() {
     printf "%s\n" $dbar | tee -a $REMORA_OUTDIR/remora_summary.txt
     printf "%-29s %-1s %-d %-7s\n" " Sampling Period" ":" $REMORA_PERIOD "seconds" | tee -a $REMORA_OUTDIR/remora_summary.txt
     printf "%-29s %-1s %-s\n" " Complete Report Data" ":" $REMORA_OUTDIR           | tee -a $REMORA_OUTDIR/remora_summary.txt
+    if [ "$REMORA_PLOT_RESULTS" != "0" ] ; then
+        printf "%-29s %-1s %-s\n" " Graphical Results At" ":" $REMORA_OUTDIR/remora_summary.html | tee -a $REMORA_OUTDIR/remora_summary.txt
+    fi
     printf "%s\n" $dbar | tee -a $REMORA_OUTDIR/remora_summary.txt
     echo ""
 }

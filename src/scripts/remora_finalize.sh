@@ -157,14 +157,23 @@ function remora_finalize() {
         printf "%s \n" "<html lang=\"en\">" > $REMORA_OUTDIR/remora_summary.html
         printf "%s \n" "<head><title>REMORA TACC</title></head><body>" >> $REMORA_OUTDIR/remora_summary.html
         printf "%s \n" "<a href=\"https://github.com/TACC/remora\" target=\"_blank\"><img src=\"https://raw.githubusercontent.com/TACC/remora/master/docs/logos/Remora-logo-300px.png\" alt=\"REMORA Logo\" style=\"max-width:100%;\"></a>" >> $REMORA_OUTDIR/remora_summary.html
+        printf "<h1>REMORA REPORT - JOB %s </h1>\n" "$REMORA_JOB_ID" >> $REMORA_OUTDIR/remora_summary.html
         for i in "${!REMORA_MODULES[@]}"; do
-            printf "<h1>%s</h1> \n" ${REMORA_MODULES[$i]} >> $REMORA_OUTDIR/remora_summary.html 
+            printf "<h2>%s utilization</h2> \n" ${REMORA_MODULES[$i]} >> $REMORA_OUTDIR/remora_summary.html 
             for node in $NODES; do
                 if [ -f  $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]}/${REMORA_MODULES[$i]}_${node}.html ]; then
                     printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/${REMORA_MODULES[$i]}_${node}.html" ${node} >> $REMORA_OUTDIR/remora_summary.html
                 fi
             done
         done
+        #Add the summary at the end
+        printf "<h2>Summary for job %s</h2>\n" "$REMORA_JOB_ID" >> $REMORA_OUTDIR/remora_summary.html 
+        input="$REMORA_OUTDIR/INFO/remora_summary.txt"
+        while IFS= read -r line
+        do
+            printf "<p>%s</p>\n" "$line" >> $REMORA_OUTDIR/remora_summary.html 
+        done < "$input"
+
         printf "%s \n" "</body></html>" >> $REMORA_OUTDIR/remora_summary.html
     fi
 
