@@ -30,7 +30,8 @@ init_module_power()
   #the message and configure REMORA to ignore power collection
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
-  sensors
+  #Check if sensors exists. Use hash for this and the result of the command
+  hash sensors 2>/dev/null
   export REMORA_POWER_IGNORE=$?
 
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
