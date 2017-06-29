@@ -23,7 +23,32 @@
 source $REMORA_BIN/aux/extra
 source $REMORA_BIN/aux/report
 
-REMORA_OUTDIR=remora_${1}
+local JOBID=-1
+if [ "$#" -eq 2 ]; then
+    if [ "$1" -eq "-j" ]; then
+        JOBID=$2
+    else
+        echo " REMORA: remora_post_crash needs the ID of the job that you want to recover"
+        echo " REMORA: usage 'remora_post_crash -j XXXXX' or 'remora_post_crash XXXXX'"
+    fi
+else
+    if [ "$#" -eq 1 ]; then
+        JOBID=$1
+    else
+        echo " REMORA: remora_post_crash needs the ID of the job that you want to recover"
+        echo " REMORA: usage 'remora_post_crash -j XXXXX' or 'remora_post_crash XXXXX'"
+        exit 1
+    fi
+fi
+
+
+
+REMORA_OUTDIR=remora_$JOBID
+if [ ! -d $REMORA_OUTDIR ]; then
+    echo " REMORA: folder $REMORA_OUTDIR does not exist"
+    exit 1
+fi
+
 source $REMORA_OUTDIR/remora_env.txt
 
 if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
