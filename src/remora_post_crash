@@ -23,7 +23,7 @@
 source $REMORA_BIN/aux/extra
 source $REMORA_BIN/aux/report
 
-local JOBID=-1
+JOBID=-1
 if [ "$#" -eq 2 ]; then
     if [ "$1" -eq "-j" ]; then
         JOBID=$2
@@ -42,14 +42,19 @@ else
 fi
 
 
-
-REMORA_OUTDIR=remora_$JOBID
+REMORA_OUTDIR=`pwd`/remora_$JOBID
 if [ ! -d $REMORA_OUTDIR ]; then
     echo " REMORA: folder $REMORA_OUTDIR does not exist"
     exit 1
 fi
 
-source $REMORA_OUTDIR/remora_env.txt
+if [ -f $REMORA_OUTDIR/remora_env.txt ]; then
+    source $REMORA_OUTDIR/remora_env.txt
+fi
+
+if [ -f $REMORA_OUTDIR/INFO/remora_env.txt ]; then
+    source $REMORA_OUTDIR/INFO/remora_env.txt
+fi
 
 if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
 	echo " REMORA can't generate a summary of a crashed job when"
@@ -57,11 +62,23 @@ if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
 	exit 1
 fi
 
-MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-END=`grep "time" $REMORA_OUTDIR/cpu_${MASTER}.txt | tail -n 1 | awk '{print $2 "000000000"}' ` 
-START=`grep "time" $REMORA_OUTDIR/cpu_${MASTER}.txt | head -n 1 | awk '{print $2 "000000000"}' `
+if [ -f $REMORA_OUTDIR/remora_nodes.txt ]; then
+    MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+    NODES=`cat $REMORA_OUTDIR/remora_nodes.txt`
+fi
+if [ -f $REMORA_OUTDIR/INFO/remora_nodes.txt ]; then
+    MASTER=`head -n 1 $REMORA_OUTDIR/INFO/remora_nodes.txt`
+    NODES=`cat $REMORA_OUTDIR/INFO/remora_nodes.txt`
+fi
 
-NODES=`cat $REMORA_OUTDIR/remora_nodes.txt`
+if [ -f $REMORA_OUTDIR/cpu_${MASTER}.txt ]; then
+    END=`grep "time" $REMORA_OUTDIR/cpu_${MASTER}.txt | tail -n 1 | awk '{print $2 "000000000"}' ` 
+    START=`grep "time" $REMORA_OUTDIR/cpu_${MASTER}.txt | head -n 1 | awk '{print $2 "000000000"}' `
+fi
+if [ -f $REMORA_OUTDIR/CPU/cpu_${MASTER}.txt ]; then
+    END=`grep "time" $REMORA_OUTDIR/CPU/cpu_${MASTER}.txt | tail -n 1 | awk '{print $2 "000000000"}' ` 
+    START=`grep "time" $REMORA_OUTDIR/CPU/cpu_${MASTER}.txt | head -n 1 | awk '{print $2 "000000000"}' `
+fi
 
 for NODE in $NODES; do
   if [ "$REMORA_VERBOSE" == "1" ]; then
@@ -74,7 +91,8 @@ show_final_report $END $START
 rm -f $REMORA_OUTDIR/*.tmp
 
 # Should write name-based loop
-mv $REMORA_OUTDIR/{remora*,runtime*} $REMORA_OUTDIR/INFO
+
+mv $REMORA_OUTDIR/{remora*,runtime*} $REMORA_OUTDIR/INFO 2> /dev/null
 
 source $REMORA_BIN/aux/extra
 source $REMORA_BIN/modules/modules_utils
@@ -87,8 +105,8 @@ for i in "${!REMORA_MODULES[@]}"; do
 done
 
 if [ "$REMORA_MODE" == "MONITOR" ]; then
-    rm $REMORA_TMPDIR/.monitor
-    mv $REMORA_OUTDIR/monitor* $REMORA_OUTDIR/MONITOR/
+    rm $REMORA_TMPDIR/.monitor 2> /dev/null
+    mv $REMORA_OUTDIR/monitor* $REMORA_OUTDIR/MONITOR/ 2> /dev/null
 fi
 # Clean up TMPDIR if necessary
 if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
