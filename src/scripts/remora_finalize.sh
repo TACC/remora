@@ -102,6 +102,9 @@ function remora_finalize() {
         done
     done
 
+    #Add a small delay so that files are transferred (deal with Lustre latency)
+    sleep 0.5
+
     if [ "$REMORA_VERBOSE" == "1" ]; then
         echo ""
         echo "REMORA: All REMORA postprocesses have finished"
