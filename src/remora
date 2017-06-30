@@ -36,13 +36,14 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8
+#-      version     REMORA 1.8.1
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
 #
 #========================================================================
 #  HISTORY
+#       2018/06/30: Bug fixing and new summary HTML page. 
 #       2017/03/09: Added MPI support. Improved sourcing of functionality
 #       2016/11/10: Added KNL support. New graphs.
 #       2016/03/11: Added real-time monitor mode

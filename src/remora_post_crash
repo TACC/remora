@@ -9,10 +9,11 @@
 # This script attempts to copy over data collection files to their final
 # location and generate a summary after a code crash.
 #
-# remora_post_crash $JOBID
+# remora_post_crash JOBID
+# remora_post_crash -j JOBID
 #========================================================================
 # IMPLEMENTATION
-#      version     REMORA 1.8
+#      version     REMORA 1.8.1
 #      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #      license     MIT

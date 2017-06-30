@@ -1,5 +1,10 @@
 # Change Log
 
+## [1.8.1] - (2017-06-30)
+
+Several issues fixed (#37, #40, #41, #42, #43) and partial fix for issue #39.
+For #39, the CPU collection is now correct when mpstats is not in the path of all nodes
+
 ## [1.8.0] - (2017-03-09)
 
 Added MPI statistics collection for Intel MPI and Mvapich2

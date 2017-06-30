@@ -1,3 +1,25 @@
+#!/bin/sh
+#
+#========================================================================
+# HEADER
+#========================================================================
+#% DESCRIPTION
+#% remora_mpi_post
+#%
+#% DO NOT call this script directly. This is called by REMORA. 
+#% This script analyzes MPI data
+#%
+#% remora_mpi_post.sh
+#========================================================================
+#- IMPLEMENTATION
+#-      version     REMORA 1.8.1
+#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      license     MIT
+#========================================================================
+
+# --- MPI data processing
+
 rm -f *.pst
 outfile="mytemp.pst"
 activefile="active.pst"

@@ -13,7 +13,7 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8
+#-      version     REMORA 1.8.1
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
@@ -51,6 +51,8 @@ if [ ! -d $RESULT_FOLDER ] ; then
         return
     fi
 fi
+
+echo "REMORA: This tool is deprecated. REMORA now automatically generates graphs in HTML format"
 
 if [ "$REMORA_VERBOSE" == "1" ]; then
     echo "Processing result folder: $RESULT_FOLDER"
