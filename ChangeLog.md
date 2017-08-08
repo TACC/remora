@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.8.2] - (2017-08-08)
+
+Small issue fix (#45). Also ensures that there are extra checks when no scheduler is present.
+
 ## [1.8.1] - (2017-06-30)
 
 Several issues fixed (#37, #40, #41, #42, #43) and partial fix for issue #39.
