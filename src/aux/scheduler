@@ -30,7 +30,7 @@ get_job_id()
     elif [ -n "$PE_HOSTFILE" ]; then
         REMORA_JOB_ID=$JOB_ID
     elif [ -n "$PBS_NODEFILE" ]; then
-        REMORA_JOB_ID=$PBS_JOBID                                                                                                     
+        REMORA_JOB_ID=$PBS_JOBID
     fi
 }
 
@@ -52,9 +52,14 @@ get_node_list()
     else
         REMORA_SCHEDULER=none
         REMORA_JOB_ID=`date +%s`
-        NODES=`hostname -a` 
-        #print_error "Unknown scheduler - unable to generate host list"
-        #exit 1
+        NODES=`hostname -a`
+        if [[ -z "${NODES// }" ]]; then
+            NODES=`hostname`
+            # If nothing, at least try localhost
+            if [[ -z "${NODES// }" ]]; then
+                NODES="localhost"
+            fi
+        fi
     fi
 }
 
