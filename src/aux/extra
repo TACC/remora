@@ -64,7 +64,7 @@ check_running_parallel() {
             print_error "Incorrect syntax: REMORA can't run in parallel"
             usage
         fi
-        kill -s TERM $REMORA_TOP_PID
+        exit
     fi
 }
 
@@ -72,14 +72,14 @@ parse_arguments() {
     # Check if help should be printed
     if [ "x$1" == "x--help" ]; then
         usagefull
-        kill -s TERM $REMORA_TOP_PID
+        exit
     fi
 
     # Check that we have at least some arguments
     if [ "x$1" == "x" ]; then
         print_error " Incorrect syntax: insufficient arguments. "
         usage
-        kill -s TERM $REMORA_TOP_PID
+        exit
     fi
 }
 
