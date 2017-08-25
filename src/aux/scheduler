@@ -31,6 +31,8 @@ get_job_id()
         REMORA_JOB_ID=$JOB_ID
     elif [ -n "$PBS_NODEFILE" ]; then
         REMORA_JOB_ID=$PBS_JOBID
+    elif [ -n "$LSB_HOSTS" ]; then
+        REMORA_JOB_ID=$LSB_JOBID
     fi
 }
 
@@ -49,6 +51,10 @@ get_node_list()
         REMORA_SCHEDULER=pbs
         REMORA_JOB_ID=$PBS_JOBID
         NODES=`cat $PBS_NODEFILE | sort | uniq`
+    elif [ -n "$LSB_HOSTS" ]; then
+        REMORA_SCHEDULER=lava
+        REMORA_JOB_ID=$LSB_JOBID
+        NODES=`cat $LSB_HOSTS | sort | uniq`
     else
         REMORA_SCHEDULER=none
         REMORA_JOB_ID=`date +%s`
