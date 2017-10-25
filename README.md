@@ -10,7 +10,7 @@ Remora is a tool to monitor runtime resource utilization:
   - IO usage (Lustre, DVS)
   - NUMA memory
   - Network topology
-  - MPI statsitics
+  - MPI statistics
   - CPU Power and Temperature data
 
 To use the tool, modify your batch script and include 'remora' before your script, executable, or MPI launcher.
@@ -21,7 +21,7 @@ To use the tool, modify your batch script and include 'remora' before your scrip
 Please, **do not try to use the version available in the master branch**. We regularly change the code and it might contain bugs. If you want to download and use remora, **have a look at the different tags**. [The most recent release can be found here](https://github.com/TACC/remora/releases/latest).
 
 ## Why name it Remora?
-Apart from a pretty cool acronym, this tools behaves a bit like the remora fish. It attaches to a larger fish (user proces) and travels with it wherever it goes, while offering very little in the way of resistance to the motion (overhead) as well as providing some benefits (resource usage information).
+Apart from a pretty cool acronym, this tools behaves a bit like the remora fish. It attaches to a larger fish (user process) and travels with it wherever it goes, while offering very little in the way of resistance to the motion (overhead) as well as providing some benefits (resource usage information).
 
 ## Do you use Remora?
 Remora is an open-source project. Funding to keep researchers working on Remora depends on the value of this tool to the scientific community. We would appreciate if you could include the following citation in your scientific articles:

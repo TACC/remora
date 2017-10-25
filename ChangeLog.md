@@ -19,7 +19,7 @@ Improved verbose mode information
 
 Now collection and post-processing work for users with default csh/tsh shells.
 
-Thansk to Mark Reed (UNC) for the suggested changes.
+Thanks to Mark Reed (UNC) for the suggested changes.
 
 ## [1.7.0] - (2016-12-01)
 
@@ -28,11 +28,11 @@ Added automatic discovery of NUMA nodes.
 Supports PBS scheduler.
 Supports running on a local machine (no scheduler needed).
 Multiple jobs for the same run: new folders are created.
-Use Google Charts to create plots automatically (no need for postprocessing Python script except for network trace).
+Use Google Charts to create plots automatically (no need for post-processing Python script except for network trace).
 Added a script to monitor free memory that kill the application before the OOM does.
-Added a script to generate posprocessing files in case the node crashes.
+Added a script to generate post-processing files in case the node crashes.
 
-Contributions from Jacob Pollack at Shell (Eth monitoring, CPU utilization postprocessing, and 64bit counters for Infiniband monitoring), Kevin Manalo (suggestion of automation of mlx device discovery) and wpoely86 (PBS support).
+Contributions from Jacob Pollack at Shell (Eth monitoring, CPU utilization post-processing, and 64-bit counters for Infiniband monitoring), Kevin Manalo (suggestion of automation of mlx device discovery) and wpoely86 (PBS support).
 
 ## [bp-1.6.0] - (2016-08-09)
 
