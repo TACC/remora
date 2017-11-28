@@ -93,13 +93,17 @@ function remora_finalize() {
     fi
 
     #Wait until all remora_remote_post processes have finished
+
+    idx=0
     for pid in "${FINAL_PID[@]}"; do
-        while [ -e /proc/$pid ]; do
+        NODE=${NODES[$idx]}
+        while [ `ssh $NODE "[ -e /proc/$pid ] && echo 1"` ]; do
             sleep 0.05
             if [ "$REMORA_VERBOSE" == "1" ]; then
                 printf "."
             fi
         done
+        idx=$((idx+1))
     done
 
     #Add a small delay so that files are transferred (deal with Lustre latency)

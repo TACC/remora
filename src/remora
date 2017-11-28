@@ -88,7 +88,7 @@ trap "exit_clean" TERM SIGINT
 #Save the PID of REMORA in case we need it
 export REMORA_TOP_PID=$$
 
-remora_pids=`pgrep remora`
+remora_pids=`pgrep -x remora`
 
 for pid in $remora_pids; do
     if [ $pid != $REMORA_TOP_PID ]; then
