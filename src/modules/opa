@@ -26,23 +26,10 @@ init_module_opa()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-            cntr_64b="/sys/class/infiniband/hfi1_0/ports/1/counters_ext/"
-            cntr_32b="/sys/class/infiniband/hfi1_0/ports/1/counters/"
-            if [ -d $cntr_64b ]; then
-                opa_xmit_pack_cntr="${cntr_64b}port_xmit_packets_64"
-                opa_rcv_pack_cntr="${cntr_64b}port_rcv_packets_64"
-                opa_xmit_byte_cntr="${cntr_64b}port_xmit_data_64"
-                opa_rcv_byte_cntr="${cntr_64b}port_rcv_data_64"
-            else
-                opa_xmit_pack_cntr="${cntr_32b}port_xmit_packets"
-                opa_rcv_pack_cntr="${cntr_32b}port_rcv_packets"
-                opa_xmit_byte_cntr="${cntr_32b}port_xmit_data"
-                opa_rcv_byte_cntr="${cntr_32b}port_rcv_data"
-            fi
-            opa_xmit_packs=`cat $opa_xmit_pack_cntr`
-            opa_rcv_packs=`cat $opa_rcv_pack_cntr`
-            opa_xmit_bytes=`cat $opa_xmit_byte_cntr`
-            opa_rcv_bytes=`cat $opa_rcv_byte_cntr`
+            opa_xmit_packs="/sys/class/infiniband/hfi1_0/ports/1/counters/port_xmit_packets"
+            opa_rcv_packs="/sys/class/infiniband/hfi1_0/ports/1/counters/port_rcv_packets"
+            opa_xmit_bytes="/sys/class/infiniband/hfi1_0/ports/1/counters/port_xmit_data"
+            opa_rcv_bytes="/sys/class/infiniband/hfi1_0/ports/1/counters/port_rcv_data"
         fi
     fi
 }
