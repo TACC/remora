@@ -1,0 +1,160 @@
+#!/bin/sh
+#
+#========================================================================
+# HEADER
+#========================================================================
+#% DESCRIPTION
+#% opa (Intel OmniPath)
+#%
+#% DO NOT call this script directly. This is called by REMORA
+#%
+#========================================================================
+#- IMPLEMENTATION
+#-      version     REMORA 1.8.2
+#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      license     MIT
+#========================================================================
+
+# All the functions take three arguments:
+#  1.- The name of the node where this function is running
+#  2.- The full path where the output will be stored/read
+#  3.- The full path to an optional temporary storage location
+
+init_module_opa()
+{
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    if [ "$REMORA_SYMMETRIC" == "0" ]; then
+        if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+            cntr_64b="/sys/class/infiniband/hfi1_0/ports/1/counters_ext/"
+            cntr_32b="/sys/class/infiniband/hfi1_0/ports/1/counters/"
+            if [ -d $cntr_64b ]; then
+                opa_xmit_pack_cntr="${cntr_64b}port_xmit_packets_64"
+                opa_rcv_pack_cntr="${cntr_64b}port_rcv_packets_64"
+                opa_xmit_byte_cntr="${cntr_64b}port_xmit_data_64"
+                opa_rcv_byte_cntr="${cntr_64b}port_rcv_data_64"
+            else
+                opa_xmit_pack_cntr="${cntr_32b}port_xmit_packets"
+                opa_rcv_pack_cntr="${cntr_32b}port_rcv_packets"
+                opa_xmit_byte_cntr="${cntr_32b}port_xmit_data"
+                opa_rcv_byte_cntr="${cntr_32b}port_rcv_data"
+            fi
+            opa_xmit_packs=`cat $opa_xmit_pack_cntr`
+            opa_rcv_packs=`cat $opa_rcv_pack_cntr`
+            opa_xmit_bytes=`cat $opa_xmit_byte_cntr`
+            opa_rcv_bytes=`cat $opa_rcv_byte_cntr`
+        fi
+    fi
+}
+
+collect_data_opa()
+{
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    if [ "$REMORA_SYMMETRIC" == "0" ]; then
+        if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+            local TIMESTAMP=`date +%s`
+            local new_opa_xmit_packs=`cat $opa_xmit_pack_cntr`
+            local new_opa_rcv_packs=`cat $opa_rcv_pack_cntr`
+            local new_opa_xmit_bytes=`cat $opa_xmit_byte_cntr`
+            local new_opa_rcv_bytes=`cat $opa_rcv_byte_cntr`
+            printf "%d %10d %10d %10d %10d\n" $TIMESTAMP \
+                $((new_opa_xmit_packs-opa_xmit_packs)) \
+                $((new_opa_rcv_packs-opa_rcv_packs)) \
+                $((new_opa_xmit_bytes-opa_xmit_bytes)) \
+                $((new_opa_rcv_bytes-opa_rcv_bytes)) \
+                >> $REMORA_TMPDIR/opa_packets-${REMORA_NODE}.txt
+            opa_xmit_packs=$new_opa_xmit_packs
+            opa_rcv_packs=$new_opa_rcv_packs
+            opa_xmit_bytes=$new_opa_xmit_bytes
+            opa_rcv_bytes=$new_opa_rcv_bytes
+        fi
+    fi
+}
+
+process_data_opa()
+{
+  :
+}
+
+plot_data_opa()
+{
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+        return
+    fi
+    printf "%s \n" "<html>" > $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "<head>" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "google.charts.load('current', {'packages':['line']});" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+
+    printf "%s \n" "google.charts.setOnLoadCallback(drawChart);" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Transmitted Packets');" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Received Packets');" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Transmitted Bytes');" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "data.addColumn('number', 'Received Bytes');" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    local ctime=0
+    local first=0
+    local firsttimestamp=0
+    while read line; do
+        #Skip first line
+        if [ $first -eq 0 ]; then
+            first=1
+            continue
+        fi
+        #Read first timestamp
+        if [ $first -eq 1 ]; then
+            first=2
+            firsttimestamp=`echo $line | awk '{print $1;}'`
+        fi
+        local timestamp=`echo $line | awk '{print $1;}'`
+        ctime=$[timestamp - firsttimestamp]
+        printf "[%s," $ctime >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+        idx=0
+        out=""
+        for i in `seq 2 5`; do
+            colval=`echo $line | xargs | cut -f $i -d ' '`
+            printf "%s," $colval >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+        done
+        printf "%s,\n" "]" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    done < $REMORA_TMPDIR/opa_packets-${REMORA_NODE}.txt
+
+    printf "%s \n" "]);" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "var options = { " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "chart: {" >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "title: 'OmniPath Stats'," >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "}," >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+    printf "%s \n" "width: 1024, " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html 
+    printf "%s \n" "height: 800, " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html 
+    printf "%s \n" "axes: { " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html 
+    printf "%s \n" "x: { " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html 
+    printf "%s \n" "0: {side: 'top'} " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html 
+    printf "%s \n" "} " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html 
+    printf "%s \n" "}, " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html 
+    printf "%s \n" " }; " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+
+    printf "%s \n" "var chart = new google.charts.Line(document.getElementById('line_top_x')); " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html 
+    printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html 
+    printf "%s \n" "} " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html 
+    printf "%s \n" "</script> " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html 
+    printf "%s \n" "</head> " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html 
+    printf "%s \n" "<body> " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html 
+    printf "%s \n" "  <div id=\"line_top_x\"></div> " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html 
+    printf "%s \n" "</body> " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html 
+    printf "%s \n" "</html> " >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
+}
+
+monitor_data_opa()
+{
+  :
+}
+
+finalize_module_opa()
+{
+    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+    plot_data_opa $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+}
