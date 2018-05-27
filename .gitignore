@@ -1,0 +1,6 @@
+# Ignore Latex's side effects
+docs/remora_user_guide.aux
+docs/remora_user_guide.log
+docs/remora_user_guide.out
+docs/remora_user_guide.synctex.gz
+docs/remora_user_guide.toc
