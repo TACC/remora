@@ -1,4 +1,36 @@
 # Change Log
+## [1.8.3] - (2019-04-25)
+
+### Codes Fixes
+* install.sh
+   1. config/modules must be changed from ib,NETWORK opa,NETWORK if OPA is detected
+
+* scripts/remora_finalize.sh
+   1. Include impi fraction and breakdown links under "impi utilization".
+   2. impi_fraction.html and impi_breakdown.html links in remora_summary.html were not
+   3. included. Now, it is included if impi is found in REMORA_MODULES[@] in remora_finalize.sh.
+   4. (This works similar to including the lustre_aggregated.html under "lustre utilization".
+
+* modules/numa
+   1. numastats does not show THPs. 
+   2. Replace misses with foreign hits--since it is the real miss. 
+   3. Now uses vmstats to give Top-Right plot with allocated memory from thp and (thp+4k) pages. How to read text was placed at top.
+
+* modules/opa
+   1. Fixed modules/opa.  
+   2. packs and bytes strings were never initialized.  pack was used in string names instead of packs.
+
+* modules/network
+   1. ibtracert not found in default path.  
+   2. Added /sbin
+
+* modules/ib
+   1. was not set up to handle dev_hfi1_0 device for opa
+
+* docs
+   1. added modules_help and modules_whatis files for supporting mkmod
+
+
 
 ## [1.8.2] - (2017-08-08)
 
