@@ -4,6 +4,7 @@
 # Change CC, MPICC and the corresponding flags to match your own compiler in
 # file "Makefile.in". You should not have to edit this file at all.
 #
+# v1.8.3 (2018-04-25)  Kent Milfeld/Si Liu
 # v1.8.2 (2017-08-08)  Carlos Rosales-Fernandez
 #                      Antonio Gomez-Iglesias
 #
@@ -23,7 +24,7 @@ mkdir -p $REMORA_DIR/share
 
 REMORA_BUILD_DIR=$PWD
 
-VERSION=1.8.2
+VERSION=1.8.3
 COPYRIGHT1="Copyright 2017 The University of Texas at Austin."
 COPYRIGHT2="License: MIT <http://opensource.org/licenses/MIT>"
 COPYRIGHT3="This is free software: you are free to change and redistribute it."
@@ -130,6 +131,13 @@ else
         sed '/impi,MPI/d' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
         mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/config/modules
     fi
+fi
+if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ]; then
+   /sbin/lsmod | grep hfi1 >& /dev/null
+   if [[ $? == 0 ]]; then
+      sed 's/ib,NETWORK/opa,NETWORK/' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
+      mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/config/modules
+   fi
 fi
 
 echo $SEPARATOR
