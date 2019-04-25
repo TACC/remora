@@ -10,7 +10,7 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.2
+#-      version     REMORA 1.8.3
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
@@ -28,11 +28,17 @@ init_module_ib()
         if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
             cntr_64b="/sys/class/infiniband/mlx4_0/ports/1/counters_ext/"
             cntr_32b="/sys/class/infiniband/mlx4_0/ports/1/counters/"
+            dev_hfi1_0="/sys/class/infiniband/hfi1_0/ports/1/counters/"
             if [ -d $cntr_64b ]; then
                 ib_xmit_pack_cntr="${cntr_64b}port_xmit_packets_64"
                 ib_rcv_pack_cntr="${cntr_64b}port_rcv_packets_64"
                 ib_xmit_byte_cntr="${cntr_64b}port_xmit_data_64"
                 ib_rcv_byte_cntr="${cntr_64b}port_rcv_data_64"
+            elif [ -d $dev_hfi1_0 ]; then
+                ib_xmit_pack_cntr="${dev_hfi1_0}port_xmit_packets"
+                 ib_rcv_pack_cntr="${dev_hfi1_0}port_rcv_packets"
+                ib_xmit_byte_cntr="${dev_hfi1_0}port_xmit_data"
+                 ib_rcv_byte_cntr="${dev_hfi1_0}port_rcv_data"
             else
                 ib_xmit_pack_cntr="${cntr_32b}port_xmit_packets"
                 ib_rcv_pack_cntr="${cntr_32b}port_rcv_packets"
