@@ -12,7 +12,7 @@
 #% remora_monitor.sh $NODE $REMORA_BIN $REMORA_OUTDIR
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.2
+#-      version     REMORA 1.8.3
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
