@@ -10,7 +10,7 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.2
+#-      version     REMORA 1.8.3
 #-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #-      license     MIT
@@ -26,10 +26,15 @@ init_module_opa()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-            opa_xmit_packs="/sys/class/infiniband/hfi1_0/ports/1/counters/port_xmit_packets"
-            opa_rcv_packs="/sys/class/infiniband/hfi1_0/ports/1/counters/port_rcv_packets"
-            opa_xmit_bytes="/sys/class/infiniband/hfi1_0/ports/1/counters/port_xmit_data"
-            opa_rcv_bytes="/sys/class/infiniband/hfi1_0/ports/1/counters/port_rcv_data"
+            opa_xmit_packs_cntr="/sys/class/infiniband/hfi1_0/ports/1/counters/port_xmit_packets"
+             opa_rcv_packs_cntr="/sys/class/infiniband/hfi1_0/ports/1/counters/port_rcv_packets"
+            opa_xmit_bytes_cntr="/sys/class/infiniband/hfi1_0/ports/1/counters/port_xmit_data"
+             opa_rcv_bytes_cntr="/sys/class/infiniband/hfi1_0/ports/1/counters/port_rcv_data"
+
+            opa_xmit_packs=`cat $opa_xmit_packs_cntr`
+             opa_rcv_packs=`cat  $opa_rcv_packs_cntr`
+            opa_xmit_bytes=`cat $opa_xmit_bytes_cntr`
+             opa_rcv_bytes=`cat  $opa_rcv_bytes_cntr`
         fi
     fi
 }
@@ -37,23 +42,27 @@ init_module_opa()
 collect_data_opa()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+
             local TIMESTAMP=`date +%s`
-            local new_opa_xmit_packs=`cat $opa_xmit_pack_cntr`
-            local new_opa_rcv_packs=`cat $opa_rcv_pack_cntr`
-            local new_opa_xmit_bytes=`cat $opa_xmit_byte_cntr`
-            local new_opa_rcv_bytes=`cat $opa_rcv_byte_cntr`
+            local new_opa_xmit_packs=`cat $opa_xmit_packs_cntr`
+            local  new_opa_rcv_packs=`cat $opa_rcv_packs_cntr`
+            local new_opa_xmit_bytes=`cat $opa_xmit_bytes_cntr`
+            local  new_opa_rcv_bytes=`cat $opa_rcv_bytes_cntr`
+
             printf "%d %10d %10d %10d %10d\n" $TIMESTAMP \
                 $((new_opa_xmit_packs-opa_xmit_packs)) \
                 $((new_opa_rcv_packs-opa_rcv_packs)) \
                 $((new_opa_xmit_bytes-opa_xmit_bytes)) \
                 $((new_opa_rcv_bytes-opa_rcv_bytes)) \
                 >> $REMORA_TMPDIR/opa_packets-${REMORA_NODE}.txt
+
             opa_xmit_packs=$new_opa_xmit_packs
-            opa_rcv_packs=$new_opa_rcv_packs
+             opa_rcv_packs=$new_opa_rcv_packs
             opa_xmit_bytes=$new_opa_xmit_bytes
-            opa_rcv_bytes=$new_opa_rcv_bytes
+             opa_rcv_bytes=$new_opa_rcv_bytes
         fi
     fi
 }
