@@ -13,7 +13,7 @@
 # remora_finalize $END $START
 #========================================================================
 # IMPLEMENTATION
-#      version     REMORA 1.8.2
+#      version     REMORA 1.8.3
 #      authors     Carlos Rosales (carlos@tacc.utexas.edu)
 #                  Antonio Gomez  (agomez@tacc.utexas.edu)
 #      license     MIT
@@ -169,6 +169,10 @@ function remora_finalize() {
             printf "<h2>%s utilization</h2> \n" ${REMORA_MODULES[$i]} >> $REMORA_OUTDIR/remora_summary.html
             if [ "${REMORA_MODULES[$i]}" == "lustre" ]; then
                 printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/lustre_aggregated.html" "Aggregated" >> $REMORA_OUTDIR/remora_summary.html
+            fi
+            if [ "${REMORA_MODULES[$i]}" == "impi" ]; then
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_fraction.html"  "Fraction"  >> $REMORA_OUTDIR/remora_summary.html
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_breakdown.html" "Breakdown" >> $REMORA_OUTDIR/remora_summary.html
             fi
             for node in $NODES; do
                 if [ -f  $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]}/${REMORA_MODULES[$i]}_${node}.html ]; then
