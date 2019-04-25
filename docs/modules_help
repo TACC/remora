@@ -1,0 +1,64 @@
+------------------------ General Help for "remora/$VER" -------------------------
+
+REMORA is an easy-to-use monitor that statistical and timeline information
+of resources used for a running application. The collected information included:
+
+    - CPU usage
+    - Memory usage
+    - MPI usage
+    - I/O load (Lustre, DVS)
+    - NUMA memory
+    - Network topology
+
+A summary of resource usage is provided at the end of the output file.
+
+REMORA also puts timeline results in a directory names remora_<jobid>. 
+Subdirectories are named according to the resource (MPI, IO, CPU, etc.).
+
+Timeline information is recorded in txt files of the remora_<jobid> directory.
+Timeline information is also reported in html files, also found in the 
+remora_<jobid> directory. (Download the remora_<jobid> directory and open
+the remora_summary.html to get a page with links (and labels) to all of
+the html plot pages.  You can also simply cat an html file of interest,
+copy and paste the page into a file on your local laptop, and open it 
+to see the timeline plots.
+
+
+-------------- Job and Execution information fo "remora/$VER" -------------------
+
+To use the tool, simply modify your batch script and include 'remora' before
+your executable or mpirun launcher (ibrun @TACC).
+
+Examples:
+  ...
+#SBATCH -N 2
+#SBATCH -n 16
+#SBATCH -A my_project
+
+remora mpirun my_parallel_program [arguments]
+
+---------------------------------------
+  ...
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -A my_project
+
+remora ./my_serial_program [arguments]
+
+---------------------------------------
+
+The following environment variables control the behaviour of remora:
+
+  - REMORA_PERIOD  - How often memory usage is checked. Default
+                     is 10 seconds. (Use 1 for short runs.)
+  - REMORA_VERBOSE - Verbose mode will save all information to
+                     a file. Default is 0 (off).
+  - REMORA_MODE    - FULL for all stats, BASIC for memory and cpu only.
+                     Default if FULL.
+  - REMORA_TMPDIR  - Directory for intermediate files. Default is the
+                     remora output directory.
+
+To generate a summary report after a crash use:
+
+remora_post_crash <jobid>.
+
