@@ -51,7 +51,7 @@ show_final_report() {
         else
             max_mem_used=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {print max}' $REMORA_OUTDIR/memory_all_nodes.txt)
             low_mem=$(echo "$max_mem_used > $MEM_THRESHOLD" | bc)        
-            printf "%-29 %-1s %-4.2f GB\n" " Max Memory Used Per Node" ":" $max_mem_used | tee -a $REMORA_OUTDIR/remora_summary.txt
+            printf "%-29s %-1s %-4.2f GB\n" " Max Memory Used Per Node" ":" $max_mem_used | tee -a $REMORA_OUTDIR/remora_summary.txt
             if [ "$low_mem" -eq "1" ] && [ "$REMORA_WARNING" -gt "0" ]; then
               printf "%-s\n" "*** REMORA: WARNING - Free memory per node close to zero." | tee -a $REMORA_OUTDIR/remora_summary.txt
             fi
@@ -81,14 +81,18 @@ show_final_report() {
 
     if [ "$REMORA_CUDA" == "1" ]; then
         if [ -e $REMORA_OUTDIR/gpu_memory_all_nodes.txt ]; then
-            max_mem_used=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print max}' $REMORA_OUTDIR/gpu_memory_all_nodes.txt)
-            free_min_gpu=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 < min {min=$3} END {print min}' $REMORA_OUTDIR/gpu_memory_all_nodes.txt)
-            low_mem=$(echo "$free_min_gpu < 1.0" | bc)  
-            printf "%-29s %-1s %-4.2f GB\n" " Max Memory Used Per GPU" ":" $max_mem_used | tee -a $REMORA_OUTDIR/remora_summary.txt
+
+            local min_avail max_used
+
+             max_used=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print max}' $REMORA_OUTDIR/gpu_memory_all_nodes.txt)
+            min_avail=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 < min {min=$3} END {print min}' $REMORA_OUTDIR/gpu_memory_all_nodes.txt)
+
+            low_mem=$(echo "$min_avail < 500.0" | bc)  
+            printf "%-29s %-1s %-4.2f MB\n" " Max Memory Used Per GPU" ":" $max_used         | tee -a $REMORA_OUTDIR/remora_summary.txt
             if [ "$low_mem" -eq "1" ] && [ "$REMORA_WARNING" -gt "0" ]; then
-                printf "%-s \n" "*** REMORA: WARNING - Free memory per GPU close to zero."  | tee -a $REMORA_OUTDIR/remora_summary.txt
+                printf "%-s \n" "*** REMORA: WARNING - Free memory per GPU < 500MB."         | tee -a $REMORA_OUTDIR/remora_summary.txt
             fi
-            sed -i '1i #HOST     MAX  FREE_MIN' $REMORA_OUTDIR/gpu_memory_all_nodes.txt
+            sed -i '1i #HOST     MAX  FREE_MIN (MB)'                                                  $REMORA_OUTDIR/gpu_memory_all_nodes.txt
         else
             printf "%-s\n" "*** REMORA: WARNING - Couldn't find the GPU memory summary file" | tee -a $REMORA_OUTDIR/remora_summary.txt
         fi

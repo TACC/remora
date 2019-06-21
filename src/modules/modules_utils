@@ -29,6 +29,7 @@ remora_configure_modules()
             echo init_module_$MODULE $1 $2 $3 
         fi
         init_module_$MODULE $1 $2 $3
+     #echo init_module_$MODULE $1 $2 $3 >>$HOME/SI/HOLD
     done
 }
 
