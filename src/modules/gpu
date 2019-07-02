@@ -24,7 +24,6 @@
 init_module_gpu()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    #init_module_gpu c228-101 /home1/00770/milfeld/SI/remora_43062 /home1/00770/milfeld/SI/remora_43062
 
     local OUT_FILE=$REMORA_TMPDIR/gpu_memory_stats_${REMORA_NODE}.txt
     local NGPUS=$( nvidia-smi -L |wc -l )
@@ -33,14 +32,11 @@ init_module_gpu()
     rm -f $OUT_FILE
 
     printf "%-17s " "#TIME" >$OUT_FILE
-    printf "%-17s " "#TIME" >$HOME/SI/OUT_FILE
 
     for gpu_no in `seq 0 $LAST_GPU_NO`; do
        printf "%-17s %-17s " "gpu_${gpu_no}_avail" "gpu_${gpu_no}_used" >>$OUT_FILE
-       printf "%-17s %-17s " "gpu_${gpu_no}_avail" "gpu_${gpu_no}_used" >>$HOME/SI/OUT_FILE
     done
     printf "\n"           >>$OUT_FILE
-    printf "\n"           >>$HOME/SI/OUT_FILE
 
    # Fix this later for GPU MEMORY
    #if [ "$REMORA_MODE" == "MONITOR" ]; then
@@ -67,7 +63,6 @@ collect_data_gpu()
            line+=$( printf "\n" )
 
         echo "$line" >> $REMORA_TMPDIR/gpu_memory_stats_${REMORA_NODE}.txt
-        echo "$line" >> $HOME/SI/OUT_FILE
     fi
 }
 # This function might perform some processing on the data.
