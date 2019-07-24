@@ -21,6 +21,7 @@ mkdir -p $REMORA_DIR/bin
 mkdir -p $REMORA_DIR/include
 mkdir -p $REMORA_DIR/lib
 mkdir -p $REMORA_DIR/share
+mkdir -p $REMORA_DIR/docs
 
 REMORA_BUILD_DIR=$PWD
 
@@ -138,6 +139,13 @@ if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ]; then
       sed 's/ib,NETWORK/opa,NETWORK/' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
       mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/config/modules
    fi
+fi
+
+if [[ "$REMORA_BUILD_DIR/docs" != $REMORA_DIR/docs ]]; then
+        cp $PWD/docs/modules_help          $REMORA_DIR/docs
+        cp $PWD/docs/modules_whatis        $REMORA_DIR/docs
+        cp $PWD/docs/remora_user_guide.pdf $REMORA_DIR/docs
+  echo "Copied modules_help modules_whatis and remora.pdf to $REMORA_DIR/docs dir."
 fi
 
 echo $SEPARATOR
