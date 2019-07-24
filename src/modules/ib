@@ -29,21 +29,27 @@ init_module_ib()
             cntr_64b="/sys/class/infiniband/mlx4_0/ports/1/counters_ext/"
             cntr_32b="/sys/class/infiniband/mlx4_0/ports/1/counters/"
             dev_hfi1_0="/sys/class/infiniband/hfi1_0/ports/1/counters/"
+            dev_mlx5_0="/sys/class/infiniband/mlx5_0/ports/1/counters/"
             if [ -d $cntr_64b ]; then
                 ib_xmit_pack_cntr="${cntr_64b}port_xmit_packets_64"
-                ib_rcv_pack_cntr="${cntr_64b}port_rcv_packets_64"
+                 ib_rcv_pack_cntr="${cntr_64b}port_rcv_packets_64"
                 ib_xmit_byte_cntr="${cntr_64b}port_xmit_data_64"
-                ib_rcv_byte_cntr="${cntr_64b}port_rcv_data_64"
+                 ib_rcv_byte_cntr="${cntr_64b}port_rcv_data_64"
             elif [ -d $dev_hfi1_0 ]; then
                 ib_xmit_pack_cntr="${dev_hfi1_0}port_xmit_packets"
                  ib_rcv_pack_cntr="${dev_hfi1_0}port_rcv_packets"
                 ib_xmit_byte_cntr="${dev_hfi1_0}port_xmit_data"
                  ib_rcv_byte_cntr="${dev_hfi1_0}port_rcv_data"
+            elif [ -d $dev_mlx5_0 ]; then
+                ib_xmit_pack_cntr="${dev_mlx5_0}port_xmit_packets"
+                 ib_rcv_pack_cntr="${dev_mlx5_0}port_rcv_packets"
+                ib_xmit_byte_cntr="${dev_mlx5_0}port_xmit_data"
+                 ib_rcv_byte_cntr="${dev_mlx5_0}port_rcv_data"
             else
                 ib_xmit_pack_cntr="${cntr_32b}port_xmit_packets"
-                ib_rcv_pack_cntr="${cntr_32b}port_rcv_packets"
+                 ib_rcv_pack_cntr="${cntr_32b}port_rcv_packets"
                 ib_xmit_byte_cntr="${cntr_32b}port_xmit_data"
-                ib_rcv_byte_cntr="${cntr_32b}port_rcv_data"
+                 ib_rcv_byte_cntr="${cntr_32b}port_rcv_data"
             fi
             ib_xmit_packs=`cat $ib_xmit_pack_cntr`
             ib_rcv_packs=`cat $ib_rcv_pack_cntr`
@@ -51,6 +57,7 @@ init_module_ib()
             ib_rcv_bytes=`cat $ib_rcv_byte_cntr`
         fi
     fi
+
 }
 
 collect_data_ib()
