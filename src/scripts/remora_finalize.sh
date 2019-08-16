@@ -25,6 +25,9 @@ source $REMORA_BIN/aux/extra
 source $REMORA_BIN/aux/report
 source $REMORA_OUTDIR/remora_env.txt
 
+# PRELOAD is not needed and may cause problem.
+unset LD_PRELOAD
+
 function remora_finalize() {
     if [ "$REMORA_VERBOSE" == "1" ]; then
         echo ""
@@ -144,6 +147,8 @@ function remora_finalize() {
 
     source $REMORA_BIN/aux/extra
     source $REMORA_BIN/modules/modules_utils
+       # PRELOAD is not needed and may cause problem.
+    unset LD_PRELOAD
     remora_read_active_modules
 
     #Move output files to their folders based on the configuration file

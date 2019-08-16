@@ -175,7 +175,6 @@ out="$out ${stats[2]}"  # idx=1 numa_foreign
 
     echo  $TIMESTAMP $out  >> $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
   fi
-  echo "$out" >> $HOME/MEM
 }
 
 # This function might perform some processing on the data.

@@ -24,11 +24,13 @@
 REMORA_NODE=$1
 REMORA_BIN=$2
 REMORA_OUTDIR=$3
-source $REMORA_OUTDIR/remora_env.txt
 
 #Source the script that has the modules' functionality
 source $REMORA_BIN/aux/extra
 source $REMORA_BIN/modules/modules_utils
+source $REMORA_OUTDIR/remora_env.txt
+# PRELOAD is not needed and may cause problem.
+unset LD_PRELOAD
 
 #Read the list of active modules from the configuration file
 remora_read_active_modules
