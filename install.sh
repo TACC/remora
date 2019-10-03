@@ -9,6 +9,7 @@
 #                      Antonio Gomez-Iglesias
 #
 # Thanks to Kenneth Hoste, from HPC-UGent, for his input
+# Changed to use mpiP for intel 2019 and above  (impi_mpiP)
 
 # installation directory: use $REMORA_INSTALL_PREFIX if defined, current directory if not
 export REMORA_DIR=${REMORA_INSTALL_PREFIX:-$PWD}
@@ -35,9 +36,9 @@ BUILD_LOG="$REMORA_BUILD_DIR/remora_build.log"
 INSTALL_LOG="$REMORA_BUILD_DIR/remora_install.log"
 
 SEPARATOR="======================================================================"
-PKG="Package  : REMORA"
-VER="Version  : $VERSION"
-DATE="Date     : `date +%Y.%m.%d`"
+   PKG="Package  : REMORA"
+   VER="Version  : $VERSION"
+  DATE="Date     : `date +%Y.%m.%d`"
 SYSTEM="System   : `uname -sr`"
 
 # Record the local conditions for the compilation
@@ -72,42 +73,80 @@ cp mpstat $REMORA_DIR/bin
 export CC=mpicc
 export F77=mpif77
 export ARCH=x86_64
+
 if [ "$( $CC --version >& /dev/null || echo "0")" == "0" ]; then 
     haveMPICC=0
 else 
     haveMPICC=1
 fi
+
 if [ "$( $F77 --version >& /dev/null || echo "0")" == "0" ]; then
      haveMPIFC=0
 else 
      haveMPIFC=1 
 fi
-#haveMPICC=1; haveMPICC=$( $CC --version >& /dev/null || echo "0" )
-#haveMPIFC=1; haveMPIFC=$( $F77 --version >& /dev/null || echo "0" )
-mpiexec --version | grep Intel >& /dev/null
-haveIMPI=$((1-$?))
-if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ] && [ "$haveIMPI" == "0" ]; then
-    echo " REMORA built with support for Mvapich2 MPI statistics" | tee -a $BUILD_LOG
-    echo "Building mpiP ..." | tee -a $BUILD_LOG
-    cd $REMORA_BUILD_DIR/extra
-    mpipfile=`ls -ld mpiP*.tar.gz | awk '{print $9}' | head -n 1`
-    mpipdir=`echo  ${mpipfile%%.tar.gz}`
-    tar xzvf ${mpipfile}
-    cd ${mpipdir}
-    ./configure CFLAGS="-g" --enable-demangling --disable-bfd --disable-libunwind --prefix=${REMORA_DIR} | tee -a $BUILD_LOG
-    make        | tee -a $BUILD_LOG
-    make shared | tee -a $BUILD_LOG
-    echo "Installing mpiP ..." | tee -a $INSTALL_LOG
-    make install
-elif [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ] && [ "$haveIMPI" == "1" ]; then
-    echo "" 
-    echo " REMORA built with support for Intel MPI statistics" | tee -a $BUILD_LOG
-    echo ""
+
+if [[ $haveMPICC == 1 && $haveMPIFC == 1 ]]; then
+
+   mpicc -v |& grep 'Intel(R) MPI' >& /dev/null
+   haveIMPI=$((1-${PIPESTATUS[1]}))           #1=has IMPI, 0=does not have IMPI
+
+   mpicc -v |& grep 'MVAPICH2'     >& /dev/null
+   haveMV2=$((1-${PIPESTATUS[1]}))            #1=has MVAPICH2, 0=does not have MV2
+
+   if [[ $haveIMPI == 1 ]]; then
+      IMPI_year=$( mpicc -v |& grep 'Library 20' | sed 's/.*Library 20\([0-9][0-9]\).*/\1/' )
+      if [[ $IMPI_year > 18 ]]; then
+         IMPI_stats="impi_mpip"
+      else
+         IMPI_stats=impi
+      fi
+      #mpicc -v |& grep 'MPI Library 2019' >& /dev/null
+      #haveIMPI19=$((1-${PIPESTATUS[1]}))      #1=has IMPI 19, 0=does not have IMPI 19
+   fi
 else
     echo ""
-    echo " WARNING : mpicc / mpif77 not found " | tee -a $BUILD_LOG
-    echo " WARNING : REMORA will be built without MPI support" | tee -a $BUILD_LOG
+    [[ $haveMPICC == 0 ]] && echo " WARNING : mpicc not found " | tee -a $BUILD_LOG
+    [[ $haveMPIFC == 0 ]] && echo " WARNING : mpi77 not found " | tee -a $BUILD_LOG
+    echo " WARNING : REMORA will be built without MPI support " | tee -a $BUILD_LOG
     echo ""
+fi
+
+
+if [[ "$haveMPICC" == "1" && "$haveMPIFC"  == "1" ]]; then
+
+   if [[ "$haveMV2"    == "1" || "$IMPI_stats" == "impi_mpip" ]] ; then
+
+      [[ "$haveMV2"    == "1" ]]         && echo " REMORA built with mpiP statistics for Mvapich2"  | tee -a $BUILD_LOG
+      [[ "$IMPI_stats" == "impi_mpip" ]] && echo " REMORA built with mpiP statistics for IMPI 20$IMPI_year" | tee -a $BUILD_LOG
+
+      echo "Building mpiP ..." | tee -a $BUILD_LOG
+      cd $REMORA_BUILD_DIR/extra
+      mpipfile=`ls -ld mpiP*.tar.gz | awk '{print $9}' | head -n 1`
+      mpipdir=`echo  ${mpipfile%%.tar.gz}`
+      tar xzvf ${mpipfile}
+      cd ${mpipdir}
+      ./configure CFLAGS="-g" --enable-demangling --disable-bfd --disable-libunwind --prefix=${REMORA_DIR} | tee -a $BUILD_LOG
+      make        | tee -a $BUILD_LOG
+      make shared | tee -a $BUILD_LOG
+      echo "Installing mpiP ..." | tee -a $INSTALL_LOG
+      make install
+
+   fi
+
+   if [[ "$IMPI_stats" == "impi" ]]; then
+      echo "" 
+      echo " REMORA built with support for impi (ipm) statistics" | tee -a $BUILD_LOG
+      echo ""
+   fi
+
+   if [[ "$haveMV2" == "0" && "$haveIMPI" == "0" ]]; then
+      echo "" 
+      echo " REMORA only supports statistics for IMPI and MVAPICH2"          | tee -a $BUILD_LOG
+      echo " WARNING : REMORA will be built with NO MPI statistics support " | tee -a $BUILD_LOG
+      echo ""
+   fi
+
 fi
 
 if [ "$PHI_BUILD" == "1" ]; then
@@ -119,25 +158,30 @@ if [ "$PHI_BUILD" == "1" ]; then
 fi
 
 echo "Copying all scripts to installation folder ..." |  tee -a $INSTALL_LOG
+
 cd $REMORA_BUILD_DIR
 cp -vr ./src/* $REMORA_DIR/bin
+
 if [ "$haveMPICC" == "0" ] || [ "$haveMPIFC" == "0" ]; then
-    sed '/impi,MPI/d' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
-    sed '/mv2,MPI/d' $REMORA_DIR/remora.tmp > $REMORA_DIR/bin/config/modules
+    sed -i '/impi,MPI/d'      $REMORA_DIR/bin/config/modules
+    sed -i '/impi_mpip,MPI/d' $REMORA_DIR/bin/config/modules
+    sed -i '/mv2,MPI/d'       $REMORA_DIR/bin/config/modules
 else
     if [ "$haveIMPI" == "1" ]; then
-        sed '/mv2,MPI/d' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
-        mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/config/modules
-	else
-        sed '/impi,MPI/d' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
-        mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/config/modules
+                                           sed -i '/mv2,MPI/d'       $REMORA_DIR/bin/config/modules
+       [[ $IMPI_stats == "impi_mpip" ]] && sed -i '/impi,MPI/d'      $REMORA_DIR/bin/config/modules
+       [[ $IMPI_stats == "impi"      ]] && sed -i '/impi_mpip,MPI/d' $REMORA_DIR/bin/config/modules
+    fi
+    if [ "$haveMV2" == "1" ]; then
+       sed -i '/impi,MPI/d'      $REMORA_DIR/bin/config/modules
+       sed -i '/impi_mpip,MPI/d' $REMORA_DIR/bin/config/modules
     fi
 fi
+
 if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ]; then
    /sbin/lsmod | grep hfi1 >& /dev/null
    if [[ $? == 0 ]]; then
-      sed 's/ib,NETWORK/opa,NETWORK/' $REMORA_DIR/bin/config/modules > $REMORA_DIR/remora.tmp
-      mv $REMORA_DIR/remora.tmp $REMORA_DIR/bin/config/modules
+      sed -i 's/ib,NETWORK/opa,NETWORK/' $REMORA_DIR/bin/config/modules
    fi
 fi
 
