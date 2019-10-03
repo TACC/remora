@@ -1,6 +1,7 @@
 cpu,CPU
 memory,MEMORY
 impi,MPI
+impi_mpip,MPI
 mv2,MPI
 numa,NUMA
 dvs,IO
