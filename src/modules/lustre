@@ -478,61 +478,66 @@ finalize_module_lustre()
                     idx=$((idx+1))
                 done <<< "$FSS"
 
-                printf "%s \n" "<html>" > $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "<head>" >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "google.charts.load('current', {'packages':['line']});" >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "google.charts.setOnLoadCallback(drawChart);" >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "function drawChart() {" >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "data.addColumn('number','Execution Time (s)'); \n" >> $REMORA_OUTDIR/lustre_aggregated.html
-                for FS in "${FSNAMES[@]}"; do
-                    printf "data.addColumn('number','%s'); \n" "$FS" >> $REMORA_OUTDIR/lustre_aggregated.html
-                done
-                printf "%s\n" "data.addRows([" >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "<html>"                                     > $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" " <head>"                                   >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  <title> Aggregated Lustre Load </title>" >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  <script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>"                   >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  <script type=\"text/javascript\"> google.charts.load('current', {packages: ['corechart','line']});  </script>" >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" " </head>"                                  >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" " <body>"                                   >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  <div id = \"container\" style = \"width: 1024px; height: 800px; margin: 0 auto\"> </div>" >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  <script language = \"JavaScript\"> "     >> $REMORA_OUTDIR/lustre_aggregated.html
 
-                local lines=`wc -l $REMORA_OUTDIR/lustre_${FSNAMES[0]}_rate.txt | awk '{print $1;}'`
-                local current=2
+                printf "%s \n" "function drawChart() {"                            >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" " var data = new google.visualization.DataTable();" >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf " data.addColumn('number','Execution Time (s)'); \n"        >> $REMORA_OUTDIR/lustre_aggregated.html
+                for FS in "${FSNAMES[@]}"; do
+                    printf " data.addColumn('number','%s'); \n" "$FS"              >> $REMORA_OUTDIR/lustre_aggregated.html
+                done
+                printf "%s\n" " data.addRows([" >> $REMORA_OUTDIR/lustre_aggregated.html
+
+               #local lines=`wc -l $REMORA_OUTDIR/lustre_${FSNAMES[0]}_rate.txt | awk '{print $1;}'`
+               #local current=2
+                      lines=`wc -l $REMORA_OUTDIR/lustre_${FSNAMES[0]}_rate.txt | awk '{print $1;}'`
+                      current=2
                 while [ $current -le $lines ]; do
-                    local first=1
-                    local timestamp=0
+                   #local first=1
+                   #local timestamp=0
+                          first=1
+                          timestamp=0
                     for FS in "${FSNAMES[@]}"; do
                         output=`sed "${current}q;d" $REMORA_OUTDIR/lustre_${FS}_rate.txt`
                         if [ $first -eq 1 ]; then
                             first=0
                             timestamp=`echo $output | awk '{print $1;}'`
-                            printf "[ %s ," "$timestamp" >> $REMORA_OUTDIR/lustre_aggregated.html
+                            printf "  [ %s ," "$timestamp" >> $REMORA_OUTDIR/lustre_aggregated.html
                         fi
                         val=`echo $output | awk '{print $2;}'`
-                        printf "%s, " "$val" >> $REMORA_OUTDIR/lustre_aggregated.html
+                        printf "%s, " "$val"             >> $REMORA_OUTDIR/lustre_aggregated.html
                     done
                     current=$((current+1))
                     printf "],\n" >> $REMORA_OUTDIR/lustre_aggregated.html
                 done
-                printf "%s \n" "]);" >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "var options = { " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "chart: {" >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "title: 'Aggregated Lustre Load'," >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "subtitle: 'IOPS' " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "}," >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "width: 1024, " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "height: 800, " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "axes: { " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "x: { " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "0: {side: 'top'} " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "} " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "}, " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "}; " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "var chart = new google.charts.Line(document.getElementById('data_div')); " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "chart.draw(data, options); " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "} " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "</script> " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "</head> " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "<body> " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "<div id='data_div'></div>" >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "</body> " >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "</html> " >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" " ]);"                                    >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" " var options = { "                       >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  title: 'Input/output Operations per Second'," >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  hAxis: { title: 'Time (sec)'}, "       >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  vAxis: { title: 'Lustre IO (IOPS)' }," >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  width: 1024, "                         >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  height: 800, "                         >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  //pointsVisible: true,"                >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  //legend: { position: 'none' },"       >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  //axes:{x:{ 0: {side: 'top'}}},"       >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  lineWidth: 4 "                         >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" " }; "                                    >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" " var chart = new google.visualization.LineChart(document.getElementById('container')); " >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" " chart.draw(data, options); "                    >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "}"                                               >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "    google.charts.setOnLoadCallback(drawChart);" >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  </script> "                                    >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" " </body> "                                       >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "</html> "                                        >> $REMORA_OUTDIR/lustre_aggregated.html
+
             fi
         fi
     fi
