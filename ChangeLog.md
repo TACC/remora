@@ -1,7 +1,14 @@
 # Change Log
+
 ## [1.8.3] - (2019-04-25)
 
 ### Codes Fixes
+* numa
+  1. Corrected 4MB to 2MB in description of pages.
+
+* remora_finalize.sh
+  1. Create local nodes array, NODES_LIST, for accessing node and pid simultaneous as list
+     (e.g.  ${PID[$idx]} and ${NODES_LIST[$idx]}  in loop)
 * install.sh
    1. config/modules must be changed from ib,NETWORK opa,NETWORK if OPA is detected
 
