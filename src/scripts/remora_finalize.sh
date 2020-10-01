@@ -97,9 +97,11 @@ function remora_finalize() {
 
     #Wait until all remora_remote_post processes have finished
 
+    local NODES_TMP="$NODES"
+    local NODES_LIST=( $NODES ) #make array list
     idx=0
     for pid in "${FINAL_PID[@]}"; do
-        NODE=${NODES[$idx]}
+        NODE=${NODES_LIST[$idx]}
         while [ `ssh $NODE "[ -e /proc/$pid ] && echo 1"` ]; do
             sleep 0.05
             if [ "$REMORA_VERBOSE" == "1" ]; then

@@ -199,8 +199,8 @@ plot_data_numa()
     printf "%s \n" "" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
 
     printf "%s \n" "NUMA Misses (foreign assigned): These are 4K pgs that overflow to another node when local memory is full.<br/>" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "NUMA Hits: Top(red) MBytes assigned from 4MB pgs; Bottom(blue) MBytes from 4K and 2MB pages. <br/>"             >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "NOTE: Hit Memory for 2MB pages (top) is shown over total memory (bottom) to show extent of 4MB usage.<br/>"     >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "NUMA Hits: Top(red) MBytes assigned from 2MB pgs; Bottom(blue) MBytes from 4K and 2MB pages. <br/>"             >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "NOTE: Hit Memory for 2MB pages (top) is shown over total memory (bottom) to show extent of 2MB usage.<br/>"     >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "&nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp Best if they are equal-- all assigned memory is from 2MB pages<br/>"  >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "&nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp (a ~5% variation may exist, even if equal, due to non instantaneous kernel updates).<br/>"  >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "NUMA Free: Total Free memory on all nodes (color areas show node portions).<br/>"  >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
