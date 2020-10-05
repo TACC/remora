@@ -160,6 +160,8 @@ function remora_finalize() {
             echo "REMORA: Moving output files for ${REMORA_MODULES[$i]}"
         fi
         mv $REMORA_OUTDIR/${REMORA_MODULES[$i]}* $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
+        [[ ${REMORA_MODULES[$i]} == "eth" ]] &&
+             mv $REMORA_OUTDIR/network_eth_traffic* $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
         sleep 0.2
     done
 
@@ -173,7 +175,15 @@ function remora_finalize() {
         printf "%s \n" "<a href=\"https://github.com/TACC/remora\" target=\"_blank\"><img src=\"https://raw.githubusercontent.com/TACC/remora/master/docs/logos/Remora-logo-300px.png\" alt=\"REMORA Logo\" style=\"max-width:100%;\"></a>" >> $REMORA_OUTDIR/remora_summary.html
         printf "<h1>REMORA REPORT - JOB %s </h1>\n" "$REMORA_JOB_ID" >> $REMORA_OUTDIR/remora_summary.html
         for i in "${!REMORA_MODULES[@]}"; do
-            printf "<h2>%s utilization</h2> \n" ${REMORA_MODULES[$i]} >> $REMORA_OUTDIR/remora_summary.html
+
+            R_module="${REMORA_MODULES[$i]}"
+
+            if [[ "$R_module" == "gpu" ]] &&  [[ "$REMORA_CUDA" == "0" ]]; then
+               [[ "$REMORA_VERBOSE" == 1 ]] && echo "  GPU summary not reported, REMORA_CUDA=0 or nvidia-smi not detected."
+            else
+               printf "<h2>%s utilization</h2> \n" ${REMORA_MODULES[$i]} >> $REMORA_OUTDIR/remora_summary.html
+            fi
+
             if [ "${REMORA_MODULES[$i]}" == "lustre" ]; then
                 printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/lustre_aggregated.html" "Aggregated" >> $REMORA_OUTDIR/remora_summary.html
             fi
@@ -189,9 +199,13 @@ function remora_finalize() {
                 printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_mpip_fraction.html"  "Fraction"  >> $REMORA_OUTDIR/remora_summary.html
                 printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_mpip_breakdown.html" "Breakdown" >> $REMORA_OUTDIR/remora_summary.html
             fi
+            if [ "${REMORA_MODULES[$i]}" == "gpu" ]; then
+               R_module=gpu_memory_stats
+            fi
             for node in $NODES; do
-                if [ -f  $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]}/${REMORA_MODULES[$i]}_${node}.html ]; then
-                    printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/${REMORA_MODULES[$i]}_${node}.html" ${node} >> $REMORA_OUTDIR/remora_summary.html
+               #if [ -f  $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]}/${REMORA_MODULES[$i]}_${node}.html ]; then
+                if [ -f  $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]}/${R_module}_${node}.html ]; then
+                    printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/${R_module}_${node}.html" ${node} >> $REMORA_OUTDIR/remora_summary.html
                 fi
             done
         done

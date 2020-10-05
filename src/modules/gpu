@@ -24,27 +24,28 @@
 init_module_gpu()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-
-    local OUT_FILE=$REMORA_TMPDIR/gpu_memory_stats_${REMORA_NODE}.txt
-    local NGPUS=$( nvidia-smi -L |wc -l )
-    local LAST_GPU_NO=$(( NGPUS - 1 ))
-
-    rm -f $OUT_FILE
-
-    printf "%-17s " "#TIME" >$OUT_FILE
-
-    for gpu_no in `seq 0 $LAST_GPU_NO`; do
-       printf "%-17s %-17s " "gpu_${gpu_no}_avail" "gpu_${gpu_no}_used" >>$OUT_FILE
-    done
-    printf "\n"           >>$OUT_FILE
-
-   # Fix this later for GPU MEMORY
-   #if [ "$REMORA_MODE" == "MONITOR" ]; then
-   #            REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-   #            if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
-   #                    printf "%10s " "MAX_MEM_GB" >> $REMORA_TMPDIR/.monitor
-   #            fi
-   #    fi
+    if [ "$REMORA_CUDA" == "1" ]; then
+        local OUT_FILE=$REMORA_TMPDIR/gpu_memory_stats_${REMORA_NODE}.txt
+        local NGPUS=$( nvidia-smi -L |wc -l )
+        local LAST_GPU_NO=$(( NGPUS - 1 ))
+    
+        rm -f $OUT_FILE
+    
+        printf "%-17s " "#TIME" >$OUT_FILE
+    
+        for gpu_no in `seq 0 $LAST_GPU_NO`; do
+           printf "%-17s %-17s " "gpu_${gpu_no}_avail" "gpu_${gpu_no}_used" >>$OUT_FILE
+        done
+        printf "\n"           >>$OUT_FILE
+    
+        # Fix this later for GPU MEMORY
+        #if [ "$REMORA_MODE" == "MONITOR" ]; then
+        #            REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+        #            if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+        #                    printf "%10s " "MAX_MEM_GB" >> $REMORA_TMPDIR/.monitor
+        #            fi
+        #    fi
+    fi
 }
 
 collect_data_gpu()
@@ -81,6 +82,7 @@ plot_data_gpu()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
+  if [ "$REMORA_CUDA" == "1" ]; then
     local  IN_FILE=$REMORA_TMPDIR/gpu_memory_stats_${REMORA_NODE}.txt
     local OUT_FILE=$REMORA_TMPDIR/gpu_memory_stats_${REMORA_NODE}.html
 
@@ -210,6 +212,7 @@ plot_data_gpu()
 
     #https://developers.google.com/chart/interactive/docs/gallery/linechart
     #https://developers.google.com/chart/interactive/docs/gallery/linechart
+  fi
 }
 
 finalize_module_gpu()
@@ -217,6 +220,7 @@ finalize_module_gpu()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     plot_data_gpu $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 
+  if [ "$REMORA_CUDA" == "1" ]; then
      local col col_avail col_used
      local min_avail max_used
 
@@ -239,4 +243,5 @@ finalize_module_gpu()
      done
 
      echo "$currenthost $max_used $min_avail" >> $REMORA_OUTDIR/gpu_memory_all_nodes.txt
+  fi
 }

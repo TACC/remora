@@ -27,6 +27,7 @@ usage() { printf '\033[0;33mREMORA Howto\n\033[0m'; head -${SCRIPT_HEADSIZE:-99}
 usagefull() { head -${SCRIPT_HEADSIZE:-99} ${0} | grep -e "^#[%+-]" | sed -e "s/^#[%+-]//g" -e "s/\${SCRIPT_NAME}/${SCRIPT_NAME}/g" ; }
 scriptinfo() { head -${SCRIPT_HEADSIZE:-99} ${0} | grep -e "^#-" | sed -e "s/^#-//g" -e "s/\${SCRIPT_NAME}/${SCRIPT_NAME}/g"; }
 print_error() { printf '\033[0;31mREMORA Error: \033[0;34m '"$1"' \033[0m \n'; }
+print_info()  { printf '\033[0;31mREMORA Notification: \033[0;34m '"$1"' \033[0m \n'; }
 
 function show_time () {
   num=$1/1000000000
@@ -52,7 +53,7 @@ function show_time () {
   else
     ((sec=num))
   fi
-  printf "%-29s %-1s %d%s %d%s %d%s %d%s %d%s\n" " Total Elapsed Time" ":" $day "d" $hour "h" $min "m" $sec "s" $milisec "ms" | tee -a $REMORA_OUTDIR/remora_summary.txt
+  printf "%-29s %-1s  %d%s %d%s %d%s %d%s %d%s\n" " Total Elapsed Time" ":" $day "d" $hour "h" $min "m" $sec "s" $milisec "ms" | tee -a $REMORA_OUTDIR/remora_summary.txt
 }
 
 
@@ -163,19 +164,21 @@ check_plot() {
 }
 
 check_gpu() {
-    # By default, do not collect GPU data
-    if [ -z "$REMORA_CUDA" ]; then
-        export REMORA_CUDA=0
-    fi
-    # If nvidia-smi is not present disable GPU collection even if it was requested
+    # If nvidia-smi is not present assume no GPUs, disable GPU collection
+                                                 # 0 means not available
     gputest=$(nvidia-smi > /dev/null 2> /dev/null || echo "0")
     if [ "$gputest" == "0" ]; then
-        if [ "$REMORA_CUDA" == "1" ]; then
-            print_error " Missing GPU driver: disabling GPU collection"
+        if [[ "$REMORA_CUDA" == "1" ]]; then
+            print_error " nvidia-smi cmd not found. Disabling GPU collection."
+        else
+            print_info  " The gpu module was configured for this system, but is not available "
+            print_info  " on this platform. nvidia-smi cmd not found. Disabling GPU collection."
         fi
         export REMORA_CUDA=0
+    else
+        [[ -z "$REMORA_CUDA" ]] && export REMORA_CUDA=1
     fi
-    echo "export REMORA_CUDA=$REMORA_CUDA" >> $REMORA_OUTDIR/remora_env.txt    
+    echo "export REMORA_CUDA=$REMORA_CUDA" >> $REMORA_OUTDIR/remora_env.txt
 }
 
 check_cpu() {

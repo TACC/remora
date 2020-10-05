@@ -27,7 +27,7 @@ init_module_eth()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     if [ "$REMORA_SYMMETRIC" == "0" ]; then
         if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-            $REMORA_TMPDIR/network_eth_traffic-${REMORA_NODE}.txt
+           #$REMORA_TMPDIR/network_eth_traffic-${REMORA_NODE}.txt
             #write header to file
             printf "%10s %10s %10s %15s %15s %10s %10s %10s %10s\n" \
             "time" "tx_packets" "rx_packets" "tx_bytes" "rx_bytes" \

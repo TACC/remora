@@ -33,6 +33,8 @@
 #%                          - 0: plots will be generated only if the
 #%                               postprocessing tool (remora_post) is
 #%                               invoked.
+#% REMORA_CUDA    - Set to 0 to turn off GPU Mem collection when gpu
+#%                  module is available on system.
 #%
 #========================================================================
 #- IMPLEMENTATION
@@ -43,11 +45,14 @@
 #
 #========================================================================
 #  HISTORY
+#       2020/10/05  REMORA_CUDA=0 turns off GPU collection.  (Kent)
+#       2019-2020   Many small fixes. (Kent)
+#       2019        Collect GPU memory  (Kent)
 #       2018/06/30: Bug fixing and new summary HTML page. 
 #       2017/03/09: Added MPI support. Improved sourcing of functionality
 #       2016/11/10: Added KNL support. New graphs.
 #       2016/03/11: Added real-time monitor mode
-#	    2016/01/25: Added alternative location for temp files
+#       2016/01/25: Added alternative location for temp files
 #       2015/12/09: Implemented a modular design
 #       2015/11/21: Removing TACC specific data
 #       2015/09/09: Using python parser for file system data

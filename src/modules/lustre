@@ -528,7 +528,7 @@ finalize_module_lustre()
                 printf "%s \n" "  //pointsVisible: true,"                >> $REMORA_OUTDIR/lustre_aggregated.html
                 printf "%s \n" "  //legend: { position: 'none' },"       >> $REMORA_OUTDIR/lustre_aggregated.html
                 printf "%s \n" "  //axes:{x:{ 0: {side: 'top'}}},"       >> $REMORA_OUTDIR/lustre_aggregated.html
-                printf "%s \n" "  lineWidth: 4 "                         >> $REMORA_OUTDIR/lustre_aggregated.html
+                printf "%s \n" "  lineWidth: 3 "                         >> $REMORA_OUTDIR/lustre_aggregated.html
                 printf "%s \n" " }; "                                    >> $REMORA_OUTDIR/lustre_aggregated.html
                 printf "%s \n" " var chart = new google.visualization.LineChart(document.getElementById('container')); " >> $REMORA_OUTDIR/lustre_aggregated.html
                 printf "%s \n" " chart.draw(data, options); "                    >> $REMORA_OUTDIR/lustre_aggregated.html
