@@ -27,7 +27,7 @@ usage() { printf '\033[0;33mREMORA Howto\n\033[0m'; head -${SCRIPT_HEADSIZE:-99}
 usagefull() { head -${SCRIPT_HEADSIZE:-99} ${0} | grep -e "^#[%+-]" | sed -e "s/^#[%+-]//g" -e "s/\${SCRIPT_NAME}/${SCRIPT_NAME}/g" ; }
 scriptinfo() { head -${SCRIPT_HEADSIZE:-99} ${0} | grep -e "^#-" | sed -e "s/^#-//g" -e "s/\${SCRIPT_NAME}/${SCRIPT_NAME}/g"; }
 print_error() { printf '\033[0;31mREMORA Error: \033[0;34m '"$1"' \033[0m \n'; }
-print_info()  { printf '\033[0;31mREMORA Notification: \033[0;34m '"$1"' \033[0m \n'; }
+print_info()  { printf '\033[0;34mREMORA Notification: \033[0;34m '"$1"' \033[0m \n'; }
 
 function show_time () {
   num=$1/1000000000
@@ -168,16 +168,23 @@ check_gpu() {
                                                  # 0 means not available
     gputest=$(nvidia-smi > /dev/null 2> /dev/null || echo "0")
     if [ "$gputest" == "0" ]; then
-        if [[ "$REMORA_CUDA" == "1" ]]; then
-            print_error " nvidia-smi cmd not found. Disabling GPU collection."
-        else
-            print_info  " The gpu module was configured for this system, but is not available "
-            print_info  " on this platform. nvidia-smi cmd not found. Disabling GPU collection."
-        fi
-        export REMORA_CUDA=0
-    else
+       if [[ "$REMORA_CUDA" == "1" ]]; then
+          if [[ ${REMORA_MODULES[@]} =~ "gpu" ]]; then
+             print_error " nvidia-smi cmd not found. Disabling GPU collection."
+          else
+             print_error " System was not configured for gpu."
+             print_error " GPU collection is not performed."
+          fi
+       else
+          if [[ ${REMORA_MODULES[@]} =~ "gpu" ]]; then
+             print_info  " GPU monitoring is active, but not on this node type."
+            #print_info  " (nvidia-smi cmd not found.)"
+          fi
+       fi
+       export REMORA_CUDA=0
+    else 
         [[ -z "$REMORA_CUDA" ]] && export REMORA_CUDA=1
-    fi
+    fi   
     echo "export REMORA_CUDA=$REMORA_CUDA" >> $REMORA_OUTDIR/remora_env.txt
 }
 

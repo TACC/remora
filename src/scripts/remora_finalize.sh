@@ -212,10 +212,14 @@ function remora_finalize() {
         #Add the summary at the end
         printf "<h2>Summary for job %s</h2>\n" "$REMORA_JOB_ID" >> $REMORA_OUTDIR/remora_summary.html 
         input="$REMORA_OUTDIR/INFO/remora_summary.txt"
+        printf "<pre>\n"  >> $REMORA_OUTDIR/remora_summary.html
         while IFS= read -r line
         do
-            printf "<p>%s</p>\n" "$line" >> $REMORA_OUTDIR/remora_summary.html 
+           #printf "<p>%s</p>\n" "$line" >> $REMORA_OUTDIR/remora_summary.html 
+            printf "%s\n"        "$line" >> $REMORA_OUTDIR/remora_summary.html 
         done < "$input"
+
+        printf "</pre>\n"  >> $REMORA_OUTDIR/remora_summary.html
 
         printf "%s \n" "</body></html>" >> $REMORA_OUTDIR/remora_summary.html
     fi
