@@ -27,11 +27,8 @@ REMORA_OUTDIR=$3
 #Source the script that has the modules' functionality
 source $REMORA_BIN/aux/extra
 source $REMORA_BIN/modules/modules_utils
+
 source $REMORA_OUTDIR/remora_env.txt
-       # PRELOAD is not needed and may cause problems.
-unset LD_PRELOAD
-
-
 
 # Create TMPDIR if it si not there
 mkdir -p $REMORA_TMPDIR

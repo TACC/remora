@@ -28,9 +28,6 @@ function remora_collect() {
     fi
 
     source $REMORA_OUTDIR/remora_env.txt
-       # PRELOAD is not needed and may cause problem.
-    unset LD_PRELOAD
-
 
     PID=(); PID_MIC=(); PID_MON=()
     idx=0

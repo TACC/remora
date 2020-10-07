@@ -142,6 +142,18 @@ if [ "$REMORA_VERBOSE" == "1" ]; then
   echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
   echo ""
 fi
+
+#                                  Some MPI modules require mpiP.so (REMORA_PRELOAD)
+#                                  Build up / tear down LD_PRELOAD in a simple way
+if [[ ! -z $REMORA_PRELOAD ]]; then    # IF REMORA_PRELOAD is defined, do the following
+   if [[   -z $LD_PRELOAD      ]]; then
+      export LD_PRELOAD=$REMORA_PRELOAD
+   else
+      LD_PRELOAD_SAVED="$LD_PRELOAD"
+      export LD_PRELOAD=${REMORA_PRELOAD}:$LD_PRELOAD
+   fi
+fi
+
 #Log the start time
 START=$(date +%s%N)
 #Run the command!!!!
@@ -149,6 +161,13 @@ START=$(date +%s%N)
 #Log the end time
 END=$(date +%s%N)
 
+if [[ ! -z $REMORA_PRELOAD ]]; then       #Tear down LD_PRELOAD
+   if [[ "$LD_PRELOAD" == "$REMORA_PRELOAD" ]]; then
+      unset  LD_PRELOAD
+   else
+      export LD_PRELOAD=$LD_PRELOAD_SAVED
+   fi
+fi
 #Once the command has finished, source the finalize method
 source $REMORA_BIN/scripts/remora_finalize.sh
 #Finalize REMORA

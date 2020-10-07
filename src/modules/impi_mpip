@@ -28,7 +28,7 @@ init_module_impi_mpip()
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
   if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
       if [ -e "$REMORA_BIN/../lib/libmpiP.so" ]; then
-          echo "export LD_PRELOAD=$REMORA_BIN/../lib/libmpiP.so:$LD_PRELOAD" >> $REMORA_OUTDIR/remora_env.txt
+          echo "export REMORA_PRELOAD=$REMORA_BIN/../lib/libmpiP.so" >> $REMORA_OUTDIR/remora_env.txt
       fi
   fi
 }
@@ -154,8 +154,9 @@ finalize_module_impi_mpip()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   source $REMORA_OUTDIR/remora_env.txt
-  unset LD_PRELOAD
+
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+
   if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
 	if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
       if [ -e "$REMORA_BIN/../lib/libmpiP.so" ] ; then

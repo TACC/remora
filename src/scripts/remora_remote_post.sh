@@ -32,11 +32,8 @@ if [ "$REMORA_VERBOSE" == "1" ]; then
 fi
 source $REMORA_BIN/aux/extra
 source $REMORA_BIN/modules/modules_utils
+
 source $REMORA_OUTDIR/remora_env.txt
-       # PRELOAD is not needed and may cause problem on
-       # systems that do not provide a complete env.
-       # .e.g. error @TACC: "error while loading shared libraries: libimf.so"
-unset LD_PRELOAD
 
 #Read the list of active modules from the configuration file
 remora_read_active_modules
