@@ -45,9 +45,10 @@
 #
 #========================================================================
 #  HISTORY
+#       2020/10/06  mpip added to LD_PRELOAD only for app execution.(Kent)
 #       2020/10/05  REMORA_CUDA=0 turns off GPU collection.  (Kent)
 #       2019-2020   Many small fixes. (Kent)
-#       2019        Collect GPU memory  (Kent)
+#       2019/06/21  Collect GPU memory  (Kent)
 #       2018/06/30: Bug fixing and new summary HTML page. 
 #       2017/03/09: Added MPI support. Improved sourcing of functionality
 #       2016/11/10: Added KNL support. New graphs.
