@@ -95,59 +95,60 @@ plot_data_impi_mpip()
         printf "%s \n" "</body>" >> $REMORA_TMPDIR/impi_mpip_fraction.html
         printf "%s \n" "</html>" >> $REMORA_TMPDIR/impi_mpip_fraction.html
 
+       calls=()
+       percents=()
+       covariants=()
 
-        # Get top 5 MPI calls data 
-        # WARNING - no consideration for cases wiht less than 5 distinct MPI calls
-        # Warning - multiple instances for distinct call sites
-        firstline=$(grep -n "Aggregate Time" $REMORA_OUTDIR/impi_mpip_data.txt | awk -F ':' '{print $1}')
-        call1=$( head -n $((firstline+3)) $REMORA_OUTDIR/impi_mpip_data.txt | tail -n 1 | awk '{print $1}')
-        call2=$( head -n $((firstline+4)) $REMORA_OUTDIR/impi_mpip_data.txt | tail -n 1 | awk '{print $1}')
-        call3=$( head -n $((firstline+5)) $REMORA_OUTDIR/impi_mpip_data.txt | tail -n 1 | awk '{print $1}')
-        call4=$( head -n $((firstline+6)) $REMORA_OUTDIR/impi_mpip_data.txt | tail -n 1 | awk '{print $1}')
-        call5=$( head -n $((firstline+7)) $REMORA_OUTDIR/impi_mpip_data.txt | tail -n 1 | awk '{print $1}')
-        time1=$( head -n $((firstline+3)) $REMORA_OUTDIR/impi_mpip_data.txt | tail -n 1 | awk '{print $5}')
-        time2=$( head -n $((firstline+4)) $REMORA_OUTDIR/impi_mpip_data.txt | tail -n 1 | awk '{print $5}')
-        time3=$( head -n $((firstline+5)) $REMORA_OUTDIR/impi_mpip_data.txt | tail -n 1 | awk '{print $5}')
-        time4=$( head -n $((firstline+6)) $REMORA_OUTDIR/impi_mpip_data.txt | tail -n 1 | awk '{print $5}')
-        time5=$( head -n $((firstline+7)) $REMORA_OUTDIR/impi_mpip_data.txt | tail -n 1 | awk '{print $5}')
+       firstline=$(grep -n "Aggregate Time" $REMORA_OUTDIR/impi_mpip_data.txt | awk -F ':' '{print $1}')
+       firstline=$((firstline+3))
 
-        # Generate the bar chart for the top 5 MPI calls
-        printf "%s \n" "<html>" > $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "<head>" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "google.charts.load('current', {'packages':['bar']});" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "google.charts.setOnLoadCallback(drawChart);" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+       cnt=0; continue=yes
+       while [[ $cnt -lt 21 ]] && [[ $continue == yes ]]; do
+              calls[$cnt]=$( head -n $((firstline+$cnt)) $REMORA_OUTDIR/impi_mpip_data.txt | tail -n 1 | awk '{print $1 "_" $2}')
+           percents[$cnt]=$( head -n $((firstline+$cnt)) $REMORA_OUTDIR/impi_mpip_data.txt | tail -n 1 | awk '{print $5}')
+         covariants[$cnt]=$( head -n $((firstline+$cnt)) $REMORA_OUTDIR/impi_mpip_data.txt | tail -n 1 | awk '{print $6}')
+         percent=${percents[$cnt]}
+         [[ ${percent%%.*} -lt 1 ]] && continue=no
+         cnt=$((cnt+1))
+       done
 
-        printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "var data = google.visualization.arrayToDataTable([" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "['MPI Call', 'Fraction of MPI Time (%%)'],\n" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "['$call1', $time1],\n" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "['$call2', $time2],\n" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "['$call3', $time3],\n" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "['$call4', $time4],\n" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "['$call5', $time5]\n" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "]);" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        # Generate the bar chart for top 20 MPI calls over 1%.
+        printf "%s \n" "<html>"  > $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "  <head>" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "    <script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "    <script type=\"text/javascript\">" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "      google.charts.load('current', {'packages':['corechart']});" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
 
-        printf "%s \n" "var options = {" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "chart: {" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "title: 'Top MPI Calls'," >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "subtitle: 'Fraction of Total MPI Time (%)'," >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "}," >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "bars: 'horizontal' // Required for Material Bar Charts." >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "};" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "      function drawChart() {" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "        var data = google.visualization.arrayToDataTable([" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
 
-        printf "%s \n" "var chart = new google.charts.Bar(document.getElementById('barchart_material'));" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "                 ['MPI Call (_call-site)', 'Fraction of MPI Time (%%)', 'Covariance of %%'],\n" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        comma=","
+        for i in `seq 0 $((cnt-1))`; do
+          [[ $i == $((cnt-1)) ]] && comma=""
+          printf "                 ['${calls[$i]}', ${percents[$i]}, ${covariants[$i]}]${comma}\n" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        done
+        printf "%s \n" "        ]);" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
 
-        printf "%s \n" "chart.draw(data, options);" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "}" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "</script>" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "</head>" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "<body>" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "<div id=\"barchart_material\" style=\"width: 900px; height: 500px;\"></div>" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "</body>" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
-        printf "%s \n" "</html>" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "        var options = {"                                         >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "          legend: { position: 'in', alignment: 'end' },"         >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "          title: 'Top MPI Calls (Call_Call-site)',"              >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "          subtitle: 'Fraction of Total MPI Time (%), up to 1%'," >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "          isStacked:true"                                        >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "        };"                                                      >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+
+        printf "%s \n" "        var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "        chart.draw(data, options);" >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "      }"                            >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "      google.charts.setOnLoadCallback(drawChart);"                                        >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "    </script>"                      >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "  </head>"                          >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "  <body>"                           >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "    <div id=\"chart_div\" style=\"width: 900px; height: 500px;\"></div>"                  >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "  </body>"                          >> $REMORA_TMPDIR/impi_mpip_breakdown.html
+        printf "%s \n" "</html>"                            >> $REMORA_TMPDIR/impi_mpip_breakdown.html
     fi
+
 }
 
 finalize_module_impi_mpip()
@@ -158,28 +159,33 @@ finalize_module_impi_mpip()
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
 
   if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
-	if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+    if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
       if [ -e "$REMORA_BIN/../lib/libmpiP.so" ] ; then
           cd $REMORA_OUTDIR/..
           # Check for mpiP output in case code was not MPI based
           fileNum=$( ls -ltr *.mpiP )
           if [ -n "$fileNum" ]; then
-	          outfile=$( ls -ltr *.mpiP | tail -n 1 | awk '{print $9}' )
-	          mpiNum=$( grep -c "MPI Task Assignment" $outfile ) 
-	          nodeNum=$( cat $REMORA_OUTDIR/remora_nodes.txt | wc -l )
-	          totTime=$( grep "*" $outfile | head -n 1 | awk '{print $2}' )
-            mpiTime=$( grep "*" $outfile | head -n 1 | awk '{print $3}' )
+
+            outfile=$(  ls -ltr *.mpiP | tail -n 1 | awk '{print $9}' )
+            mpiNum=$(   grep -c "MPI Task Assignment" $outfile ) 
+            nodeNum=$(  cat $REMORA_OUTDIR/remora_nodes.txt | wc -l )
+            tTime=$( grep "*" $outfile | head -n 1 | awk '{print $2}' )
+            printf -v totTime "%.2f" $tTime   #tTIME may be Sci. Notation, cover it
+            mTime=$( grep "*" $outfile | head -n 1 | awk '{print $3}' )
+            printf -v mpiTime "%.2f" $mTime   #mTIME may be Sci. Notation, cover it
+
             totTime=$( echo "scale=2; $totTime / $mpiNum " | bc )
             mpiTime=$( echo "scale=2; $mpiTime / $mpiNum " | bc ) 
             mpiFrac=$( echo "scale=2; 100.0 * $mpiTime / $totTime" | bc ) 
-	          echo "Number of Nodes      : $nodeNum"     >  $REMORA_OUTDIR/impi_mpip_info.txt
-	          echo "Number of MPI Tasks  : $mpiNum"      >> $REMORA_OUTDIR/impi_mpip_info.txt
+
+	    echo "Number of Nodes      : $nodeNum"     >  $REMORA_OUTDIR/impi_mpip_info.txt
+	    echo "Number of MPI Tasks  : $mpiNum"      >> $REMORA_OUTDIR/impi_mpip_info.txt
             echo "Total Execution Time : $totTime (s)" >> $REMORA_OUTDIR/impi_mpip_info.txt
             echo "MPI Execution Time   : $mpiTime (s)" >> $REMORA_OUTDIR/impi_mpip_info.txt
             echo "MPI Fraction of Time : $mpiFrac (%)" >> $REMORA_OUTDIR/impi_mpip_info.txt
             mv $outfile $REMORA_OUTDIR/impi_mpip_data.txt	
           fi
-	  fi
+      fi
     fi
     plot_data_impi_mpip $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
   fi

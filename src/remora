@@ -45,6 +45,8 @@
 #
 #========================================================================
 #  HISTORY
+#       2020/10/11  For Remora-provided mpiP, includes covariance in plot (Kent)
+#       2020/10/10  Allow more than 5 MPI call reports.(Kent)
 #       2020/10/06  mpip added to LD_PRELOAD only for app execution.(Kent)
 #       2020/10/05  REMORA_CUDA=0 turns off GPU collection.  (Kent)
 #       2019-2020   Many small fixes. (Kent)
