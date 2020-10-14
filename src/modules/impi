@@ -164,11 +164,14 @@ finalize_module_impi()
         if [ -n "$fileNum" ]; then
             mpiNum=$( grep "mpi_tasks" $outfile | awk '{print $7}' )
             nodeNum=$( grep "mpi_tasks" $outfile | awk '{print $9}' )
-            usrTime=$( grep "# user" $outfile | awk '{print $6}' )
-            sysTime=$(grep "# system" $outfile | awk '{print $6}' )
-            mpiTime=$(grep "# mpi" $outfile | awk '{print $6}' )
-            totTime=$( echo "scale=2;  $usrTime + $sysTime + $mpiTime " | bc ) 
-            mpiFrac=$( echo "scale=2; 100.0 * $mpiTime / $totTime" | bc ) 
+           #usrTime=$( grep "# user" $outfile | awk '{print $6}' )
+           #sysTime=$(grep "# system" $outfile | awk '{print $6}' )
+           #mpiTime=$(grep "# mpi" $outfile | awk '{print $6}' )
+           #totTime=$( echo "scale=2;  $usrTime + $sysTime + $mpiTime " | bc ) 
+           #mpiFrac=$( echo "scale=2; 100.0 * $mpiTime / $totTime" | bc ) 
+            totTime=$( grep "# wallclock" $outfile | awk '{print $4}' )
+            mpiTime=$( grep "# mpi" $outfile | awk '{print $4}' )
+            mpiFrac=$( echo "scale=2; 100.0 * $mpiTime / $totTime" | bc )
             echo "Number of Nodes      : $nodeNum"     >  $REMORA_OUTDIR/impi_info.txt
             echo "Number of MPI Tasks  : $mpiNum"      >> $REMORA_OUTDIR/impi_info.txt
             echo "Total Execution Time : $totTime (s)" >> $REMORA_OUTDIR/impi_info.txt
