@@ -138,7 +138,7 @@ plot_data_mv2()
 
         printf "%s \n" "        var options = {"                                         >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "          legend: { position: 'in', alignment: 'end' },"         >> $REMORA_TMPDIR/mv2_breakdown.html
-        printf "%s \n" "          title: 'Top MPI Calls (Call_Call-site, up to 0.5%%)'," >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "%s \n" "          title: 'Top MPI Calls (Call_Call-site, greater than 0.5%)'," >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "          isStacked:true"                                        >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "        };"                                                      >> $REMORA_TMPDIR/mv2_breakdown.html
 
