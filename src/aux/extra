@@ -53,7 +53,7 @@ function show_time () {
   else
     ((sec=num))
   fi
-  printf "%-29s %-1s  %d%s %d%s %d%s %d%s %d%s\n" " Total Elapsed Time" ":" $day "d" $hour "h" $min "m" $sec "s" $milisec "ms" | tee -a $REMORA_OUTDIR/remora_summary.txt
+  printf "%-29s %-1s  %d%s %d%s %2d%s %2d%s %3d%s\n" " Total Elapsed Time" ":" $day "d" $hour "h" $min "m" $sec "s" $milisec "ms" | tee -a $REMORA_OUTDIR/remora_summary.txt
 }
 
 

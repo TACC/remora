@@ -95,56 +95,61 @@ plot_data_mv2()
         printf "%s \n" "</body>" >> $REMORA_TMPDIR/mv2_fraction.html
         printf "%s \n" "</html>" >> $REMORA_TMPDIR/mv2_fraction.html
 
-        calls=()
-        percents=()
-        covariants=()
- 
-        firstline=$(grep -n "Aggregate Time" $REMORA_OUTDIR/mv2_data.txt | awk -F ':' '{print $1}')
-        firstline=$((firstline+3))
- 
-        cnt=0; continue=yes
-        while [[ $cnt -lt 21 ]] && [[ $continue == yes ]]; do
-               calls[$cnt]=$( head -n $((firstline+$cnt)) $REMORA_OUTDIR/mv2_data.txt | tail -n 1 | awk '{print $1 "_" $2}')
-            percents[$cnt]=$( head -n $((firstline+$cnt)) $REMORA_OUTDIR/mv2_data.txt | tail -n 1 | awk '{print $5}')
-          covariants[$cnt]=$( head -n $((firstline+$cnt)) $REMORA_OUTDIR/mv2_data.txt | tail -n 1 | awk '{print $6}')
-          percent=${percents[$cnt]}
-          [[ ${percent%%.*} -lt 1 ]] && continue=no
-          cnt=$((cnt+1))
-        done
+       calls=()
+       percents=()
+       covs=()
+
+       firstline=$(grep -n "Aggregate Time" $REMORA_OUTDIR/mv2_data.txt | awk -F ':' '{print $1}')
+       firstline=$((firstline+3))
+
+       cnt=0; continue=yes
+       while [[ $cnt -lt 21 ]] && [[ $continue == yes ]]; do
+         calls[$cnt]=$(    head -n $((firstline+$cnt)) $REMORA_OUTDIR/mv2_data.txt | tail -n 1 | awk '{print $1 "_" $2}')
+         percents[$cnt]=$( head -n $((firstline+$cnt)) $REMORA_OUTDIR/mv2_data.txt | tail -n 1 | awk '{print $5}')
+         covs[$cnt]=$(     head -n $((firstline+$cnt)) $REMORA_OUTDIR/mv2_data.txt | tail -n 1 | awk '{print $6}')
+
+         covs[$cnt]=$( echo "scale=2; ${covs[$cnt]} * 100" | bc )
+         percent=${percents[$cnt]}
+         p100=$(echo "scale=0;$percent*100.123/1" |bc)   #divide by 1 makes sure scale is observed (Uh!)
+         if (( $p100  <  50 )); then
+           continue=no
+         else
+            cnt=$((cnt+1))
+         fi
+       done
 
         # Generate the bar chart for top 20 MPI calls over 1%.
-        printf "%s \n" "<html>"  > $REMORA_TMPDIR/mv2_breakdown.html
-        printf "%s \n" "  <head>" >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "%s \n" "<html>"                                                            > $REMORA_TMPDIR/mv2_breakdown.html
+        printf "%s \n" "  <head>"                                                         >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "    <script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/mv2_breakdown.html
-        printf "%s \n" "    <script type=\"text/javascript\">" >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "%s \n" "    <script type=\"text/javascript\">"                            >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "      google.charts.load('current', {'packages':['corechart']});" >> $REMORA_TMPDIR/mv2_breakdown.html
 
-        printf "%s \n" "      function drawChart() {" >> $REMORA_TMPDIR/mv2_breakdown.html
-        printf "%s \n" "        var data = google.visualization.arrayToDataTable([" >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "%s \n" "      function drawChart() {"                                     >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "%s \n" "        var data = google.visualization.arrayToDataTable(["       >> $REMORA_TMPDIR/mv2_breakdown.html
 
-        printf "                 ['MPI Call (_call-site)', 'Fraction of MPI Time (%%)', 'Covariance of %%'],\n" >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "                 ['MPI Call (_call-site)', 'Fraction of MPI Time (%%)', 'Coeff of Variation (%%)'],\n" >> $REMORA_TMPDIR/mv2_breakdown.html
         comma=","
         for i in `seq 0 $((cnt-1))`; do
           [[ $i == $((cnt-1)) ]] && comma=""
-          printf "                 ['${calls[$i]}', ${percents[$i]}, ${covariants[$i]}]${comma}\n" >> $REMORA_TMPDIR/mv2_breakdown.html
+          printf "                 ['${calls[$i]}', ${percents[$i]}, ${covs[$i]}]${comma}\n" >> $REMORA_TMPDIR/mv2_breakdown.html
         done
-        printf "%s \n" "        ]);" >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "%s \n" "        ]);"                                                         >> $REMORA_TMPDIR/mv2_breakdown.html
 
         printf "%s \n" "        var options = {"                                         >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "          legend: { position: 'in', alignment: 'end' },"         >> $REMORA_TMPDIR/mv2_breakdown.html
-        printf "%s \n" "          title: 'Top MPI Calls (Call_Call-site)',"              >> $REMORA_TMPDIR/mv2_breakdown.html
-        printf "%s \n" "          subtitle: 'Fraction of Total MPI Time (%), up to 1%'," >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "%s \n" "          title: 'Top MPI Calls (Call_Call-site, up to 0.5%%)'," >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "          isStacked:true"                                        >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "        };"                                                      >> $REMORA_TMPDIR/mv2_breakdown.html
 
         printf "%s \n" "        var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));" >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "        chart.draw(data, options);" >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "      }"                            >> $REMORA_TMPDIR/mv2_breakdown.html
-        printf "%s \n" "      google.charts.setOnLoadCallback(drawChart);"                                        >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "%s \n" "      google.charts.setOnLoadCallback(drawChart);"                                               >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "    </script>"                      >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "  </head>"                          >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "  <body>"                           >> $REMORA_TMPDIR/mv2_breakdown.html
-        printf "%s \n" "    <div id=\"chart_div\" style=\"width: 900px; height: 500px;\"></div>"                  >> $REMORA_TMPDIR/mv2_breakdown.html
+        printf "%s \n" "    <div id=\"chart_div\" style=\"width: 900px; height: 500px;\"></div>"                         >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "  </body>"                          >> $REMORA_TMPDIR/mv2_breakdown.html
         printf "%s \n" "</html>"                            >> $REMORA_TMPDIR/mv2_breakdown.html
 
