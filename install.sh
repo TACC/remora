@@ -4,12 +4,13 @@
 # Change CC, MPICC and the corresponding flags to match your own compiler in
 # file "Makefile.in". You should not have to edit this file at all.
 #
-# v1.8.3 (2018-04-25)  Kent Milfeld/Si Liu
-# v1.8.2 (2017-08-08)  Carlos Rosales-Fernandez
+# v1_8_4 (2020-10-19)  Kent Milfeld
+# v1_8_3 (2018-04-25)  Kent Milfeld/Si Liu
+# v1_8_2 (2017-08-08)  Carlos Rosales-Fernandez
 #                      Antonio Gomez-Iglesias
 #
 # Thanks to Kenneth Hoste, from HPC-UGent, for his input
-# Changed to use mpiP for intel 2019 and above  (impi_mpiP)
+# Changed to use mpiP for intel 2019 and above  (impi_mpiP) (Kent)
 
 # installation directory: use $REMORA_INSTALL_PREFIX if defined, current directory if not
 export REMORA_DIR=${REMORA_INSTALL_PREFIX:-$PWD}
@@ -26,7 +27,7 @@ mkdir -p $REMORA_DIR/docs
 
 REMORA_BUILD_DIR=$PWD
 
-VERSION=1.8.3
+VERSION=1.8.4
 COPYRIGHT1="Copyright 2017 The University of Texas at Austin."
 COPYRIGHT2="License: MIT <http://opensource.org/licenses/MIT>"
 COPYRIGHT3="This is free software: you are free to change and redistribute it."

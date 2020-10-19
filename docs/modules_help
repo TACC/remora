@@ -55,10 +55,16 @@ The following environment variables control the behaviour of remora:
                      a file. Default is 0 (off).
   - REMORA_MODE    - FULL for all stats, BASIC for memory and cpu only.
                      Default if FULL.
+  - REMORA_CUDA    - Set to 0 to turn off gpu data collection on
+                     nodes that have GPUs.
   - REMORA_TMPDIR  - Directory for intermediate files. Default is the
                      remora output directory.
 
+    remora --help  - To see these environmental control variables .
+
 To generate a summary report after a crash use:
 
-remora_post_crash <jobid>.
+    remora_post_crash <jobid>.
 
+Documentation:
+https://github.com/TACC/remora/blob/master/docs/remora_user_guide.pdf
