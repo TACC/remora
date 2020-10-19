@@ -76,12 +76,12 @@ plot_data_mv2()
 
         printf "%s \n" "var data = google.visualization.arrayToDataTable([" >> $REMORA_TMPDIR/mv2_fraction.html
         printf "%s \n" "['Task', 'Time in Seconds']," >> $REMORA_TMPDIR/mv2_fraction.html
-        printf "['Sequential Work',     $serTime ], \n" >> $REMORA_TMPDIR/mv2_fraction.html
-        printf "['MPI',      $mpiTime ] \n" >> $REMORA_TMPDIR/mv2_fraction.html
+        printf "['Execution Work',     $serTime ], \n" >> $REMORA_TMPDIR/mv2_fraction.html
+        printf "['MPI Work',      $mpiTime ] \n" >> $REMORA_TMPDIR/mv2_fraction.html
         printf "%s \n" "]);" >> $REMORA_TMPDIR/mv2_fraction.html
 
         printf "%s \n" "var options = {" >> $REMORA_TMPDIR/mv2_fraction.html
-        printf "%s \n" "title: 'MPI Time'" >> $REMORA_TMPDIR/mv2_fraction.html
+        printf "%s \n" "title: 'MPI Communication Cost'" >> $REMORA_TMPDIR/mv2_fraction.html
         printf "%s \n" "};" >> $REMORA_TMPDIR/mv2_fraction.html
 
         printf "%s \n" "var chart = new google.visualization.PieChart(document.getElementById('piechart'));" >> $REMORA_TMPDIR/mv2_fraction.html
