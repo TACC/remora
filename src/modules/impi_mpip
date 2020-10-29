@@ -189,9 +189,11 @@ finalize_module_impi_mpip()
             echo "MPI Execution Time   : $mpiTime (s)" >> $REMORA_OUTDIR/impi_mpip_info.txt
             echo "MPI Fraction of Time : $mpiFrac (%)" >> $REMORA_OUTDIR/impi_mpip_info.txt
             mv $outfile $REMORA_OUTDIR/impi_mpip_data.txt	
+
+            plot_data_impi_mpip $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+
           fi
       fi
     fi
-    plot_data_impi_mpip $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
   fi
 }
