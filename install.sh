@@ -60,7 +60,8 @@ echo             | tee -a $BUILD_LOG
 #Now build mpstat
 echo "Building mpstat ..." | tee -a $BUILD_LOG
 cd $REMORA_BUILD_DIR/extra
-sysfile=`ls -ld sysstat*.tar.gz | awk '{print $9}' | head -n 1`
+#sysfile=`ls -ld sysstat*.tar.gz | awk '{print $9}' | head -n 1`
+sysfile=`ls sysstat*.tar.gz`
 sysdir=`echo  ${sysfile%%.tar.gz}`
 tar xzvf ${sysfile}
 cd ${sysdir}
@@ -123,7 +124,8 @@ if [[ "$haveMPICC" == "1" && "$haveMPIFC"  == "1" ]]; then
 
       echo "Building mpiP ..." | tee -a $BUILD_LOG
       cd $REMORA_BUILD_DIR/extra
-      mpipfile=`ls -ld mpiP*.tar.gz | awk '{print $9}' | head -n 1`
+     #mpipfile=`ls -ld mpiP*.tar.gz | awk '{print $9}' | head -n 1`
+      mpipfile=`ls  mpiP*.tar.gz`
       mpipdir=`echo  ${mpipfile%%.tar.gz}`
       tar xzvf ${mpipfile}
       cd ${mpipdir}

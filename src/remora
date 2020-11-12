@@ -45,6 +45,7 @@
 #
 #========================================================================
 #  HISTORY
+#       2020/11/12  Fixed ls cmd for sysstat and mpiP full name #57 issue (Kent)
 #       2020/11/12  change >& file to >file 2>&1 in install.sh (Kent)
 #       2020/11/11  No FS rates reported if ...(fs)_rate.txt not avail (Kent)
 #       2020/10/16  For Remora-provided mpiP, includes coeff of Variation(Kent)
