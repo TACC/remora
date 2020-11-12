@@ -90,14 +90,14 @@ fi
 
 if [[ $haveMPICC == 1 && $haveMPIFC == 1 ]]; then
 
-   mpicc -v |& grep 'Intel(R) MPI' > /dev/null 2>&1 
+   mpicc -v 2>/dev/null | grep 'Intel(R) MPI' > /dev/null 2>&1 
    haveIMPI=$((1-${PIPESTATUS[1]}))           #1=has IMPI, 0=does not have IMPI
 
-   mpicc -v |& grep 'MVAPICH2'     > /dev/null 2>&1 
+   mpicc -v 2>/dev/null | grep 'MVAPICH2'     > /dev/null 2>&1 
    haveMV2=$((1-${PIPESTATUS[1]}))            #1=has MVAPICH2, 0=does not have MV2
 
    if [[ $haveIMPI == 1 ]]; then
-      IMPI_year=$( mpicc -v |& grep 'Library 20' | sed 's/.*Library 20\([0-9][0-9]\).*/\1/' )
+      IMPI_year=$( mpicc -v 2>/dev/null | grep 'Library 20' | sed 's/.*Library 20\([0-9][0-9]\).*/\1/' )
       if [[ $IMPI_year > 18 ]]; then
          IMPI_stats="impi_mpip"
       else
