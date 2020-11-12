@@ -132,6 +132,7 @@ show_final_report() {
     if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
 
       if [ "$REMORA_LUSTRE" == "1" ]; then
+       if [[ -e  $REMORA_OUTDIR/lustre_*_rate.txt ]]; then
         printf "%s\n" $bar | tee -a $REMORA_OUTDIR/remora_summary.txt
         for i in `ls $REMORA_OUTDIR/lustre_*_rate.txt`; do
 			fullname=`head -n 1 $i | awk '{ print $2 }'`       
@@ -150,9 +151,11 @@ show_final_report() {
             fswr=$(awk ' NR == 2 {max=$4; min=$4} NR > 2 && $4 > max {max=$4} END {print max}' $REMORA_OUTDIR/lustre_${fs}_rate.txt)
             printf "%-14s %-14s %-1s %7.0f IOPS %7.0f RD(MB/S) %7.0f WR(MB/S)\n" " Max IO Load /" $fs ":" $fsio $fsrd $fswr | tee -a $REMORA_OUTDIR/remora_summary.txt
         done
+       fi
       fi
 
       if [ "$REMORA_DVS" == "1" ]; then
+       if [[ -e $REMORA_OUTDIR/dvs_*_rate.txt ]]; then
         for i in `ls $REMORA_OUTDIR/dvs_*_rate.txt`; do
           fullname=`head -n 1 $i | awk '{ print $2 }'`
           fs=`basename $fullname "-RQ"`
@@ -172,6 +175,7 @@ show_final_report() {
           printf "%-14s %-14s %-1s %7.0f IOPS %7s RD(MB/S) %7s WR(MB/S)\n" " Max IO Load /" $fs ":" $fsio "---" "---" | tee -a $REMORA_OUTDIR/remora_summary.txt
         done
       fi
+     fi
     fi
 
     printf "%s\n" $dbar | tee -a $REMORA_OUTDIR/remora_summary.txt
