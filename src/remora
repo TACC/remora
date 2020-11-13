@@ -45,6 +45,8 @@
 #
 #========================================================================
 #  HISTORY
+#       2020/11/13  changed sh to bash in install.sh and uses [[ instead of
+#                   [ throughout so as to work with Unbuntu       (Kent)
 #       2020/11/12  Fixed ls cmd for sysstat and mpiP full name #57 issue (Kent)
 #       2020/11/12  change >& file to >file 2>&1 in install.sh (Kent)
 #       2020/11/11  No FS rates reported if ...(fs)_rate.txt not avail (Kent)
