@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Installation script for REMORA
 #
 # Change CC, MPICC and the corresponding flags to match your own compiler in
@@ -76,19 +76,19 @@ export CC=mpicc
 export F77=mpif77
 export ARCH=x86_64
 
-if [ "$( $CC --version > /dev/null 2>&1 || echo "0")" == "0" ]; then 
+if [[ "$( $CC --version > /dev/null 2>&1 || echo "0")" == "0" ]]; then 
     haveMPICC=0
 else 
     haveMPICC=1
 fi
 
-if [ "$( $F77 --version > /dev/null 2>&1 || echo "0")" == "0" ]; then
+if [[ "$( $F77 --version > /dev/null 2>&1 || echo "0")" == "0" ]]; then
      haveMPIFC=0
 else 
      haveMPIFC=1 
 fi
 
-if [[ $haveMPICC == 1 && $haveMPIFC == 1 ]]; then
+if [[ $haveMPICC == 1 ]] && [[ $haveMPIFC == 1 ]]; then
 
    mpicc -v 2>/dev/null | grep 'Intel(R) MPI' > /dev/null 2>&1 
    haveIMPI=$((1-${PIPESTATUS[1]}))           #1=has IMPI, 0=does not have IMPI
@@ -115,7 +115,7 @@ else
 fi
 
 
-if [[ "$haveMPICC" == "1" && "$haveMPIFC"  == "1" ]]; then
+if [[ "$haveMPICC" == "1" ]] && [[ "$haveMPIFC"  == "1" ]]; then
 
    if [[ "$haveMV2"    == "1" || "$IMPI_stats" == "impi_mpip" ]] ; then
 
@@ -143,7 +143,7 @@ if [[ "$haveMPICC" == "1" && "$haveMPIFC"  == "1" ]]; then
       echo ""
    fi
 
-   if [[ "$haveMV2" == "0" && "$haveIMPI" == "0" ]]; then
+   if [[ "$haveMV2" == "0" ]] && [[ "$haveIMPI" == "0" ]]; then
       echo "" 
       echo " REMORA only supports statistics for IMPI and MVAPICH2"          | tee -a $BUILD_LOG
       echo " WARNING : REMORA will be built with NO MPI statistics support " | tee -a $BUILD_LOG
@@ -152,7 +152,7 @@ if [[ "$haveMPICC" == "1" && "$haveMPIFC"  == "1" ]]; then
 
 fi
 
-if [ "$PHI_BUILD" == "1" ]; then
+if [[ "$PHI_BUILD" == "1" ]]; then
 	echo "Building Xeon Phi affinity script ..."   |  tee -a $BUILD_LOG
 	cd $REMORA_BUILD_DIR/extra/
 	icc -mmic -o ma ./mic_affinity.c
@@ -165,23 +165,23 @@ echo "Copying all scripts to installation folder ..." |  tee -a $INSTALL_LOG
 cd $REMORA_BUILD_DIR
 cp -vr ./src/* $REMORA_DIR/bin
 
-if [ "$haveMPICC" == "0" ] || [ "$haveMPIFC" == "0" ]; then
+if [[ "$haveMPICC" == "0" ]] || [[ "$haveMPIFC" == "0" ]]; then
     sed -i '/impi,MPI/d'      $REMORA_DIR/bin/config/modules
     sed -i '/impi_mpip,MPI/d' $REMORA_DIR/bin/config/modules
     sed -i '/mv2,MPI/d'       $REMORA_DIR/bin/config/modules
 else
-    if [ "$haveIMPI" == "1" ]; then
+    if [[ "$haveIMPI" == "1" ]]; then
                                            sed -i '/mv2,MPI/d'       $REMORA_DIR/bin/config/modules
        [[ $IMPI_stats == "impi_mpip" ]] && sed -i '/impi,MPI/d'      $REMORA_DIR/bin/config/modules
        [[ $IMPI_stats == "impi"      ]] && sed -i '/impi_mpip,MPI/d' $REMORA_DIR/bin/config/modules
     fi
-    if [ "$haveMV2" == "1" ]; then
+    if [[ "$haveMV2" == "1" ]]; then
        sed -i '/impi,MPI/d'      $REMORA_DIR/bin/config/modules
        sed -i '/impi_mpip,MPI/d' $REMORA_DIR/bin/config/modules
     fi
 fi
 
-if [ "$haveMPICC" == "1" ] && [ "$haveMPIFC" == "1" ]; then
+if [[ "$haveMPICC" == "1" ]] && [[ "$haveMPIFC" == "1" ]]; then
    /sbin/lsmod | grep hfi1 > /dev/null 2>&1 
    if [[ $? == 0 ]]; then
       sed -i 's/ib,NETWORK/opa,NETWORK/' $REMORA_DIR/bin/config/modules
