@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -33,7 +33,7 @@ grep -m 33 -A 33 "Allgather" ./stats.txt  | head -n 33 > ${outfile}
 while read line; do
 	calls=$(echo $line | awk '{print $3}')
 	active=$( echo " $calls > 0 " | bc )
-	if [ "$active" == "1" ]; then
+	if [[ "$active" == "1" ]]; then
 		echo $line >> ${activefile}
 	fi
 done < ${outfile}
@@ -71,11 +71,11 @@ while read line; do
 	# Loop over each call type and size
 	callnum=0
 	testOn=1
-	while [ $testOn == 1 ]; do
+	while [[ $testOn == 1 ]]; do
 		printf "..."
 		while read line2; do 
 			callid=$( echo $line2 | awk '{print $1}' )
-			if [ $( echo " $callid == ( $callnum + 1 )" | bc ) == 1 ]; then 
+			if [[ $( echo " $callid == ( $callnum + 1 )" | bc ) == 1 ]]; then 
 				echo $line2 >> ${call}_${callnum}.pst
 			fi
 		done < ./tmp.pst
@@ -97,7 +97,7 @@ col_time=$( awk '{sum+=$3} END {print sum}' ./sorted.pst )
 threshold=$( echo "scale=3; $col_time * 0.10" | bc )
 while read line; do
 	call_time=$( echo $line | awk '{print $3}' )
-	if [ `echo "$call_time > $threshold" | bc ` == 1 ]; then
+	if [[ `echo "$call_time > $threshold" | bc ` == 1 ]]; then
 		echo $line >> final.pst
 	fi
 done < sorted.pst

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -26,7 +26,7 @@ REMORA_VERBOSE=$4
 REMORA_NODE_ID=$5
 
 #Source the script that has the modules' functionality
-if [ "$REMORA_VERBOSE" == "1" ]; then
+if [[ "$REMORA_VERBOSE" == "1" ]]; then
   echo "source $REMORA_BIN/aux/extra"
   echo "source $REMORA_BIN/modules/modules_utils"
 fi
