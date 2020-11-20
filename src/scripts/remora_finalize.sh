@@ -29,7 +29,7 @@ source $REMORA_OUTDIR/remora_env.txt
 function remora_finalize() {
     if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo ""
-        echo "REMORA: Starting REMORA finalize"
+        echo "REMORA: Starting REMORA finalize (in remora_finalize function)."
     fi
     END=$1
     START=$2
@@ -52,7 +52,7 @@ function remora_finalize() {
     # Ensure all data has been copied over or issue warning
     NodeCount=`wc -l $REMORA_OUTDIR/remora_nodes.txt | awk '{print $1}'`
     waiting=1; completed=0
-    while [[ "$waiting" -lt $remora_timeout ] && [[ "$completed" -lt "$NodeCount" ]]; do
+    while [[ "$waiting" -lt $remora_timeout ]] && [[ "$completed" -lt "$NodeCount" ]]; do
         completed=0
         for node in $NODES; do
             if [[ -a $REMORA_OUTDIR/zz.$node ]]; then
@@ -68,29 +68,36 @@ function remora_finalize() {
     fi
 
     # Kill remote remora processes running in the backgroud
-    PID=(); PID_MIC=(); FINAL_PID=()
-    idx=0; for elem in `cat $REMORA_OUTDIR/remora_pid.txt`; do PID[$idx]=$elem; idx=$((idx+1)); done
+    PID=(); PID_MIC=(); POST_PID=()
+    idx=0; for elem in `cat $REMORA_OUTDIR/remora_pid.txt`;     do PID[$idx]=$elem;     idx=$((idx+1)); done
+    [[ "$REMORA_SYMMETRIC" == 1 ]] &&
     idx=0; for elem in `cat $REMORA_OUTDIR/remora_pid_mic.txt`; do PID_MIC[$idx]=$elem; idx=$((idx+1)); done
     idx=0
     for NODE in $NODES; do
         REMORA_NODE_ID=$idx
+
         ssh -f $NODE 'kill '${PID[$idx]} 
         if [[ "$REMORA_SYMMETRIC" == "1" ]]; then
             ssh -q -f $NODE-mic0 'kill '${PID_MIC[$idx]}
         fi  
-        COMMAND="$REMORA_BIN/scripts/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE $REMORA_NODE_ID >> $REMORA_OUTDIR/.remora_out_$NODE  &  echo \$! "
+
+        COMMAND="$REMORA_BIN/scripts/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE $REMORA_NODE_ID"
+
         if [[ "$REMORA_VERBOSE" == "1" ]]; then
             echo "REMORA: launching remote postprocessing (plotting, etc)"
             echo "ssh -q -n $NODE $COMMAND"
         fi  
-        #Right now this is putting the command in the background and continuing (so the remora can finish, therefore epilog might  #kill everything! We need to fix it
-        FINAL_PID+=(`ssh -q -n $NODE $COMMAND | tail -n 1`)
+        export REMORA_OUTDIR=$REMORA_OUTDIR
+        RO=$REMORA_OUTDIR
+
+        ssh -n -q  milfeld-Surface-Pro-6 "$COMMAND >> $RO/.remora_out_$NODE & echo \$!" 2>/dev/null >>$RO/remora_post_pids.txt &
+
         idx=$((idx+1))
     done
 
     if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo ""
-        echo "REMORA: Waiting for postprocesses to finish"
+        echo " REMORA: Will wait for postprocesses (remora_remorte_post.sh) to finish:"
     fi
 
     #Wait until all remora_remote_post processes have finished
@@ -98,10 +105,17 @@ function remora_finalize() {
     local NODES_TMP="$NODES"
     local NODES_LIST=( $NODES ) #make array list
     idx=0
-    for pid in "${FINAL_PID[@]}"; do
+
+    wait
+    POST_PIDS=$(<$REMORA_OUTDIR/remora_post_pids.txt)
+    POST_PIDS="${POST_PIDS//$'\n'/ }"
+
+    [[ "$REMORA_VERBOSE" == "1" ]] && echo " REMORA: postprocess pids = ${POST_PIDS[@]}"
+    
+    for pid in "${POST_PIDS[@]}"; do
         NODE=${NODES_LIST[$idx]}
         while [[ `ssh $NODE "[[ -e /proc/$pid ]] && echo 1"` ]]; do
-            sleep 0.05
+            sleep 0.25
             if [[ "$REMORA_VERBOSE" == "1" ]]; then
                 printf "."
             fi
@@ -114,11 +128,12 @@ function remora_finalize() {
 
     if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo ""
-        echo "REMORA: All REMORA postprocesses have finished"
+        echo "REMORA: All REMORA postprocesses have finished."
     fi
 
     rm $REMORA_OUTDIR/remora_pid.txt
-    rm $REMORA_OUTDIR/remora_pid_mic.txt
+    rm $REMORA_OUTDIR/remora_post_pids.txt
+    [[ "$REMORA_SYMMETRIC" == "1" ]] && rm $REMORA_OUTDIR/remora_pid_mic.txt
 
     # Clean up the instance of remora summary running on the master node
     if [[ "$REMORA_MODE" == "MONITOR" ]]; then
@@ -166,7 +181,7 @@ function remora_finalize() {
         echo "REMORA: Generating base HTML file"
     fi
     #We simply create an HTML file with links to all the different results
-    if [[ "$REMORA_PLOT_RESULTS" != "0" ] ; then
+    if [[ "$REMORA_PLOT_RESULTS" != "0" ]] ; then
         printf "%s \n" "<html lang=\"en\">" > $REMORA_OUTDIR/remora_summary.html
         printf "%s \n" "<head><title>REMORA TACC</title></head><body>" >> $REMORA_OUTDIR/remora_summary.html
         printf "%s \n" "<a href=\"https://github.com/TACC/remora\" target=\"_blank\"><img src=\"https://raw.githubusercontent.com/TACC/remora/master/docs/logos/Remora-logo-300px.png\" alt=\"REMORA Logo\" style=\"max-width:100%;\"></a>" >> $REMORA_OUTDIR/remora_summary.html

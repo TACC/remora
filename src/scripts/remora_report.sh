@@ -25,10 +25,13 @@ REMORA_BIN=$2
 REMORA_OUTDIR=$3
 
 #Source the script that has the modules' functionality
-source $REMORA_BIN/aux/extra
-source $REMORA_BIN/modules/modules_utils
-
-source $REMORA_OUTDIR/remora_env.txt
+#source $REMORA_BIN/aux/extra
+#source $REMORA_BIN/modules/modules_utils
+#source $REMORA_OUTDIR/remora_env.txt
+ . $REMORA_BIN/aux/extra
+ . $REMORA_BIN/modules/modules_utils
+ . $REMORA_OUTDIR/remora_env.txt
+echo " REPORT SOURCE " >> $HOME/OUT
 
 # Create TMPDIR if it si not there
 mkdir -p $REMORA_TMPDIR
@@ -37,21 +40,25 @@ mkdir -p $REMORA_TMPDIR
 for node in $NODES; do
     touch $REMORA_TMPDIR/zz.$node
 done
+echo " REPORT zzTOUCH " >> $HOME/OUT
 
 #Read the list of active modules from the configuration file
 remora_read_active_modules
 
 #Configure the modules (they might not need it)
 remora_configure_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+echo " REPORT configure " >> $HOME/OUT
 
 # Tag end of file so taht we know when it is OK to source / read
 # from a different shell
 echo "#EOF" >> $REMORA_OUTDIR/remora_env.txt
 
-while [[ 1 ]]; do
+while [ 1 ]; do
+echo " REPORT WHILE " >> $HOME/OUT
     remora_execute_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR "${REMORA_MODULES[@]}"
-    if [[ "$REMORA_VERBOSE" == "1" ]]; then
-        echo "sleep $REMORA_PERIOD"
+    if [ "$REMORA_VERBOSE" = "1" ]; then
+#       echo "sleep $REMORA_PERIOD"
+echo " REPORT WHILE " >> $HOME/OUT
     fi
     sleep $REMORA_EFFECTIVE_PERIOD
 done
