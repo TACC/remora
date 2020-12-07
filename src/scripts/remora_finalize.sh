@@ -70,8 +70,9 @@ function remora_finalize() {
     # Kill remote remora processes running in the backgroud
     PID=(); PID_MIC=(); POST_PID=()
     idx=0; for elem in `cat $REMORA_OUTDIR/remora_pid.txt`;     do PID[$idx]=$elem;     idx=$((idx+1)); done
-    [[ "$REMORA_SYMMETRIC" == 1 ]] &&
-    idx=0; for elem in `cat $REMORA_OUTDIR/remora_pid_mic.txt`; do PID_MIC[$idx]=$elem; idx=$((idx+1)); done
+    if [[ "$REMORA_SYMMETRIC" == 1 ]]; then
+       idx=0; for elem in `cat $REMORA_OUTDIR/remora_pid_mic.txt`; do PID_MIC[$idx]=$elem; idx=$((idx+1)); done
+    fi
     idx=0
     for NODE in $NODES; do
         REMORA_NODE_ID=$idx
@@ -90,7 +91,7 @@ function remora_finalize() {
         export REMORA_OUTDIR=$REMORA_OUTDIR
         RO=$REMORA_OUTDIR
 
-        ssh -n -q  milfeld-Surface-Pro-6 "$COMMAND >> $RO/.remora_out_$NODE & echo \$!" 2>/dev/null >>$RO/remora_post_pids.txt &
+        ssh -n -q  $NODE  "$COMMAND >> $RO/.remora_out_$NODE & echo \$!" 2>/dev/null >>$RO/remora_post_pids.txt &
 
         idx=$((idx+1))
     done
