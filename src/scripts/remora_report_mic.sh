@@ -38,7 +38,7 @@ tmem_max=0
 
 USER=`whoami`
 echo "#TIME VMEM_MAX VMEM RMEM_MAX RMEM SHMEM MEM_FREE TMEM_MAX" > $REMORA_OUTDIR/mem_stats_$REMORA_MIC.txt
-while [[ 1 ]
+while [[ 1 ]]
 do
    current_time=`date +%s`
 
