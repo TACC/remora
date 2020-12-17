@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -39,7 +39,7 @@ show_final_report() {
     echo "=============================== REMORA SUMMARY ===============================" | tee -a $REMORA_OUTDIR/remora_summary.txt
 # Print memory usage to stdout
 # I can't think of a case were virtual would be less than resident, so let's report only virtual in stdout (which triggers OOM killer)..
-    if [ -e $REMORA_OUTDIR/memory_all_nodes.txt ]; then
+    if [[ -e $REMORA_OUTDIR/memory_all_nodes.txt ]]; then
        #if [ "$REMORA_CUDA" == "0" ]; then
             max_Vmem_used=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print max}' $REMORA_OUTDIR/memory_all_nodes.txt)
             max_Pmem_used=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {print max}' $REMORA_OUTDIR/memory_all_nodes.txt)
@@ -69,15 +69,15 @@ show_final_report() {
         printf "%-s\n" "*** REMORA: WARNING - Couldn't find the memory summary file" | tee -a $REMORA_OUTDIR/remora_summary.txt
     fi
 
-    if [ "$REMORA_SYMMETRIC" == "1" ]; then
-        if [ -e $REMORA_OUTDIR/memory_all_nodes_mic.txt ]; then
+    if [[ "$REMORA_SYMMETRIC" == "1" ]]; then
+        if [[ -e $REMORA_OUTDIR/memory_all_nodes_mic.txt ]]; then
             # Virtual memory in Phi seems to report always resident+8GB, so let's report only resident in stdout, which we know is true.
 	    	# Hardcoded MIC memory to maximum 7GB available for user
             max_Vmem_used=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {print max}' $REMORA_OUTDIR/memory_all_nodes_mic.txt)
             free_min_mic=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {print 7.0-max}' $REMORA_OUTDIR/memory_all_nodes_mic.txt)
             low_Vmem=$(echo "$free_min_mic < 1.0" | bc)
             printf "%-29s %-1s %6.2f GB\n" " Max Memory Used Per Phi" ":" $max_Vmem_used | tee -a $REMORA_OUTDIR/remora_summary.txt
-            if [ "$low_Vmem" -eq "1" ] && [ "$REMORA_WARNING" -gt "0" ]; then
+            if [[ "$low_Vmem" -eq "1" ]] && [[ "$REMORA_WARNING" -gt "0" ]]; then
                 printf "%-s \n" "*** REMORA:  WARNING - Free memory per Phi close to zero."  | tee -a $REMORA_OUTDIR/remora_summary.txt
             fi
             sed -i '1i #HOST     VIRT_MAX  RES_MAX  FREE_MIN' $REMORA_OUTDIR/memory_all_nodes_mic.txt
@@ -87,8 +87,8 @@ show_final_report() {
     fi
 
 
-    if [ "$REMORA_CUDA" == "1" ]; then
-        if [ -e $REMORA_OUTDIR/gpu_memory_all_nodes.txt ]; then
+    if [[ "$REMORA_CUDA" == "1" ]]; then
+        if [[ -e $REMORA_OUTDIR/gpu_memory_all_nodes.txt ]]; then
 
             local min_avail max_used
             local MiB=$(nvidia-smi --format=csv --query-gpu=memory.total| sed -n '2 p' | awk '{print $1}')
@@ -112,15 +112,15 @@ show_final_report() {
 
     # Show MPI communication time if available
     # Check both for "data" from mpiP collection and "info" for sanity
-    if [ -e "$REMORA_OUTDIR/impi_data.txt" ] && [ -e "$REMORA_OUTDIR/impi_info.txt" ]; then
+    if [[ -e "$REMORA_OUTDIR/impi_data.txt" ]] && [[ -e "$REMORA_OUTDIR/impi_info.txt" ]]; then
         mpiTime=$(awk '{print $6}' $REMORA_OUTDIR/impi_info.txt | tail -n 1 )
         printf "%-29s %-1s    %5.2f %%\n" " MPI Communication Time" ":" $mpiTime | tee -a $REMORA_OUTDIR/remora_summary.txt
     fi
-    if [ -e "$REMORA_OUTDIR/impi_mpip_data.txt" ] && [ -e "$REMORA_OUTDIR/impi_mpip_info.txt" ]; then
+    if [[ -e "$REMORA_OUTDIR/impi_mpip_data.txt" ]] && [[ -e "$REMORA_OUTDIR/impi_mpip_info.txt" ]]; then
         mpiTime=$(awk '{print $6}' $REMORA_OUTDIR/impi_mpip_info.txt | tail -n 1 )
         printf "%-29s %-1s    %5.2f %%\n" " MPI Communication Time" ":" $mpiTime | tee -a $REMORA_OUTDIR/remora_summary.txt
     fi
-    if [ -e "$REMORA_OUTDIR/mv2_data.txt" ] && [ -e "$REMORA_OUTDIR/mv2_info.txt" ]; then
+    if [[ -e "$REMORA_OUTDIR/mv2_data.txt" ]] && [[ -e "$REMORA_OUTDIR/mv2_info.txt" ]]; then
         mpiTime=$(awk '{print $6}' $REMORA_OUTDIR/mv2_info.txt | tail -n 1 )
         printf "%-29s %-1s    %5.2f %%\n" " MPI Communication Time" ":" $mpiTime | tee -a $REMORA_OUTDIR/remora_summary.txt
     fi  
@@ -129,20 +129,20 @@ show_final_report() {
     show_time $((END-START))
 
     #Show Maximum IO Requests/S to all MDS servers (H-Home, S-Scratch, W-Work)
-    if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+    if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
 
-      if [ "$REMORA_LUSTRE" == "1" ]; then
-       if [[ -e  $REMORA_OUTDIR/lustre_*_rate.txt ]]; then
+      if [[ "$REMORA_LUSTRE" == "1" ]]; then
+       if [[ -n "$(find $REMORA_OUTDIR -name 'lustre_*_rate.txt' | head -1)" ]]; then
         printf "%s\n" $bar | tee -a $REMORA_OUTDIR/remora_summary.txt
         for i in `ls $REMORA_OUTDIR/lustre_*_rate.txt`; do
 			fullname=`head -n 1 $i | awk '{ print $2 }'`       
             fs=`basename $fullname "-RQ"`
             waiting=1
-            while [ "$waiting" -lt "10" ] && [ ! -r $REMORA_OUTDIR/lustre_${fs}_rate.txt ]; do
+            while [[ "$waiting" -lt "10" ]] && [[ ! -r $REMORA_OUTDIR/lustre_${fs}_rate.txt ]]; do
               sleep 2
               waiting=$((waiting+1))
             done
-            if [ "$waiting" -gt "1" ] && [ "$REMORA_WARNING" -gt "1" ]; then
+            if [[ "$waiting" -gt "1" ]] && [[ "$REMORA_WARNING" -gt "1" ]]; then
               printf "*** REMORA: WARNING - Slow file system response.\n"
               printf "*** REMORA: WARNING - It took %d seconds to reach the output files.\n" $((waiting*2))
             fi
@@ -154,17 +154,17 @@ show_final_report() {
        fi
       fi
 
-      if [ "$REMORA_DVS" == "1" ]; then
+      if [[ "$REMORA_DVS" == "1" ]]; then
        if [[ -e $REMORA_OUTDIR/dvs_*_rate.txt ]]; then
         for i in `ls $REMORA_OUTDIR/dvs_*_rate.txt`; do
           fullname=`head -n 1 $i | awk '{ print $2 }'`
           fs=`basename $fullname "-RQ"`
           waiting=1
-          while [ "$waiting" -lt "10" ] && [ ! -r $REMORA_OUTDIR/dvs_${fs}_rate.txt ]; do
+          while [[ "$waiting" -lt "10" ]] && [[ ! -r $REMORA_OUTDIR/dvs_${fs}_rate.txt ]]; do
             sleep 2
             waiting=$((waiting+1))
           done
-          if [ "$waiting" -gt "1" ] && [ "$REMORA_WARNING" -gt "1" ]; then
+          if [[ "$waiting" -gt "1" ]] && [[ "$REMORA_WARNING" -gt "1" ]]; then
             printf "*** REMORA: WARNING - Slow file system response.\n"
             printf "*** REMORA: WARNING - It took %d seconds to reach the output files.\n" $((waiting*2))
           fi
@@ -181,7 +181,7 @@ show_final_report() {
     printf "%s\n" $dbar | tee -a $REMORA_OUTDIR/remora_summary.txt
     printf "%-29s %-1s %-d %-7s\n" " Sampling Period" ":" $REMORA_PERIOD "seconds" | tee -a $REMORA_OUTDIR/remora_summary.txt
     printf "%-29s %-1s %-s\n"     " Report Directory" ":" R=$REMORA_OUTDIR         | tee -a $REMORA_OUTDIR/remora_summary.txt
-    if [ "$REMORA_PLOT_RESULTS" != "0" ] ; then
+    if [[ "$REMORA_PLOT_RESULTS" != "0" ]] ; then
         printf "%-29s %-1s %-s\n" " Google Plots HTML Index Page" ":" \$R/remora_summary.html | tee -a $REMORA_OUTDIR/remora_summary.txt
     fi
     printf "%s\n" $dbar | tee -a $REMORA_OUTDIR/remora_summary.txt

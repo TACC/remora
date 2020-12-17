@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -28,11 +28,11 @@ init_module_temperature()
   export REMORA_TEMPERATURE_IGNORE=$?
 
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-  if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+  if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
       echo "export REMORA_TEMPERATURE_IGNORE=$REMORA_TEMPERATURE_IGNORE" >> $REMORA_OUTDIR/remora_env.txt
   fi  
 
-  if [ $REMORA_TEMPERATURE_IGNORE -ne 0 ]; then
+  if [[ $REMORA_TEMPERATURE_IGNORE -ne 0 ]]; then
     return 1
   fi
 
@@ -52,7 +52,7 @@ init_module_temperature()
 
 collect_data_temperature()
 {
-  if [ $REMORA_TEMPERATURE_IGNORE -ne 0 ]; then
+  if [[ $REMORA_TEMPERATURE_IGNORE -ne 0 ]]; then
     return 1
   fi
 
@@ -82,12 +82,12 @@ process_data_temperature()
 plot_data_temperature()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+    if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
     fi
 
-    if [ ! -e $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt ]; then
-        if [ "$REMORA_VERBOSE" == "1" ]; then
+    if [[ ! -e $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt ]]; then
+        if [[ "$REMORA_VERBOSE" == "1" ]]; then
             echo "File $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt not found"
         fi
         return
@@ -114,11 +114,11 @@ plot_data_temperature()
     local first=0
     local firsttimestamp=0
     while read line; do
-        if [ $first -eq 0 ]; then
+        if [[ $first -eq 0 ]]; then
             first=1
             continue
         fi
-        if [ $first -eq 1 ]; then
+        if [[ $first -eq 1 ]]; then
             first=2
             firsttimestamp=`echo $line | awk '{print $1;}'`
         fi
@@ -128,7 +128,7 @@ plot_data_temperature()
         sout=$ctime
         for i in $line;
         do
-            if [ $idx -gt 0 ]; then
+            if [[ $idx -gt 0 ]]; then
                 sout=$sout","$i
             fi
             idx=$[idx + 1]
@@ -144,7 +144,7 @@ plot_data_temperature()
     printf "%s \n" "}," >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
     #Only show the legend when there are few cores. Otherwise (think KNL), there are too many
     #cores and the legend is difficult to read
-    if [ $cpus -gt 24 ]; then
+    if [[ $cpus -gt 24 ]]; then
         printf "%s \n" "legend: {position: 'none', textStyle: {fontSize: 16}}," >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
     fi
     printf "%s \n" "width: 1024, " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 

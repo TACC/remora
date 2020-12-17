@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -35,11 +35,11 @@ init_module_power()
   export REMORA_POWER_IGNORE=$?
 
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-  if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+  if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
       echo "export REMORA_POWER_IGNORE=$REMORA_POWER_IGNORE" >> $REMORA_OUTDIR/remora_env.txt
   fi
 
-  if [ $REMORA_POWER_IGNORE -ne 0 ]; then
+  if [[ $REMORA_POWER_IGNORE -ne 0 ]]; then
     return 1
   fi
 
@@ -50,7 +50,7 @@ init_module_power()
 
 collect_data_power()
 {
-  if [ $REMORA_POWER_IGNORE -ne 0 ]; then
+  if [[ $REMORA_POWER_IGNORE -ne 0 ]]; then
     return 1
   fi
 
@@ -75,12 +75,12 @@ process_data_power()
 plot_data_power()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+    if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
     fi
 
-    if [ ! -e $REMORA_TMPDIR/power_${REMORA_NODE}.txt ]; then
-        if [ "$REMORA_VERBOSE" == "1" ]; then
+    if [[ ! -e $REMORA_TMPDIR/power_${REMORA_NODE}.txt ]]; then
+        if [[ "$REMORA_VERBOSE" == "1" ]]; then
             echo "File $REMORA_TMPDIR/power_${REMORA_NODE}.txt not found"                                                      
         fi  
         return
@@ -103,12 +103,12 @@ plot_data_power()
     local firsttimestamp=0
     while read line; do
         #Skip first line
-        if [ $first -eq 0 ]; then
+        if [[ $first -eq 0 ]]; then
             first=1
             continue
         fi
         #Read first timestamp
-        if [ $first -eq 1 ]; then
+        if [[ $first -eq 1 ]]; then
             first=2
             firsttimestamp=`echo $line | awk '{print $1;}'`
         fi

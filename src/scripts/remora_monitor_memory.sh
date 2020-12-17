@@ -16,7 +16,7 @@
 #If the memory goes below REMORA_FREEMEM (0.5GB by default), 
 #it kills all the user's processes until this process is killed.
 
-if [ -z "$REMORA_FREEMEM" ]; then
+if [[ -z "$REMORA_FREEMEM" ]]; then
     REMORA_FREEMEM=500000 #0.5 GB
 fi  
 while true; do

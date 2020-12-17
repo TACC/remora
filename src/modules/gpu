@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -24,7 +24,7 @@
 init_module_gpu()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [ "$REMORA_CUDA" == "1" ]; then
+    if [[ "$REMORA_CUDA" == "1" ]]; then
         local OUT_FILE=$REMORA_TMPDIR/gpu_memory_stats_${REMORA_NODE}.txt
         local NGPUS=$( nvidia-smi -L |wc -l )
         local LAST_GPU_NO=$(( NGPUS - 1 ))
@@ -39,9 +39,9 @@ init_module_gpu()
         printf "\n"           >>$OUT_FILE
     
         # Fix this later for GPU MEMORY
-        #if [ "$REMORA_MODE" == "MONITOR" ]; then
+        #if [[ "$REMORA_MODE" == "MONITOR" ]]; then
         #            REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-        #            if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+        #            if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
         #                    printf "%10s " "MAX_MEM_GB" >> $REMORA_TMPDIR/.monitor
         #            fi
         #    fi
@@ -52,7 +52,7 @@ collect_data_gpu()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     # Get GPU utilization data
-    if [ "$REMORA_CUDA" == "1" ]; then
+    if [[ "$REMORA_CUDA" == "1" ]]; then
         current_time=`date +%s`
         gpu_free_used=$( nvidia-smi --query-gpu=memory.free,memory.used --format=csv,nounits,noheader )
         gpu_free_used=$( echo $gpu_free_used | sed 's/, */ /g' )
@@ -82,7 +82,7 @@ plot_data_gpu()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
-  if [ "$REMORA_CUDA" == "1" ]; then
+  if [[ "$REMORA_CUDA" == "1" ]]; then
     local  IN_FILE=$REMORA_TMPDIR/gpu_memory_stats_${REMORA_NODE}.txt
     local OUT_FILE=$REMORA_TMPDIR/gpu_memory_stats_${REMORA_NODE}.html
 
@@ -117,7 +117,7 @@ plot_data_gpu()
           data_pos_1=$(( gpu_no * 2 + 1 ))
           data_pos_2=$(( data_pos_1 + 1 ))
                                                #First time through add headers
-          if [ $first -eq 0 ]; then
+          if [[ $first -eq 0 ]]; then
               local idx=0
               for i in $line; do
                   [[ $idx == 0 ]]           && printf "%s%s%s \n" "data.addColumn('number','Execution Time (s)');" >>$OUT_FILE
@@ -130,7 +130,7 @@ plot_data_gpu()
           fi
   
                                                #Only for the second time through "open" Rows Container
-          if [ $first -eq 1 ]; then
+          if [[ $first -eq 1 ]]; then
               printf "%s\n" "data.addRows(["                   >> $OUT_FILE
               first=2
           fi
@@ -220,7 +220,7 @@ finalize_module_gpu()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     plot_data_gpu $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 
-  if [ "$REMORA_CUDA" == "1" ]; then
+  if [[ "$REMORA_CUDA" == "1" ]]; then
      local col col_avail col_used
      local min_avail max_used
 

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -9,7 +9,7 @@
 #% DO NOT call this script directory. This is called by REMORA.
 #% This script launches the finalize function for all active modules.
 #%
-#% remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE $REMORA_NODE_ID
+#% remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE
 #========================================================================
 #- IMPLEMENTATION
 #-      version     REMORA 1.8.4
@@ -23,10 +23,9 @@ REMORA_NODE=$1
 REMORA_OUTDIR=$2
 REMORA_BIN=$3
 REMORA_VERBOSE=$4
-REMORA_NODE_ID=$5
 
 #Source the script that has the modules' functionality
-if [ "$REMORA_VERBOSE" == "1" ]; then
+if [[ "$REMORA_VERBOSE" == "1" ]]; then
   echo "source $REMORA_BIN/aux/extra"
   echo "source $REMORA_BIN/modules/modules_utils"
 fi

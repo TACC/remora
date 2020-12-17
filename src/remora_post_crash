@@ -25,15 +25,15 @@ source $REMORA_BIN/aux/extra
 source $REMORA_BIN/aux/report
 
 JOBID=-1
-if [ "$#" -eq 2 ]; then
-    if [ "$1" -eq "-j" ]; then
+if [[ "$#" -eq 2 ]]; then
+    if [[ "$1" -eq "-j" ]]; then
         JOBID=$2
     else
         echo " REMORA: remora_post_crash needs the ID of the job that you want to recover"
         echo " REMORA: usage 'remora_post_crash -j XXXXX' or 'remora_post_crash XXXXX'"
     fi
 else
-    if [ "$#" -eq 1 ]; then
+    if [[ "$#" -eq 1 ]]; then
         JOBID=$1
     else
         echo " REMORA: remora_post_crash needs the ID of the job that you want to recover"
@@ -44,45 +44,45 @@ fi
 
 
 REMORA_OUTDIR=`pwd`/remora_$JOBID
-if [ ! -d $REMORA_OUTDIR ]; then
+if [[ ! -d $REMORA_OUTDIR ]]; then
     echo " REMORA: folder $REMORA_OUTDIR does not exist"
     exit 1
 fi
 
-if [ -f $REMORA_OUTDIR/remora_env.txt ]; then
+if [[ -f $REMORA_OUTDIR/remora_env.txt ]]; then
     source $REMORA_OUTDIR/remora_env.txt
 fi
 
-if [ -f $REMORA_OUTDIR/INFO/remora_env.txt ]; then
+if [[ -f $REMORA_OUTDIR/INFO/remora_env.txt ]]; then
     source $REMORA_OUTDIR/INFO/remora_env.txt
 fi
 
-if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
+if [[ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]]; then
 	echo " REMORA can't generate a summary of a crashed job when"
 	echo " REMORA_TMPDIR is not the same as REMORA_OUTDIR"
 	exit 1
 fi
 
-if [ -f $REMORA_OUTDIR/remora_nodes.txt ]; then
+if [[ -f $REMORA_OUTDIR/remora_nodes.txt ]]; then
     MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
     NODES=`cat $REMORA_OUTDIR/remora_nodes.txt`
 fi
-if [ -f $REMORA_OUTDIR/INFO/remora_nodes.txt ]; then
+if [[ -f $REMORA_OUTDIR/INFO/remora_nodes.txt ]]; then
     MASTER=`head -n 1 $REMORA_OUTDIR/INFO/remora_nodes.txt`
     NODES=`cat $REMORA_OUTDIR/INFO/remora_nodes.txt`
 fi
 
-if [ -f $REMORA_OUTDIR/cpu_${MASTER}.txt ]; then
+if [[ -f $REMORA_OUTDIR/cpu_${MASTER}.txt ]]; then
     END=`grep "time" $REMORA_OUTDIR/cpu_${MASTER}.txt | tail -n 1 | awk '{print $2 "000000000"}' ` 
     START=`grep "time" $REMORA_OUTDIR/cpu_${MASTER}.txt | head -n 1 | awk '{print $2 "000000000"}' `
 fi
-if [ -f $REMORA_OUTDIR/CPU/cpu_${MASTER}.txt ]; then
+if [[ -f $REMORA_OUTDIR/CPU/cpu_${MASTER}.txt ]]; then
     END=`grep "time" $REMORA_OUTDIR/CPU/cpu_${MASTER}.txt | tail -n 1 | awk '{print $2 "000000000"}' ` 
     START=`grep "time" $REMORA_OUTDIR/CPU/cpu_${MASTER}.txt | head -n 1 | awk '{print $2 "000000000"}' `
 fi
 
 for NODE in $NODES; do
-  if [ "$REMORA_VERBOSE" == "1" ]; then
+  if [[ "$REMORA_VERBOSE" == "1" ]]; then
     echo "$REMORA_BIN/scripts/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE $REMORA_NODE_ID >> $REMORA_OUTDIR/.remora_out_$NODE"
   fi
   $REMORA_BIN/scripts/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE $REMORA_NODE_ID &>> $REMORA_OUTDIR/.remora_out_$NODE
@@ -105,12 +105,12 @@ for i in "${!REMORA_MODULES[@]}"; do
     mv $REMORA_OUTDIR/${REMORA_MODULES[$i]}* $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
 done
 
-if [ "$REMORA_MODE" == "MONITOR" ]; then
+if [[ "$REMORA_MODE" == "MONITOR" ]]; then
     rm $REMORA_TMPDIR/.monitor 2> /dev/null
     mv $REMORA_OUTDIR/monitor* $REMORA_OUTDIR/MONITOR/ 2> /dev/null
 fi
 # Clean up TMPDIR if necessary
-if [ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]; then
+if [[ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]]; then
     rm -rf $REMORA_TMPDIR
 fi
 

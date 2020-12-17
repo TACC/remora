@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -47,7 +47,7 @@ plot_data_network()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   
-  if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+  if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
     return
   fi
 
@@ -71,7 +71,7 @@ plot_data_network()
     sed -i '/^$/d' $f
 
     lines=`cat $f | sed '/^\s*$/d' | wc -l`
-    if [ "$lines" == "0" ]; then
+    if [[ "$lines" == "0" ]]; then
         continue
     fi
     line=`sed '1q;d' $f`
@@ -79,7 +79,7 @@ plot_data_network()
     previous_machine=`echo $line | cut -d'"' -f 2`
     idx=2
     half=$((lines / 2))
-    while [ $idx -le $half ]; do
+    while [[ $idx -le $half ]]; do
         line=`sed "${idx}q;d" $f`
         machine=`echo $line | cut -d'"' -f 2`
         printf "%s \n" "['$previous_machine', '$machine']," >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
@@ -90,7 +90,7 @@ plot_data_network()
     line=`sed "${idx}q;d" $f`
     previous_machine=`echo $line | cut -d'"' -f 2`
     let idx=idx-1
-    while [ $idx -ge $half ]; do
+    while [[ $idx -ge $half ]]; do
         line=`sed "${idx}q;d" $f`
         machine=`echo $line | cut -d'"' -f 2`
         printf "%s \n" "['$previous_machine', '$machine']," >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
@@ -119,8 +119,8 @@ finalize_module_network()
   #Extract the mlx interface. It was hardcoded to mlx4_0
   export PATH="/sbin:$PATH"
   interf=`ibstat | head -n 1 | awk '{print $2}' | tr -d "'"`
-  if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
-	if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+  if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
+	if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
     local idx=0
     local LID=()
     local NODES=`cat $REMORA_OUTDIR/remora_nodes.txt`
@@ -131,7 +131,7 @@ finalize_module_network()
     done
     net_node_cnt=0; for NODE in $NODES; do net_node_cnt=$((net_node_cnt+1)); done
     idx=1
-    while [  $idx -lt $net_node_cnt ]; do
+    while [[  $idx -lt $net_node_cnt ]]; do
       ibtracert ${LID[0]} ${LID[$idx]} >> $REMORA_OUTDIR/network_trace.txt
       echo "_____________" >> $REMORA_OUTDIR/network_trace.txt
       idx=$((idx+1))

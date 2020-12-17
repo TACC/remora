@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -48,9 +48,9 @@ remora_configure_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 # from a different shell
 echo "#EOF" >> $REMORA_OUTDIR/remora_env.txt
 
-while [ 1 ]; do
+while [[ 1 ]]; do
     remora_execute_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR "${REMORA_MODULES[@]}"
-    if [ "$REMORA_VERBOSE" == "1" ]; then
+    if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo "sleep $REMORA_PERIOD"
     fi
     sleep $REMORA_EFFECTIVE_PERIOD

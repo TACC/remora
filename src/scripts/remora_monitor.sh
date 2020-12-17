@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -37,8 +37,8 @@ remora_read_active_modules
 #Configure the modules (they might not need it)
 remora_monitor_summary $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR 
 
-while [ 1 ]; do
-	if [ "$REMORA_VERBOSE" == "1" ]; then
+while [[ 1 ]]; do
+	if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo "sleep $REMORA_MONITOR_PERIOD"
     fi
     remora_monitor_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR "${REMORA_MODULES[@]}"

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -23,7 +23,7 @@
 
 init_module_numa()
 {
-  if [ "$REMORA_MODE" == "FULL" ]; then
+  if [[ "$REMORA_MODE" == "FULL" ]]; then
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     local numStat=`numastat -c`
     local numNodes=`echo $numStat | grep -o ' Node' | wc -l`
@@ -70,7 +70,7 @@ init_module_numa()
 
 collect_data_numa()
 {
-  if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+  if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     #Get a timestamp in seconds for this data sample
     local TIMESTAMP=`date +%s`
@@ -125,7 +125,7 @@ out="$out ${stats[2]}"  # idx=1 numa_foreign
 
 #   idx=0
 #   for i in "${data[@]}"; do
-#       if [ $i = 'Numa_Miss' ]; then
+#       if [[ $i == 'Numa_Miss' ]]; then
 #           for j in `seq $numNodes`; do
 #               val=${data[$idx+$j]}
 #               out="$out $val"
@@ -137,7 +137,7 @@ out="$out ${stats[2]}"  # idx=1 numa_foreign
 
     idx=0
     for i in "${data[@]}"; do
-        if [ $i = 'Local_Node' ]; then
+        if [[ $i == 'Local_Node' ]]; then
             for j in `seq $numNodes`; do
                 val=${data[$idx+$j]}
                 out="$out $val"
@@ -148,7 +148,7 @@ out="$out ${stats[2]}"  # idx=1 numa_foreign
     done
     idx=0
     for i in "${data[@]}"; do
-        if [ $i = 'Other_Node' ]; then
+        if [[ $i == 'Other_Node' ]]; then
             for j in `seq $numNodes`; do
                 val=${data[$idx+$j]}
                 out="$out $val"
@@ -187,7 +187,7 @@ process_data_numa()
 plot_data_numa()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+    if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
     fi
 
@@ -227,11 +227,11 @@ plot_data_numa()
     local previous=()
     printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     while read line; do
-        if [ $first -eq 0 ]; then
+        if [[ $first -eq 0 ]]; then
             first=1
             continue
         fi
-        if [ $first -eq 1 ]; then
+        if [[ $first -eq 1 ]]; then
             first=2
             firsttimestamp=`echo $line | awk '{print $1;}'`
             for i in `seq $numNodes`; do
@@ -291,11 +291,11 @@ plot_data_numa()
     local previous=()
     printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     while read line; do
-        if [ $first -eq 0 ]; then
+        if [[ $first -eq 0 ]]; then
             first=1
             continue
         fi
-        if [ $first -eq 1 ]; then
+        if [[ $first -eq 1 ]]; then
             first=2
             firsttimestamp=`echo $line | awk '{print $1;}'`
             for i in `seq $numNodes`; do
@@ -359,11 +359,11 @@ plot_data_numa()
     local firsttimestamp=0
     local first=0
     while read line; do
-        if [ $first -eq 0 ]; then
+        if [[ $first -eq 0 ]]; then
             first=1
             continue
         fi
-        if [ $first -eq 1 ]; then
+        if [[ $first -eq 1 ]]; then
             first=2
             firsttimestamp=`echo $line | awk '{print $1;}'`
         fi
@@ -415,11 +415,11 @@ plot_data_numa()
     local previous=()
 #    printf "%s\n" "[" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     while read line; do
-        if [ $first -eq 0 ]; then
+        if [[ $first -eq 0 ]]; then
             first=1
             continue
         fi
-        if [ $first -eq 1 ]; then
+        if [[ $first -eq 1 ]]; then
             first=2
             firsttimestamp=`echo $line | awk '{print $1;}'`
         fi
