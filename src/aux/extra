@@ -11,9 +11,10 @@
 #% This script provides extra functionality used by REMORA
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #
 #========================================================================

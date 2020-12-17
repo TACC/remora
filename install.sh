@@ -27,7 +27,7 @@ mkdir -p $REMORA_DIR/docs
 
 REMORA_BUILD_DIR=$PWD
 
-VERSION=1.8.4
+VERSION=1.8.5
 COPYRIGHT1="Copyright 2017 The University of Texas at Austin."
 COPYRIGHT2="License: MIT <http://opensource.org/licenses/MIT>"
 COPYRIGHT3="This is free software: you are free to change and redistribute it."

@@ -38,13 +38,18 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #
 #========================================================================
 #  HISTORY
+#       2020/12/17  Will be version 1.8.5.
+#       2020/12/17  Changed all scripts to bash, finished [[ -> [ everywhere
+#                   Fixed network summary.  [[ -e *rates ]] doesn't for for 
+#                   multiple files.                              (Kent)
 #       2020/11/13  changed sh to bash in install.sh and uses [[ instead of
 #                   [ throughout so as to work with Unbuntu       (Kent)
 #       2020/11/12  Fixed ls cmd for sysstat and mpiP full name #57 issue (Kent)
