@@ -224,8 +224,8 @@ function remora_finalize() {
         if [[ "$REMORA_VERBOSE" == "1" ]]; then
             echo "REMORA: Handling MONITOR files"
         fi
-        rm $REMORA_TMPDIR/.monitor
-        mv $REMORA_OUTDIR/monitor* $REMORA_OUTDIR/MONITOR/
+        rm -f $REMORA_TMPDIR/.monitor
+        mv    $REMORA_OUTDIR/monitor* $REMORA_OUTDIR/MONITOR/
     fi
 
     # Clean up TMPDIR if necessary

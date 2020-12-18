@@ -244,8 +244,7 @@ plot_data_numa()
         ctime=$[timestamp - firsttimestamp]
         printf "[" >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
         printf "%s," $ctime >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-       #for i in `seq $numNodes`; do
-        for i in 1 2; do
+        for i in `seq $numNodes`; do
             idx=$[i + 1]
             tempval=`echo $line | cut -f $idx -d ' '`
             #val=$[tempval-previous[$i]]
