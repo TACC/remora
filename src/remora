@@ -46,7 +46,10 @@
 #
 #========================================================================
 #  HISTORY
-#       2020/12/17  Will be version 1.8.5.
+#       2020/12/18  Will be version 1.8.5.
+#                   Numa plot Hits rename to assignments, now shows
+#                   2MB pages as red component in total bar .
+#                   Cleaned up numa logic for total and 2MB pages.
 #       2020/12/17  Changed all scripts to bash, finished [[ -> [ everywhere
 #                   Fixed network summary.  [[ -e *rates ]] doesn't for for 
 #                   multiple files.                              (Kent)
