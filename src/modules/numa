@@ -257,7 +257,7 @@ plot_data_numa()
 
     printf "%s \n" "var options = { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "title : 'NUMA All Memory Assignments'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "vAxis: {title: 'MB Allocated'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "vAxis: {title: 'Allocated (MB)'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "hAxis: {title: 'Time (s)'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "seriesType: 'bars'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "bar: { groupWidth: '95%' }," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
@@ -323,7 +323,7 @@ plot_data_numa()
 
     printf "%s \n" "var options = { " >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "title : 'NUMA Remote Assigned Memory (foreign)'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
-    printf "%s \n" "vAxis: {title: 'Events'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
+    printf "%s \n" "vAxis: {title: 'Remote Allocated (MB)'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "hAxis: {title: 'Time (s)'}," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "seriesType: 'bars'," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
     printf "%s \n" "bar: { groupWidth: '95%' }," >> $REMORA_TMPDIR/numa_${REMORA_NODE}.html
