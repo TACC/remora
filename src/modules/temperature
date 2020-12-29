@@ -166,6 +166,7 @@ plot_data_temperature()
     printf "%s \n" "var options = { "                                 >> $FILE
     printf "%s \n" "title: 'CPU${CPU} Temperature',"                  >> $FILE
     printf "%s \n" "titleTextStyle: {color: 'blue', fontSize: '18'}," >> $FILE
+    printf "%s \n" "fontSize: 18,"                                    >> $FILE
     printf "%s \n" "vAxis: {title: 'Degrees (milliCelcius)'},"        >> $FILE
     printf "%s \n" "hAxis: {title: 'Time (s)'},"                      >> $FILE
     printf "%s \n" "legend: { position: 'top'},"                      >> $FILE
