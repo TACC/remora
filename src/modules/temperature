@@ -171,7 +171,7 @@ plot_data_temperature()
     printf "%s \n" "hAxis: {title: 'Time (s)'},"                      >> $FILE
     printf "%s \n" "legend: { position: 'top'},"                      >> $FILE
     printf "%s \n" "width:  1024," >> $FILE
-    printf "%s \n" "height:  800," >> $FILE
+    printf "%s \n" "height:  800"  >> $FILE
     printf "%s \n" "};"            >> $FILE
 
     printf "%s \n" "var chart = new google.visualization.LineChart(document.getElementById('line_cpu${CPU}')); " >> $FILE 
