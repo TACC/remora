@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -11,12 +11,15 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-                  Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #========================================================================
 
+# Revised and parts re-writen for newer google corechart & unit testing 
+#                                                2020-11-25 Kent Milfeld
 # All the functions take three arguments:
 #  1.- The name of the node where this function is running
 #  2.- The full path where the output will be stored/read
@@ -24,10 +27,6 @@
 
 init_module_power()
 {
-  #Check if we have access to sensors
-  #If not present, don't collect power
-  #If sensors returns an error (not configured or not allowed), ignore
-  #the message and configure REMORA to ignore power collection
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
   #Check if sensors exists. Use hash for this and the result of the command
@@ -35,32 +34,30 @@ init_module_power()
   export REMORA_POWER_IGNORE=$?
 
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-  if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+  if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
       echo "export REMORA_POWER_IGNORE=$REMORA_POWER_IGNORE" >> $REMORA_OUTDIR/remora_env.txt
   fi
 
-  if [ $REMORA_POWER_IGNORE -ne 0 ]; then
+  if [[ $REMORA_POWER_IGNORE -ne 0 ]]; then
+    [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> power not initialized, sensors not found."                                                      
     return 1
   fi
 
-  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+  #This just works for 1 CPU systems at this point  TODO: multi-socket systems
   rm -f $REMORA_TMPDIR/power_${REMORA_NODE}.txt
-  printf "%-17s %-17s\n" "#TIME" "POWER"> $REMORA_TMPDIR/power_${REMORA_NODE}.txt
+  printf "%-17s %-17s\n" "TIME" "POWER"> $REMORA_TMPDIR/power_${REMORA_NODE}.txt
 }
 
 collect_data_power()
 {
-  if [ $REMORA_POWER_IGNORE -ne 0 ]; then
-    return 1
-  fi
-
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-  local TIMESTAMP=`date +%s`
-  # Get power of each node
-  # We use sensors. Among other things, sensors is going to return something like this:
-  # power1:      159.00 W  (interval =   1.00 s)
-  local power=`sensors | grep power1 | awk '{print $2;}'`
 
+  [[ $REMORA_POWER_IGNORE -ne 0 ]] && return 1
+
+  # KNL sensors output:  power1:      159.00 W  (interval =   1.00 s)
+
+  local TIMESTAMP=`date +%s`
+  local power=`sensors | grep power1 | awk '{print $2;}'`
   printf "%-17s %-17s\n" $TIMESTAMP $power >> $REMORA_TMPDIR/power_${REMORA_NODE}.txt
 }
 
@@ -75,73 +72,76 @@ process_data_power()
 plot_data_power()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+
+    if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
     fi
 
-    if [ ! -e $REMORA_TMPDIR/power_${REMORA_NODE}.txt ]; then
-        if [ "$REMORA_VERBOSE" == "1" ]; then
-            echo "File $REMORA_TMPDIR/power_${REMORA_NODE}.txt not found"                                                      
-        fi  
-        return
+    if [[ ! -e $REMORA_TMPDIR/power_${REMORA_NODE}.txt ]]; then
+       [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> File $REMORA_TMPDIR/power_${REMORA_NODE}.txt not found."                                                      
+       return
     fi
+    local ctime first firsttimestamp timestamp power
 
-    printf "%s \n" "<html>" > $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    printf "%s \n" "<head>" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    printf "%s \n" "google.charts.load('current', {'packages':['line']});" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+        FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.html
+    FILE_TXT=$REMORA_TMPDIR/power_${REMORA_NODE}.txt
 
-    printf "%s \n" "google.charts.setOnLoadCallback(drawChart);" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    printf "%s \n" "data.addColumn('number', 'Execution Time (s)');" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    printf "%s \n" "data.addColumn('number', 'Power (W)');" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    local ctime=0
-    local first=0
-    local firsttimestamp=0
+    printf "%s \n" "<html>"  > $FILE
+    printf "%s \n" "<head>" >> $FILE
+    printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $FILE
+    printf "%s \n" "<script type=\"text/javascript\">"                          >> $FILE
+    printf "%s \n" "google.charts.load('current', {'packages':['corechart']});" >> $FILE
+
+    printf "%s \n" "google.charts.setOnLoadCallback(drawChart);"      >> $FILE
+    printf "%s \n" "function drawChart() {"                           >> $FILE
+    printf "%s \n" "var data = new google.visualization.DataTable();" >> $FILE
+    printf "%s \n" "data.addColumn('number', 'Execution Time (s)');"  >> $FILE
+    printf "%s \n" "data.addColumn('number', 'Power (W)');"           >> $FILE
+    printf "%s\n" "data.addRows(["                                    >> $FILE
+
+    ctime=0
+    first=0
+    firsttimestamp=0
     while read line; do
-        #Skip first line
-        if [ $first -eq 0 ]; then
-            first=1
-            continue
-        fi
-        #Read first timestamp
-        if [ $first -eq 1 ]; then
-            first=2
-            firsttimestamp=`echo $line | awk '{print $1;}'`
-        fi
-        local timestamp=`echo $line | awk '{print $1;}'`
-        local power=`echo $line | awk '{print $2;}'`
-        ctime=$[timestamp - firsttimestamp]
-        printf "[%s,%s],\n" $ctime $power >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    done < $REMORA_TMPDIR/power_${REMORA_NODE}.txt
 
-    printf "%s \n" "]);" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    printf "%s \n" "var options = { " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    printf "%s \n" "chart: {" >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    printf "%s \n" "title: 'Power Utilization'," >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    printf "%s \n" "subtitle: 'in watts' " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    printf "%s \n" "}," >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    printf "%s \n" "width: 1024, " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
-    printf "%s \n" "height: 800, " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
-    printf "%s \n" "axes: { " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
-    printf "%s \n" "x: { " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
-    printf "%s \n" "0: {side: 'top'} " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
-    printf "%s \n" "} " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
-    printf "%s \n" "}, " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
-    printf "%s \n" " }; " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+       [[ $first -eq 0 ]] && first=1 && continue   #bypass first line
 
-    printf "%s \n" "var chart = new google.charts.Line(document.getElementById('line_top_x')); " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
-    printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
-    printf "%s \n" "} " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
-    printf "%s \n" "</script> " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
-    printf "%s \n" "</head> " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
-    printf "%s \n" "<body> " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
-    printf "%s \n" "  <div id=\"line_top_x\"></div> " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
-    printf "%s \n" "</body> " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html 
-    printf "%s \n" "</html> " >> $REMORA_TMPDIR/power_${REMORA_NODE}.html
+       [[ $first -eq 1 ]] && first=2 && firsttimestamp=`echo $line | awk '{print $1;}'`
+
+       timestamp=`echo $line | awk '{print $1;}'`
+           power=`echo $line | awk '{print $2;}'`
+       ctime=$[timestamp - firsttimestamp]
+
+       printf "[%s,%s],\n" $ctime $power >> $FILE
+
+    done < $FILE_TXT
+    printf "%s \n" "]);"                 >> $FILE
+
+    printf "%s \n" "var options = { " >> $FILE
+    printf "%s \n" "title: 'Power Consumption (smoothed line)',"       >> $FILE
+    printf "%s \n" "titleTextStyle: {color: 'blue', fontSize: '18'},"  >> $FILE
+    printf "%s \n" "fontSize: 18,"  >> $FILE
+    printf "%s \n" "vAxis: {title: 'Power (watts)'}," >> $FILE
+    printf "%s \n" "hAxis: {title: 'Time (s)'},"      >> $FILE
+    printf "%s \n" "legend: {position: 'none'},"      >> $FILE
+    printf "%s \n" "curveType: 'function',"           >> $FILE
+    printf "%s \n" "colors: ['green'],"               >> $FILE
+    printf "%s \n" "pointSize: 10,"                   >> $FILE
+    printf "%s \n" "dataOpacity: 0.3,"                >> $FILE
+    printf "%s \n" "width:  1024,"                    >> $FILE
+    printf "%s \n" "height:  800"                     >> $FILE
+    printf "%s \n" " }; "                             >> $FILE
+
+    printf "%s \n" "var chart = new google.visualization.LineChart(document.getElementById('line_temp')); " >> $FILE 
+    printf "%s \n" "chart.draw(data, options); "      >> $FILE 
+    printf "%s \n" "} "                               >> $FILE 
+    printf "%s \n" "</script> "                       >> $FILE 
+    printf "%s \n" "</head> "                         >> $FILE 
+
+    printf "%s \n" "<body> "                          >> $FILE 
+    printf "%s \n" "  <div id=\"line_temp\"></div> "  >> $FILE 
+    printf "%s \n" "</body> "                         >> $FILE 
+    printf "%s \n" "</html> "                         >> $FILE
 }
 
 monitor_data_power()
@@ -154,3 +154,37 @@ finalize_module_power()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     plot_data_power $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 }
+
+if [[ $REMORA_UNIT_TEST == 1  || $REMORA_RUN_UNIT == 1 ]]; then
+    REMORA_TMPDIR=`pwd`
+    REMORA_OUTDIR=`pwd`
+    REMORA_NODE=c000-000
+    REMORA_PLOT_RESULTS=1
+    REMORA_PERIOD=1
+    echo  $REMORA_NODE >$REMORA_OUTDIR/remora_nodes.txt
+    rm -f $REMORA_OUTDIR/remora_env.txt
+    rm -f $REMORA_OUTDIR/power_${REMORA_NODE}.txt
+    rm -f $REMORA_TMPDIR/power_${REMORA_NODE}.html
+    V=1; [[ $REMORA_VERBOSE == 1 ]] && V=0
+
+               [[ $V ]] && printf "%s\n" " ->file: $0"
+
+               [[ $V ]] && printf "%s"   " ->     running init_module_power..."
+    init_module_power $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+               [[ $V ]] && printf "%s\n" "finished."
+
+               [[ $V ]] && printf "%s"   " ->     running collect_data_power"
+    for i in `seq 1 ${REMORA_STEPS:-10}`; do
+      collect_data_power $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+      sleep $REMORA_PERIOD
+               [[ $V ]] && printf "%s" "."
+    done
+               [[ $V ]] && printf "%s\n" "finished."
+
+               [[ $V ]] && printf "%s"   " ->     running plot_data_power..."
+    plot_data_power $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+               [[ $V ]] && printf "%s\n" "finished."
+
+    rm -f $REMORA_OUTDIR/remora_nodes.txt
+    rm -f $REMORA_OUTDIR/remora_env.txt
+fi

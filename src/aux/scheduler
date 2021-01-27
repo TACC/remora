@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -12,9 +12,10 @@
 #% the scheduler used by REMORA
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #
 #========================================================================
@@ -25,13 +26,13 @@
 get_job_id()
 {
     REMORA_JOB_ID=-1
-    if [ -n "$SLURM_NODELIST" ]; then
+    if [[ -n "$SLURM_NODELIST" ]]; then
         REMORA_JOB_ID=$SLURM_JOB_ID
-    elif [ -n "$PE_HOSTFILE" ]; then
+    elif [[ -n "$PE_HOSTFILE" ]]; then
         REMORA_JOB_ID=$JOB_ID
-    elif [ -n "$PBS_NODEFILE" ]; then
+    elif [[ -n "$PBS_NODEFILE" ]]; then
         REMORA_JOB_ID=$PBS_JOBID
-    elif [ -n "$LSB_HOSTS" ]; then
+    elif [[ -n "$LSB_HOSTS" ]]; then
         REMORA_JOB_ID=$LSB_JOBID
     fi
 }
@@ -39,19 +40,19 @@ get_job_id()
 get_node_list()
 {
     # Check the scheduler system used and define host list
-    if [ -n "$SLURM_NODELIST" ]; then
+    if [[ -n "$SLURM_NODELIST" ]]; then
         REMORA_SCHEDULER=slurm
         REMORA_JOB_ID=$SLURM_JOB_ID
         NODES=`scontrol show hostname $SLURM_NODELIST`
-    elif [ -n "$PE_HOSTFILE" ]; then
+    elif [[ -n "$PE_HOSTFILE" ]]; then
         REMORA_SCHEDULER=sge
         REMORA_JOB_ID=$JOB_ID
         NODES=`cat $PE_HOSTFILE | awk '{print $1}' | uniq`
-    elif [ -n "$PBS_NODEFILE" ]; then
+    elif [[ -n "$PBS_NODEFILE" ]]; then
         REMORA_SCHEDULER=pbs
         REMORA_JOB_ID=$PBS_JOBID
         NODES=`cat $PBS_NODEFILE | sort | uniq`
-    elif [ -n "$LSB_HOSTS" ]; then
+    elif [[ -n "$LSB_HOSTS" ]]; then
         REMORA_SCHEDULER=lava
         REMORA_JOB_ID=$LSB_JOBID
         NODES=`cat $LSB_HOSTS | sort | uniq`
@@ -60,7 +61,7 @@ get_node_list()
         REMORA_JOB_ID=`date +%s`
         NODES=`hostname -a`
         # Checking the output and return value (Macs don't work well with -a)
-        if [[ -z "${NODES// }" ]] || [ "$?" == "1" ]; then
+        if [[ -z "${NODES// }" ]] || [[ "$?" == "1" ]]; then
             NODES=`hostname`
             # If nothing, at least try localhost
             if [[ -z "${NODES// }" ]]; then
@@ -84,7 +85,7 @@ write_node_list()
 check_hostlist_empty()
 {
     node_cnt=0; for i in $NODES; do node_cnt=$(( node_cnt + 1 )); done
-    if [ "$node_cnt" == "0"  ];then
+    if [[ "$node_cnt" == "0"  ]];then
         print_error "Host list is empty"
         exit 1
     fi

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -10,9 +10,10 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-                  Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #========================================================================
 
@@ -21,56 +22,71 @@
 #  2.- The full path where the output will be stored/read
 #  3.- The full path to an optional temporary storage location
 
+# Good source of info: https://developers.google.com/chart/interactive/docs
+# Rewritten for Multiple CPUs in a node  2020-11-25 Kent Milfeld
+# Code easier to test (comment 1st 5 line, return->exit, set TMPDIR,NODE & PLOT_RESULTS
+
 init_module_temperature()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-  files=`ls -v /sys/devices/platform/coretemp.0/temp*_input`
-  export REMORA_TEMPERATURE_IGNORE=$?
+  local NCPUs NCPUsM1 header format A B C
+
+  ls -v /sys/devices/platform/coretemp.0/hwmon/hwmon?/temp*_input 2>&1 >/dev/null
+  export REMORA_TEMPERATURE_IGNORE=$?                          # NON 0 means ignore
 
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-  if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+  if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
       echo "export REMORA_TEMPERATURE_IGNORE=$REMORA_TEMPERATURE_IGNORE" >> $REMORA_OUTDIR/remora_env.txt
   fi  
 
-  if [ $REMORA_TEMPERATURE_IGNORE -ne 0 ]; then
-    return 1
-  fi
+  [[ $REMORA_TEMPERATURE_IGNORE -ne 0 ]] && return 1
 
-  rm -f $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt
-  files=`ls -v /sys/devices/platform/coretemp.0/temp*_input`
-  local header="TIME"
-  local format="%-17s"
-  for file in $files; do
-    local corenumber=${file/\/sys\/devices\/platform\/coretemp.0\/temp}
-    corenumber=${corenumber%_input}
-    header="$header    core$corenumber"
-    format="$format %-8s"
+  NCPUs=`ls -d /sys/devices/platform/coretemp.* | wc -w`
+  NCPUsM1=$((NCPUs-1))
+
+  for CPU in `seq 0 $NCPUsM1`; do
+    header="TIME"
+    format="%-17s"
+    files=$( ls -v /sys/devices/platform/coretemp.${CPU}/hwmon/hwmon?/temp*_label )
+    for file in $files; do
+      read A B C < $file    # reads "Physical|Package id #" or "Core #"
+                            #            A   |  A     B  C  or    A  B
+      [[ $B == "id"   ]] && header="$header  CPU${C}"
+      [[ $A == "Core" ]] && header="$header Core${B}"
+      format="$format %6s"
+    done
+    printf "$format\n" $header > $REMORA_TMPDIR/temperature_cpu${CPU}_${REMORA_NODE}.txt
+  
   done
-  format="$format \n"
-  printf "$format" $header >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt
 }
 
 collect_data_temperature()
 {
-  if [ $REMORA_TEMPERATURE_IGNORE -ne 0 ]; then
-    return 1
-  fi
-
-  local TIMESTAMP=`date +%s`
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-  files=`ls -v /sys/devices/platform/coretemp.0/temp*_input`
-  local output=""
-  local format="%-17d"
-  for file in $files; do
-    local temp=$( cat $file )
-    let temp=$temp/1000
-    output="$output $temp"
-    format="$format %-4d"
-  done
-  format="$format \n"
-  printf "$format" $TIMESTAMP $output >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt
-}
+  local TIMESTAMP files output format temp
 
+  [[ $REMORA_TEMPERATURE_IGNORE -ne 0 ]] && return 1
+
+  NCPUs=`ls -d /sys/devices/platform/coretemp.* | wc -w`
+  NCPUsM1=$((NCPUs-1))
+
+  for CPU in `seq 0 $NCPUsM1`; do
+
+    TIMESTAMP=`date +%s`
+
+    files=$( ls -v /sys/devices/platform/coretemp.${CPU}/hwmon/hwmon?/temp*_input )
+  
+    output=""
+    format="%-17d"
+    for file in $files; do
+      temp=$( cat $file )
+      output="$output $temp"
+      format="$format %6d"
+    done
+    printf "$format \n" $TIMESTAMP $output >> $REMORA_TMPDIR/temperature_cpu${CPU}_${REMORA_NODE}.txt
+
+  done
+}
 
 # This function might perform some processing on the data.
 # If nothing needs to be done, it can be empty (but declared)
@@ -79,93 +95,106 @@ process_data_temperature()
   :
 }
 
+
 plot_data_temperature()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
-        return
+    local NCPUs NCPUsM1 cpu ctime first firsttimestamp timestamp idx sout
+
+    if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
+       return
     fi
 
-    if [ ! -e $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt ]; then
-        if [ "$REMORA_VERBOSE" == "1" ]; then
-            echo "File $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt not found"
-        fi
-        return
+    if [[ ! -e $REMORA_TMPDIR/temperature_cpu0_${REMORA_NODE}.txt ]]; then
+       if [[ "$REMORA_VERBOSE" == "1" ]]; then
+           echo " -> File $REMORA_TMPDIR/temperature_cpu0_${REMORA_NODE}.txt not found in plot_data."
+       fi
+       return
     fi
 
-    printf "%s \n" "<html>" > $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    printf "%s \n" "<head>" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    printf "%s \n" "google.charts.load('current', {'packages':['line']});" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    FILE=$REMORA_TMPDIR/temperature_${REMORA_NODE}.html
 
-    printf "%s \n" "google.charts.setOnLoadCallback(drawChart);" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    line=`head -n 1 $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt`
-    local cpus=0
+    NCPUs=$(ls $REMORA_TMPDIR/temperature_cpu*_${REMORA_NODE}.txt |wc -w)
+    NCPUsM1=$((NCPUs-1))
+
+    printf "%s \n" "<html>"  > $FILE
+    printf "%s \n" "<head>" >> $FILE
+    printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $FILE
+    printf "%s \n" "<script type=\"text/javascript\">"                          >> $FILE
+    printf "%s \n" "google.charts.load('current', {'packages':['corechart']});" >> $FILE
+
+  for CPU in `seq 0 $NCPUsM1`; do
+    FILE_TXT=$REMORA_TMPDIR/temperature_cpu${CPU}_${REMORA_NODE}.txt
+
+    printf "%s \n" "google.charts.setOnLoadCallback(drawTcpu${CPU});"           >> $FILE
+
+    printf "%s \n" "function drawTcpu$CPU() {"                                  >> $FILE
+    printf "%s \n" "var data = new google.visualization.DataTable();"           >> $FILE
+
+    cpu=0
+    line=`head -n 1 $FILE_TXT`
     for i in $line; do
-        printf "%s %s %s \n" "data.addColumn('number', '" $i "');" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+        printf "%s %s %s \n" "data.addColumn('number', '" $i "');"              >> $FILE
         cpus=$[cpus + 1]
     done
 
-    printf "%s\n" "data.addRows([" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    local ctime=0
-    local first=0
-    local firsttimestamp=0
+    ctime=0
+    first=0
+    firsttimestamp=0
+    printf "%s\n" "data.addRows([" >> $FILE
+
     while read line; do
-        if [ $first -eq 0 ]; then
-            first=1
-            continue
-        fi
-        if [ $first -eq 1 ]; then
-            first=2
-            firsttimestamp=`echo $line | awk '{print $1;}'`
-        fi
-        local timestamp=`echo $line | awk '{print $1;}'`
+
+        [[ $first -eq 0 ]] && first=1 && continue   #bypass first line
+
+        [[ $first -eq 1 ]] && first=2 && firsttimestamp=`echo $line | awk '{print $1;}'`
+
+        timestamp=`echo $line | awk '{print $1;}'`
         ctime=$[timestamp - firsttimestamp]
-        local idx=0
+
+        idx=0
         sout=$ctime
-        for i in $line;
-        do
-            if [ $idx -gt 0 ]; then
-                sout=$sout","$i
-            fi
+        for i in $line; do
+            [[ $idx -gt 0 ]] && sout=$sout","$i
             idx=$[idx + 1]
         done
-        printf "%s%s%s \n" "[" $sout "]," >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    done < $REMORA_TMPDIR/temperature_${REMORA_NODE}.txt
+        printf "%s%s%s \n" "[" $sout "]," >> $FILE
 
-    printf "%s \n" "]);" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    printf "%s \n" "var options = { " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    printf "%s \n" "chart: {" >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    printf "%s \n" "title: 'CPU Temperature'," >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    printf "%s \n" "subtitle: 'in Celsius' " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    printf "%s \n" "}," >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    #Only show the legend when there are few cores. Otherwise (think KNL), there are too many
-    #cores and the legend is difficult to read
-    if [ $cpus -gt 24 ]; then
-        printf "%s \n" "legend: {position: 'none', textStyle: {fontSize: 16}}," >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    fi
-    printf "%s \n" "width: 1024, " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
-    printf "%s \n" "height: 800, " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
-    printf "%s \n" "axes: { " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
-    printf "%s \n" "x: { " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
-    printf "%s \n" "0: {side: 'top'} " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
-    printf "%s \n" "} " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
-    printf "%s \n" "}, " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
-    printf "%s \n" " }; " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    done < $FILE_TXT
+    printf "%s \n" "]);"                  >> $FILE
 
-    printf "%s \n" "var chart = new google.charts.Line(document.getElementById('line_top_x')); " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
-    printf "%s \n" "chart.draw(data, options); " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
-    printf "%s \n" "} " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
-    printf "%s \n" "</script> " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
-    printf "%s \n" "</head> " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
-    printf "%s \n" "<body> " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
-    printf "%s \n" "  <div id=\"line_top_x\"></div> " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
-    printf "%s \n" "</body> " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
-    printf "%s \n" "</html> " >> $REMORA_TMPDIR/temperature_${REMORA_NODE}.html 
+    printf "%s \n" "var options = { "                                 >> $FILE
+    printf "%s \n" "title: 'CPU${CPU} Temperature',"                  >> $FILE
+    printf "%s \n" "titleTextStyle: {color: 'blue', fontSize: '18'}," >> $FILE
+    printf "%s \n" "fontSize: 18,"                                    >> $FILE
+    printf "%s \n" "vAxis: {title: 'Degrees (milliCelcius)'},"        >> $FILE
+    printf "%s \n" "hAxis: {title: 'Time (s)'},"                      >> $FILE
+    printf "%s \n" "legend: { position: 'top'},"                      >> $FILE
+    printf "%s \n" "width:  1024," >> $FILE
+    printf "%s \n" "height:  800"  >> $FILE
+    printf "%s \n" "};"            >> $FILE
+
+    printf "%s \n" "var chart = new google.visualization.LineChart(document.getElementById('line_cpu${CPU}')); " >> $FILE 
+    printf "%s \n" "chart.draw(data, options); "          >> $FILE 
+    printf "%s \n" "} "                                   >> $FILE 
+  done
+
+    printf "%s \n" "</script> "                           >> $FILE 
+    printf "%s \n" "</head> "                             >> $FILE 
+
+    printf "%s \n" "<body> "                              >> $FILE 
+
+  for CPU in `seq 0 $NCPUsM1`; do
+    printf "%s \n" "<table class='columns'>"              >> $FILE 
+    printf "%s \n" "<tr>"                                 >> $FILE 
+    printf "%s \n" "  <div id=\"line_cpu${CPU}\"></div> " >> $FILE 
+    printf "%s \n" "</tr>"                                >> $FILE 
+  done
+
+    printf "%s \n" "</body> "                             >> $FILE 
+    printf "%s \n" "</html> "                             >> $FILE 
 }
+
 
 monitor_data_temperature()
 {
@@ -177,3 +206,38 @@ finalize_module_temperature()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     plot_data_temperature $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 }
+
+
+if [[ $REMORA_UNIT_TEST == 1  || $REMORA_RUN_UNIT == 1 ]]; then
+    REMORA_TMPDIR=`pwd`
+    REMORA_OUTDIR=`pwd`
+    REMORA_NODE=c000-000
+    REMORA_PLOT_RESULTS=1
+    REMORA_PERIOD=1
+    echo  $REMORA_NODE >$REMORA_OUTDIR/remora_nodes.txt
+    rm -f $REMORA_OUTDIR/remora_env.txt
+    rm -f $REMORA_TMPDIR/temperature_cpu*_${REMORA_NODE}.txt
+    rm -f $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    V=1; [[ $REMORA_VERBOSE == 1 ]] && V=0
+
+               [[ $V ]] && printf "%s\n" " ->file: $0"
+
+               [[ $V ]] && printf "%s"   " ->     running init_module_temperature..."
+    init_module_temperature $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+               [[ $V ]] && printf "%s\n" "finished."
+
+               [[ $V ]] && printf "%s"   " ->     running collect_data_temperature"
+    for i in `seq 1 ${REMORA_STEPS:-10}`; do
+      collect_data_temperature $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+      sleep $REMORA_PERIOD
+               [[ $V ]] && printf "%s" "."
+    done
+               [[ $V ]] && printf "%s\n" "finished."
+
+               [[ $V ]] && printf "%s"   " ->     running plot_data_temperature..."
+    plot_data_temperature $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+               [[ $V ]] && printf "%s\n" "finished."
+
+    rm -f $REMORA_OUTDIR/remora_nodes.txt
+    rm -f $REMORA_OUTDIR/remora_env.txt
+fi

@@ -18,9 +18,10 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #
 #========================================================================
@@ -41,7 +42,7 @@
 
 # Abort because we will not find any of the functions
 # if REMORA_BIN is not defined
-if [ -z "$REMORA_BIN" ]; then
+if [[ -z "$REMORA_BIN" ]]; then
     echo "ERROR: REMORA_BIN undefined"
     exit
 fi
@@ -56,13 +57,10 @@ source $REMORA_BIN/aux/scheduler
 #Retrieve the list of nodes involved in the computation
 get_node_list
 
-PIDS=()
-idx=0
 #Launch remora_monitor_memory on each node
 for NODE in $NODES; do
     COMMAND="$REMORA_BIN/scripts/remora_monitor_memory.sh"
     ssh -f -n $NODE $COMMAND
-    idx=$((idx+1))
 done
 
 #Run the command

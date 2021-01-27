@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -10,10 +10,11 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
 #-                  Jacob Pollack  (poltj18@gmail.com)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #========================================================================
 
@@ -25,8 +26,8 @@
 init_module_eth()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [ "$REMORA_SYMMETRIC" == "0" ]; then
-        if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+    if [[ "$REMORA_SYMMETRIC" == "0" ]]; then
+        if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
            #$REMORA_TMPDIR/network_eth_traffic-${REMORA_NODE}.txt
             #write header to file
             printf "%10s %10s %10s %15s %15s %10s %10s %10s %10s\n" \
@@ -37,7 +38,7 @@ init_module_eth()
             #find the default interface		    
             iface=`netstat -nr | sed -n 3p | rev | cut -d ' ' -f1 | rev`
             export REMORA_ETH_IGNORE=0
-            if [ -z $iface ]; then
+            if [[ -z $iface ]]; then
                 #echo "ERROR: Failed to identify a default interface."
                 export REMORA_ETH_IGNORE=1
                 return 1
@@ -77,12 +78,12 @@ collect_data_eth()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
-    if [ $REMORA_ETH_IGNORE -ne 0 ]; then
+    if [[ $REMORA_ETH_IGNORE -ne 0 ]]; then
       return 1
     fi
 
-    if [ "$REMORA_SYMMETRIC" == "0" ]; then
-        if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+    if [[ "$REMORA_SYMMETRIC" == "0" ]]; then
+        if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
             #determine the number of packets/bytes that have been transmitted during the period.
             #subtract the number of bytes/packets in the current period (new{pack, byte}_{tx,rx})
             #from the number of bytes/packets in the previous period (remora_eth_{tx, rx}_{packets, bytes}) 
@@ -128,7 +129,7 @@ process_data_eth()
 plot_data_eth()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+    if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
     fi
     printf "%s \n" "<html>" > $REMORA_TMPDIR/eth_${REMORA_NODE}.html
@@ -155,12 +156,12 @@ plot_data_eth()
     local firsttimestamp=0
     while read line; do
         #Skip first line
-        if [ $first -eq 0 ]; then
+        if [[ $first -eq 0 ]]; then
             first=1
             continue
         fi
         #Read first timestamp
-        if [ $first -eq 1 ]; then
+        if [[ $first -eq 1 ]]; then
             first=2
             firsttimestamp=`echo $line | awk '{print $1;}'`
         fi

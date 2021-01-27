@@ -12,8 +12,9 @@
 #========================================================================
 #- IMPLEMENTATION
 #-      version     REMORA 1.7
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #
 #========================================================================
@@ -38,7 +39,7 @@ check_db_version()
 # Function that returns a boolean indicating whether the database already exists
 check_db_exists()
 {
-    if [ -f $REMORADB ];
+    if [[ -f $REMORADB ]];
     then
         return 1
     else
@@ -78,7 +79,7 @@ create_database()
 #   - virtual
 #   - resident
 insert_memory_usage() {
-    if [ "$#" -ne 5 ]; then
+    if [[ "$#" -ne 5 ]]; then
         print_error " Incorrect syntax: insufficient arguments. "
     else
         sqlite3 $REMORADB "INSERT INTO cpu_usage (job_id, timestamp, shmem, virtual, resident) VALUES ($1, $2, '$3', '$4', $5)";
@@ -92,7 +93,7 @@ insert_memory_usage() {
 #   - cpu_id
 #   - usage
 insert_cpu_usage() {
-    if [ "$#" -ne 4 ]; then
+    if [[ "$#" -ne 4 ]]; then
         print_error " Incorrect syntax: insufficient arguments. "
     else
         sqlite3 $REMORADB "INSERT INTO cpu_usage (job_id, timestamp, cpu_id, usage) VALUES ($1, $2, '$3', '$4')";
@@ -105,7 +106,7 @@ insert_cpu_usage() {
 #   - filesystem name (HOME, WORK, SCRATCH,...)
 #   - requests
 insert_fs_usage() {
-    if [ "$#" -ne 6 ]; then
+    if [[ "$#" -ne 6 ]]; then
         print_error " Incorrect syntax: insufficient arguments. "
     else
         sqlite3 $REMORADB "INSERT INTO filesystem (job_id, timestamp, fsname, requests, read, write) VALUES ($1, $2, '$3', '$4', '$5', '$6')";
@@ -121,7 +122,7 @@ insert_fs_usage() {
 #   - local_miss (misses in local memory)
 #   - remote_miss (misses in remote memory)
 insert_numa_usage() {
-    if [ "$#" -ne 7 ]; then
+    if [[ "$#" -ne 7 ]]; then
         print_error " Incorrect syntax: insufficient arguments. "
     else
         sqlite3 $REMORADB "INSERT INTO numa_usage (job_id, timestamp, node_id, local_mem, remote_mem, local_miss, remote_miss) VALUES ($1, $2, '$3', $4, $5, $6, $7)";

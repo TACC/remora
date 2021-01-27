@@ -38,13 +38,21 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #
 #========================================================================
 #  HISTORY
+#       2020/12/18  Will be version 1.8.5.
+#                   Numa plot Hits rename to assignments, now shows
+#                   2MB pages as red component in total bar .
+#                   Cleaned up numa logic for total and 2MB pages.
+#       2020/12/17  Changed all scripts to bash, finished [[ -> [ everywhere
+#                   Fixed network summary.  [[ -e *rates ]] doesn't for for 
+#                   multiple files.                              (Kent)
 #       2020/11/13  changed sh to bash in install.sh and uses [[ instead of
 #                   [ throughout so as to work with Unbuntu       (Kent)
 #       2020/11/12  Fixed ls cmd for sysstat and mpiP full name #57 issue (Kent)
@@ -85,7 +93,7 @@
 
 # Abort because we will not find any of the functions
 # if REMORA_BIN is not defined
-if [ -z "$REMORA_BIN" ]; then
+if [[ -z "$REMORA_BIN" ]]; then
     echo "ERROR: REMORA_BIN undefined"
     exit
 fi
@@ -104,7 +112,7 @@ export REMORA_TOP_PID=$$
 remora_pids=`pgrep -x remora`
 
 for pid in $remora_pids; do
-    if [ $pid != $REMORA_TOP_PID ]; then
+    if [[ $pid != $REMORA_TOP_PID ]]; then
         echo "ERROR: there is another instance of REMORA already running."
         echo "Your application will run without REMORA monitoring."
         "$@"
@@ -128,13 +136,13 @@ remora_collect "$@"
 
 # Need to wait for file system commit
 lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
-while [ "$lastline" != "#EOF" ]; do
+while [[ "$lastline" != "#EOF" ]]; do
     lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
 done
 source $REMORA_OUTDIR/remora_env.txt
 
 # Output real time results if running in monitor mode
-if [ "$REMORA_MODE" == "MONITOR" ]; then
+if [[ "$REMORA_MODE" == "MONITOR" ]]; then
 	echo ""
 	echo "REMORA: Running in monitor mode. For real time updates use:"
 	echo "        tail -f $REMORA_OUTDIR/monitor.txt"
@@ -143,7 +151,7 @@ fi
 
 # Now that we are collecting data in the background
 # We can start he actual application
-if [ "$REMORA_VERBOSE" == "1" ]; then
+if [[ "$REMORA_VERBOSE" == "1" ]]; then
   echo ""
   echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
   echo "REMORA: Running command: $@ "
@@ -176,8 +184,8 @@ if [[ ! -z $REMORA_PRELOAD ]]; then       #Tear down LD_PRELOAD
       export LD_PRELOAD=$LD_PRELOAD_SAVED
    fi
 fi
+
 #Once the command has finished, source the finalize method
 source $REMORA_BIN/scripts/remora_finalize.sh
 #Finalize REMORA
 remora_finalize $END $START
-

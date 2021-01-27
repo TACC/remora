@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -10,9 +10,10 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #========================================================================
 
@@ -26,7 +27,7 @@ init_module_impi()
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-  if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+  if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
       echo "export I_MPI_STATS=ipm" >> $REMORA_OUTDIR/remora_env.txt
       echo "export I_MPI_STATS_FILE=impi_data.txt" >> $REMORA_OUTDIR/remora_env.txt
   fi
@@ -52,12 +53,12 @@ monitor_data_impi()
 plot_data_impi()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+    if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
     fi  
 
     REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-    if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+    if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
 
         # Get overall data for pie chart from generated file
         mpiTime=$(grep "MPI Execution Time" $REMORA_OUTDIR/impi_info.txt | awk '{print $5}')
@@ -155,13 +156,13 @@ finalize_module_impi()
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   source $REMORA_OUTDIR/remora_env.txt
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-  if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
-	if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+  if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
+	if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
         cd $REMORA_OUTDIR/..
         outfile=impi_data.txt
         # Check for mpiP output in case code was not MPI based
         fileNum=$( ls -ltr $outfile )
-        if [ -n "$fileNum" ]; then
+        if [[ -n "$fileNum" ]]; then
             mpiNum=$( grep "mpi_tasks" $outfile | awk '{print $7}' )
             nodeNum=$( grep "mpi_tasks" $outfile | awk '{print $9}' )
            #usrTime=$( grep "# user" $outfile | awk '{print $6}' )

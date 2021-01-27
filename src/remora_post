@@ -1,4 +1,4 @@
-#!/bin/sh                                                                                   
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -13,25 +13,26 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #========================================================================
 
 
 REMORA_JOB_ID=-1
-if [ "$#" -ne 2 ]; then
+if [[ "$#" -ne 2 ]]; then
     source $REMORA_BIN/aux/scheduler
     get_job_id
-    if [ "$REMORA_JOB_ID" == "-1" ] ; then
+    if [[ "$REMORA_JOB_ID" == "-1" ]] ; then
         echo "Illegal number of parameters. You have to specify the job id you want to plot:"
         echo "$ remora_post -j jobid"
         echo "If you are running a remote job, this message should not apper"
         return
     fi
 else
-    if [ "$REMORA_JOB_ID" == "-1" ] && [ ! "$1" == "-j" ]; then
+    if [[ "$REMORA_JOB_ID" == "-1" ]] && [[ ! "$1" == "-j" ]]; then
         echo "Unknown option. Please call remora_post as follows: "
         echo "$ remora_post -j jobid"
         echo "If you are running a remote job, this message should not apper"
@@ -44,9 +45,9 @@ fi
 RESULT_FOLDER="remora_$REMORA_JOB_ID"
 
 #Just in case, I'm going to allow users to specify "remora -j remora_XXXXX"
-if [ ! -d $RESULT_FOLDER ] ; then
+if [[ ! -d $RESULT_FOLDER ]] ; then
     RESULT_FOLDER=$2
-    if [ ! -d $RESULT_FOLDER ]; then
+    if [[ ! -d $RESULT_FOLDER ]]; then
         echo "Impossible to find the results folder. Exiting"
         return
     fi
@@ -54,7 +55,7 @@ fi
 
 echo "REMORA: This tool is deprecated. REMORA now automatically generates graphs in HTML format"
 
-if [ "$REMORA_VERBOSE" == "1" ]; then
+if [[ "$REMORA_VERBOSE" == "1" ]]; then
     echo "Processing result folder: $RESULT_FOLDER"
 fi
 
@@ -81,13 +82,13 @@ export REMORA_PLOT_RESULTS=1
 #Iterate over the active modules
 for i in "${!REMORA_MODULES[@]}"; do 
     #Source the module file
-    if [ "$REMORA_VERBOSE" == "1" ]; then
+    if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo "Sourcing $REMORA_BIN/modules/${REMORA_MODULES[$i]}"
     fi
     source $REMORA_BIN/modules/${REMORA_MODULES[$i]}
     #For each node used during the execution, process its output for this module
     for REMORA_NODE in $NODES; do
-        if [ "$REMORA_VERBOSE" == "1" ]; then
+        if [[ "$REMORA_VERBOSE" == "1" ]]; then
             echo "Plotting ${REMORA_MODULES[$i]} data for node $REMORA_NODE"
         fi
         plot_data_${REMORA_MODULES[$i]} $REMORA_NODE $RESULT_FOLDER/${REMORA_OUTPUTS[$i]} $RESULT_FOLDER/${REMORA_OUTPUTS[$i]}

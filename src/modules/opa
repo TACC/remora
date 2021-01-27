@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -10,9 +10,10 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #========================================================================
 
@@ -24,8 +25,8 @@
 init_module_opa()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [ "$REMORA_SYMMETRIC" == "0" ]; then
-        if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+    if [[ "$REMORA_SYMMETRIC" == "0" ]]; then
+        if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
             opa_xmit_packs_cntr="/sys/class/infiniband/hfi1_0/ports/1/counters/port_xmit_packets"
              opa_rcv_packs_cntr="/sys/class/infiniband/hfi1_0/ports/1/counters/port_rcv_packets"
             opa_xmit_bytes_cntr="/sys/class/infiniband/hfi1_0/ports/1/counters/port_xmit_data"
@@ -43,8 +44,8 @@ collect_data_opa()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
-    if [ "$REMORA_SYMMETRIC" == "0" ]; then
-        if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
+    if [[ "$REMORA_SYMMETRIC" == "0" ]]; then
+        if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
 
             local TIMESTAMP=`date +%s`
             local new_opa_xmit_packs=`cat $opa_xmit_packs_cntr`
@@ -75,7 +76,7 @@ process_data_opa()
 plot_data_opa()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+    if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
     fi
     printf "%s \n" "<html>" > $REMORA_TMPDIR/opa_${REMORA_NODE}.html
@@ -98,12 +99,12 @@ plot_data_opa()
     local firsttimestamp=0
     while read line; do
         #Skip first line
-        if [ $first -eq 0 ]; then
+        if [[ $first -eq 0 ]]; then
             first=1
             continue
         fi
         #Read first timestamp
-        if [ $first -eq 1 ]; then
+        if [[ $first -eq 1 ]]; then
             first=2
             firsttimestamp=`echo $line | awk '{print $1;}'`
         fi

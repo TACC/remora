@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -10,9 +10,10 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #========================================================================
 
@@ -25,9 +26,9 @@ init_module_cpu()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   rm -f $REMORA_TMPDIR/cpu_${REMORA_NODE}.txt
-  if [ "$REMORA_MODE" == "MONITOR" ]; then
+  if [[ "$REMORA_MODE" == "MONITOR" ]]; then
 	REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-	if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+	if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
 		printf "%10s %9s " "#CPU_MAX_%" "CPU_MIN_%" >> $REMORA_TMPDIR/.monitor
 	fi
   fi
@@ -70,7 +71,7 @@ process_data_cpu()
 plot_data_cpu()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+    if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
     fi
 
@@ -89,7 +90,7 @@ plot_data_cpu()
     cpus=$[cpus - 2]
     local idx=0
 
-    while  [ $idx -le $cpus ]; do
+    while  [[ $idx -le $cpus ]]; do
         printf "%s %d %s \n" "data.addColumn('number', 'core" $idx "');" >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
         idx=$[idx + 1]
     done
@@ -100,7 +101,7 @@ plot_data_cpu()
     while read line; do
         if [[ "$line" == *"time"* ]]; then
             timestamp=`echo $line | awk '{print $2;}'`
-            if [ $first = 0 ]; then
+            if [[ $first == 0 ]]; then
                 first=1
                 oldtimestamp=$timestamp
             else
@@ -113,7 +114,7 @@ plot_data_cpu()
             sout=$ctime
             for i in $line;
             do
-                if [ $idx -gt 0 ]; then
+                if [[ $idx -gt 0 ]]; then
                     sout=$sout","$i
                 fi
                 idx=$[idx + 1]
@@ -129,7 +130,7 @@ plot_data_cpu()
     printf "%s \n" "}," >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
     #Only show the legend when there are few cores. Otherwise (think KNL), there are too many
     #cores and the legend is difficult to read
-    if [ $cpus -gt 24 ]; then
+    if [[ $cpus -gt 24 ]]; then
         printf "%s \n" "legend: {position: 'none', textStyle: {fontSize: 16}}," >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html
     fi
     printf "%s \n" "width: 1024, " >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.html 
@@ -156,16 +157,16 @@ monitor_data_cpu()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 	REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-    if [ "$REMORA_NODE" == "$REMORA_MASTER" ]; then
+    if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
         avg_cpu=0; max_cpu=0; min_cpu=200
         for NODE in `cat $REMORA_OUTDIR/remora_nodes.txt`
         do 
-			if [ -r $REMORA_TMPDIR/cpu_$NODE.txt ]; then 
+			if [[ -r $REMORA_TMPDIR/cpu_$NODE.txt ]]; then 
             	COMMAND="tail -n 3 $REMORA_TMPDIR/cpu_$NODE.txt"
             	avg_cpu=`ssh $NODE $COMMAND | head -n 1`
 				avg_cpu=`echo $avg_cpu | awk '{for(i=1;i<NF;i++)avg+=$i} END {print avg/(NF-1)}'`
-            	if [ $(echo "$avg_cpu > $max_cpu" | bc) -eq 1 ]; then max_cpu=$avg_cpu; fi
-				if [ $(echo "$avg_cpu < $min_cpu" | bc) -eq 1 ]; then min_cpu=$avg_cpu; fi
+            	if [[ $(echo "$avg_cpu > $max_cpu" | bc) -eq 1 ]]; then max_cpu=$avg_cpu; fi
+				if [[ $(echo "$avg_cpu < $min_cpu" | bc) -eq 1 ]]; then min_cpu=$avg_cpu; fi
 			fi
         done
         echo "$max_cpu $min_cpu" >> $REMORA_OUTDIR/monitor_cpu.txt 

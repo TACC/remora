@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -10,9 +10,10 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #========================================================================
 
@@ -25,7 +26,7 @@ remora_configure_modules()
 
     for MODULE in "${REMORA_MODULES[@]}"
     do
-        if [ "$REMORA_VERBOSE" == "1" ]; then
+        if [[ "$REMORA_VERBOSE" == "1" ]]; then
             echo init_module_$MODULE $1 $2 $3 
         fi
         init_module_$MODULE $1 $2 $3
@@ -43,7 +44,7 @@ remora_monitor_modules()
 
     for MODULE in "${REMORA_MODULES[@]}"
     do  
-        if [ "$REMORA_VERBOSE" == "1" ]; then
+        if [[ "$REMORA_VERBOSE" == "1" ]]; then
             echo "monitor_data_$MODULE $NODE $OUTDIR $TMPDIR"
         fi  
         monitor_data_$MODULE $NODE $OUTDIR $TMPDIR
@@ -61,7 +62,7 @@ remora_execute_modules()
 
     for MODULE in "${REMORA_MODULES[@]}"
     do
-        if [ "$REMORA_VERBOSE" == "1" ]; then
+        if [[ "$REMORA_VERBOSE" == "1" ]]; then
             echo "collect_data_$MODULE $NODE $OUTDIR $TMPDIR"
         fi
         collect_data_$MODULE $NODE $OUTDIR $TMPDIR
@@ -73,7 +74,7 @@ remora_finalize_modules()
 {
     for MODULE in "${REMORA_MODULES[@]}"
     do
-        if [ "$REMORA_VERBOSE" == "1" ]; then
+        if [[ "$REMORA_VERBOSE" == "1" ]]; then
             echo finalize_module_$MODULE $1 $2 $3 
         fi
         finalize_module_$MODULE $1 $2 $3
@@ -84,7 +85,7 @@ remora_finalize_modules()
 remora_monitor_summary()
 {
 	REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-	if [ "$1" == "$REMORA_MASTER" ]; then
+	if [[ "$1" == "$REMORA_MASTER" ]]; then
 		tail -n 1 $REMORA_TMPDIR/.monitor >> $REMORA_OUTDIR/monitor.txt
 		echo "" >> $REMORA_OUTDIR/monitor.txt
 	fi

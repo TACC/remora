@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -13,9 +13,10 @@
 #% remora_report.sh NODE_NAME REMORA_BIN OUTDIR REMORA_PERIOD SYMMETRIC REMORA_MODE REMORA_CUDA
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #========================================================================
 
@@ -48,9 +49,9 @@ remora_configure_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 # from a different shell
 echo "#EOF" >> $REMORA_OUTDIR/remora_env.txt
 
-while [ 1 ]; do
+while [[ 1 ]]; do
     remora_execute_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR "${REMORA_MODULES[@]}"
-    if [ "$REMORA_VERBOSE" == "1" ]; then
+    if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo "sleep $REMORA_PERIOD"
     fi
     sleep $REMORA_EFFECTIVE_PERIOD

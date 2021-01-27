@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -12,9 +12,10 @@
 #% remora_monitor.sh $NODE $REMORA_BIN $REMORA_OUTDIR
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #========================================================================
 
@@ -37,8 +38,8 @@ remora_read_active_modules
 #Configure the modules (they might not need it)
 remora_monitor_summary $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR 
 
-while [ 1 ]; do
-	if [ "$REMORA_VERBOSE" == "1" ]; then
+while [[ 1 ]]; do
+	if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo "sleep $REMORA_MONITOR_PERIOD"
     fi
     remora_monitor_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR "${REMORA_MODULES[@]}"

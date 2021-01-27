@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -11,9 +11,10 @@
 #% This script provides extra functionality used by REMORA
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #
 #========================================================================
@@ -59,9 +60,9 @@ function show_time () {
 
 
 check_running_parallel() {
-    if [ -n "${PMI_ID+1}" ] || [ -n "${PMI_RANK+1}" ] || [ -n "${MPIRUN_RANK+1}" ]; then
+    if [[ -n "${PMI_ID+1}" ]] || [[ -n "${PMI_RANK+1}" ]] || [[ -n "${MPIRUN_RANK+1}" ]]; then
         my_rank=$(( ${PMI_RANK-0} + ${PMI_ID-0} + ${MPIRUN_RANK-0} + ${OMPI_COMM_WORLD_RANK-0} + ${OMPI_MCA_ns_nds_vpid-0}  + ${ibrun_o_option-0} ))
-        if [ "$my_rank" == "0" ]; then
+        if [[ "$my_rank" == "0" ]]; then
             print_error "Incorrect syntax: REMORA can't run in parallel"
             usage
         fi
@@ -71,13 +72,13 @@ check_running_parallel() {
 
 parse_arguments() {
     # Check if help should be printed
-    if [ "x$1" == "x--help" ]; then
+    if [[ "x$1" == "x--help" ]]; then
         usagefull
         exit
     fi
 
     # Check that we have at least some arguments
-    if [ "x$1" == "x" ]; then
+    if [[ "x$1" == "x" ]]; then
         print_error " Incorrect syntax: insufficient arguments. "
         usage
         exit
@@ -86,30 +87,30 @@ parse_arguments() {
 
 parse_environment() {
     # Check if verbose output is required
-    if [ -z "$REMORA_VERBOSE" ]; then
+    if [[ -z "$REMORA_VERBOSE" ]]; then
         export REMORA_VERBOSE=0
     fi
     
-    if [ -z "$REMORA_MODE" ]; then
+    if [[ -z "$REMORA_MODE" ]]; then
         export REMORA_MODE=FULL
     fi
 
-    if [ "$REMORA_MODE" != "FULL" ] && [ "$REMORA_MODE" != "BASIC" ] && [ "$REMORA_MODE" != "MONITOR" ]; then
+    if [[ "$REMORA_MODE" != "FULL" ]] && [[ "$REMORA_MODE" != "BASIC" ]] && [[ "$REMORA_MODE" != "MONITOR" ]]; then
         export REMORA_MODE=FULL
     fi
 
     # Check if the data collection period has been set by the user
     # If it has not, set it to a default of 10 seconds
-    if [ -z "$REMORA_PERIOD" ]; then
+    if [[ -z "$REMORA_PERIOD" ]]; then
         export REMORA_PERIOD=10
     fi
     # If data collection period is set to somethign lower than 1 second, reset it
-    if [ "$REMORA_PERIOD" -lt "1" ]; then
+    if [[ "$REMORA_PERIOD" -lt "1" ]]; then
         export REMORA_PERIOD=1
     fi
 
 	# Check if monitor period is set and use a sane default value
-	if [ -z "$REMORA_MONITOR_PERIOD" ]; then
+	if [[ -z "$REMORA_MONITOR_PERIOD" ]]; then
 		export REMORA_MONITOR_PERIOD=10
 	fi
 
@@ -117,7 +118,7 @@ parse_environment() {
     # 0: disabel all warnings
     # 1: enable excessive memory and io usage warnings
     # 2: enable all warnings
-    if [ -z "$REMORA_WARNING" ]; then
+    if [[ -z "$REMORA_WARNING" ]]; then
         export REMORA_WARNING=1
     fi
 
@@ -133,22 +134,22 @@ is_mpi_job() {
     # to make sure we are in a compute node
 # CRF 2016.01.27 - Why do we need this? We always get the hostlist from
 #                  the scheduler, even for serial jobs...
-    if [ "$REMORA_PARALLEL" == "0" ]; then
+    if [[ "$REMORA_PARALLEL" == "0" ]]; then
         NODES=`hostname -s`
     fi
 
-    if [ -z $REMORA_PARALLEL ]; then
+    if [[ -z $REMORA_PARALLEL ]]; then
         REMORA_PARALLEL=0
     fi
 
-    if [ -z $REMORA_SYMMETRIC ]; then
+    if [[ -z $REMORA_SYMMETRIC ]]; then
         REMORA_SYMMETRIC=0
     fi
 
     # Check if this is a sequential, parallel, or symmetric run
-    if [ "x$1" == "xibrun" ] || [ "x$1" == "xmpirun" ] || [ "x$1" == "mpirun_rsh" ] || [ "x$1" == "xmpiexec" ] || [ "x$1" == "mpiexec.hydra" ]; then
+    if [[ "x$1" == "xibrun" ]] || [[ "x$1" == "xmpirun" ]] || [[ "x$1" == "mpirun_rsh" ]] || [[ "x$1" == "xmpiexec" ]] || [[ "x$1" == "mpiexec.hydra" ]]; then
         REMORA_PARALLEL=1
-    elif [ "x$1" == "xibrun.symm" ]; then
+    elif [[ "x$1" == "xibrun.symm" ]]; then
         REMORA_PARALLEL=1
         REMORA_SYMMETRIC=1
     fi
@@ -157,7 +158,7 @@ is_mpi_job() {
 }
 
 check_plot() {
-    if [ -z "$REMORA_PLOT_RESULTS" ]; then
+    if [[ -z "$REMORA_PLOT_RESULTS" ]]; then
         export REMORA_PLOT_RESULTS=1
     fi
     echo "export REMORA_PLOT_RESULTS=$REMORA_PLOT_RESULTS" >> $REMORA_OUTDIR/remora_env.txt
@@ -167,7 +168,7 @@ check_gpu() {
     # If nvidia-smi is not present assume no GPUs, disable GPU collection
                                                  # 0 means not available
     gputest=$(nvidia-smi > /dev/null 2> /dev/null || echo "0")
-    if [ "$gputest" == "0" ]; then
+    if [[ "$gputest" == "0" ]]; then
        if [[ "$REMORA_CUDA" == "1" ]]; then
           if [[ ${REMORA_MODULES[@]} =~ "gpu" ]]; then
              print_error " nvidia-smi cmd not found. Disabling GPU collection."
@@ -190,7 +191,7 @@ check_gpu() {
 
 check_cpu() {
     # Check if CPU module is active
-    if [ `grep cpu $REMORA_BIN/config/modules` ]; then 
+    if [[ `grep cpu $REMORA_BIN/config/modules` ]]; then 
         export REMORA_EFFECTIVE_PERIOD=$((REMORA_PERIOD-1))
     else
         export REMORA_EFFECTIVE_PERIOD=$REMORA_PERIOD
@@ -201,13 +202,13 @@ check_cpu() {
 check_io() {
     # Check if lustre / dvs / other file systems are present
     REMORA_LUSTRE=0
-    if [ -d /proc/fs/lustre ]; then
+    if [[ -d /proc/fs/lustre ]]; then
         export REMORA_LUSTRE=1
     fi
     echo "export REMORA_LUSTRE=$REMORA_LUSTRE" >> $REMORA_OUTDIR/remora_env.txt
 
     REMORA_DVS=0
-    if [ -d /proc/fs/dvs ]; then
+    if [[ -d /proc/fs/dvs ]]; then
         export REMORA_DVS=1
     fi
     echo "export REMORA_DVS=$REMORA_DVS" >> $REMORA_OUTDIR/remora_env.txt
@@ -215,7 +216,7 @@ check_io() {
 
 remora_read_active_modules()
 {
-    if [ "$REMORA_VERBOSE" == "1" ]; then
+    if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo "  Checking active modules"
     fi
 
@@ -224,10 +225,10 @@ remora_read_active_modules()
     #Check if REMORA_MODULE_PATH and REMORA_CONFIG_PATH have been defined
     #This allows users to store a config file in user space as well
     #as modules
-    if [ -n "$REMORA_CONFIG_PATH" ]; then
+    if [[ -n "$REMORA_CONFIG_PATH" ]]; then
         CONFIGPATH=$REMORA_MODULE_PATH
     fi
-    if [ -n "$REMORA_MODULE_PATH" ]; then
+    if [[ -n "$REMORA_MODULE_PATH" ]]; then
         MODULEPATH=$REMORA_MODULE_PATH
     fi
 
@@ -239,7 +240,7 @@ remora_read_active_modules()
     for MODULE in "${REMORA_MODULES[@]}"
     do  
       source $MODULEPATH/$MODULE
-      if [ "$REMORA_VERBOSE" == "1" ]; then
+      if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo "      Module $MODULE is active"
       fi  
     done
@@ -249,9 +250,9 @@ init_folders() {
     CWD=`pwd`
     # Determing current work directory
     REMORA_OUTDIR=$CWD/remora_$REMORA_JOB_ID
-    if [ -d $REMORA_OUTDIR ]; then
+    if [[ -d $REMORA_OUTDIR ]]; then
       n=1
-      while [ -d $REMORA_OUTDIR-$n ]; do
+      while [[ -d $REMORA_OUTDIR-$n ]]; do
         n=$((n+1))
       done
       mv $REMORA_OUTDIR $REMORA_OUTDIR-$n
@@ -259,7 +260,7 @@ init_folders() {
     mkdir -p $REMORA_OUTDIR
     rm -rf $REMORA_OUTDIR/*
     # Determine directory for temporary files
-    if [ -z "$REMORA_TMPDIR" ]; then
+    if [[ -z "$REMORA_TMPDIR" ]]; then
         export REMORA_TMPDIR=$REMORA_OUTDIR
     else
 		export REMORA_TMPDIR=$REMORA_TMPDIR/remora_$REMORA_JOB_ID
@@ -274,7 +275,7 @@ init_folders() {
     remora_read_active_modules
     #Create the output folders depending on the info passed on the configuration file (second column)
     for MODULE in "${REMORA_MODULES_OUTDIRS[@]}"; do
-      [ -d $REMORA_OUTDIR/$MODULE ] || mkdir $REMORA_OUTDIR/$MODULE
+      [[ -d $REMORA_OUTDIR/$MODULE ]] || mkdir $REMORA_OUTDIR/$MODULE
     done
 
     echo "export REMORA_OUTDIR=$REMORA_OUTDIR"  > $REMORA_OUTDIR/remora_env.txt

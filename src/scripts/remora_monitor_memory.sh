@@ -4,9 +4,10 @@
 #
 #========================================================================
 # IMPLEMENTATION
-#      version     REMORA 1.8.4
-#      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#      version     REMORA 1.8.5
+#      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #      license     MIT
 #========================================================================
 
@@ -16,7 +17,7 @@
 #If the memory goes below REMORA_FREEMEM (0.5GB by default), 
 #it kills all the user's processes until this process is killed.
 
-if [ -z "$REMORA_FREEMEM" ]; then
+if [[ -z "$REMORA_FREEMEM" ]]; then
     REMORA_FREEMEM=500000 #0.5 GB
 fi  
 while true; do

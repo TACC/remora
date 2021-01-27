@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #========================================================================
 # HEADER
@@ -10,9 +10,10 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.4
-#-      authors     Carlos Rosales (carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  (agomez@tacc.utexas.edu)
+#-      version     REMORA 1.8.5
+#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
+#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
+#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #========================================================================
 
@@ -24,8 +25,8 @@
 init_module_lnet()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-		if [ "$REMORA_LUSTRE" == "1" ]; then
+    if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
+		if [[ "$REMORA_LUSTRE" == "1" ]]; then
         #Lustre counters
         printf "%-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s %-17s\n" "time" "msgs_alloc" "msgs_max" "errors" "send_count" "recv_count" "route_count" "drop_count" "send_length" "recv_length" "route_length" "drop_length" > $REMORA_TMPDIR/lnet_counters_${REMORA_NODE}.txt
 		fi 
@@ -35,8 +36,8 @@ init_module_lnet()
 collect_data_lnet()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [ "$REMORA_MODE" == "FULL" ] || [ "$REMORA_MODE" == "MONITOR" ]; then
-		if [ "$REMORA_LUSTRE" == "1" ]; then
+    if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
+		if [[ "$REMORA_LUSTRE" == "1" ]]; then
         local TIMESTAMP=`date +%s`
         local lnetstats=`cat /proc/sys/lnet/stats`
         printf "%-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d %-17d\n" $TIMESTAMP $lnetstats >> $REMORA_TMPDIR/lnet_counters_${REMORA_NODE}.txt
@@ -52,7 +53,7 @@ process_data_lnet()
 plot_data_lnet()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [ -z ${REMORA_PLOT_RESULTS+x} ] || [ "$REMORA_PLOT_RESULTS" -eq "0" ] ; then
+    if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
     fi
     printf "%s \n" "<html>" > $REMORA_TMPDIR/lnet_${REMORA_NODE}.html                                                                 
@@ -83,12 +84,12 @@ plot_data_lnet()
     local previousdata=()
     while read line; do 
         #Skip first line
-        if [ $first -eq 0 ]; then
+        if [[ $first -eq 0 ]]; then
             first=1
             continue
         fi
         #Read first timestamp
-        if [ $first -eq 1 ]; then
+        if [[ $first -eq 1 ]]; then
             first=2
             firsttimestamp=`echo $line | awk '{print $1;}'`
             for i in `seq 12`; do
