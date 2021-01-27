@@ -35,7 +35,7 @@ init_module_gpu()
         printf "%-17s " "#TIME" >$OUT_FILE
     
         for gpu_no in `seq 0 $LAST_GPU_NO`; do
-           printf "%-17s %-17s " "gpu_${gpu_no}_avail" "gpu_${gpu_no}_used" >>$OUT_FILE
+           printf "%-17s %-17s " "gpu_${gpu_no}_avail_GB" "gpu_${gpu_no}_used_GB" >>$OUT_FILE
         done
         printf "\n"           >>$OUT_FILE
     
@@ -60,7 +60,8 @@ collect_data_gpu()
 
            line=$( printf "%-17d " $current_time )
         for val in $gpu_free_used; do
-           line+=$( printf "%-17d " $val )
+           valgb=$( echo "scale=3;  $val/1000" | bc )
+           line+=$( printf "%-17.3f " $valgb )
         done
            line+=$( printf "\n" )
 
@@ -166,7 +167,7 @@ plot_data_gpu()
   
       printf "%s \n" "var options = { "      >> $OUT_FILE
       printf "%s \n" "chart: {"              >> $OUT_FILE
-      printf "%s \n" "title: 'GPU ${gpu_no} Memory (MB)',"  >> $OUT_FILE
+      printf "%s \n" "title: 'GPU ${gpu_no} Memory (GB)',"  >> $OUT_FILE
      #printf "%s \n" "subtitle: '(GB)' "     >> $OUT_FILE
       printf "%s \n" "},"                    >> $OUT_FILE
       printf "%s \n" "width:  600, "         >> $OUT_FILE
