@@ -128,6 +128,13 @@ if [[ "$haveMPICC" == "1" ]] && [[ "$haveMPIFC"  == "1" ]]; then
       mpipfile=`ls  mpiP*.tar.gz`
       mpipdir=`echo  ${mpipfile%%.tar.gz}`
       tar xzvf ${mpipfile}
+      [[ -f ./extra/mpiP-3.4.1/make-wrappers.py ]] && sed -i 's@#!/usr/local/bin/python@#!/usr/bin/python2@' ./extra/mpiP-3.4.1/make-wrappers.py
+
+      [[ $(hostname -f) =~ ".ls6.tacc" ]] && 
+         sed -i 's/PYTHON  = python$/PYTHON  = python2/'         ./mpiP-3.4.1/Defs.mak.in &&
+         sed -i 's/PYTHON  = python$/PYTHON  = python2/'         ./mpiP-3.4.1/Defs.mak    &&    #preserved across install.sh executions
+         sed -i 's@#!/usr/local/bin/python@#!/usr/bin/python2@'  ./mpiP-3.4.1/make-wrappers.py
+
       cd ${mpipdir}
       ./configure CFLAGS="-g" --enable-demangling --disable-bfd --disable-libunwind --prefix=${REMORA_DIR} | tee -a $BUILD_LOG
       make        | tee -a $BUILD_LOG
