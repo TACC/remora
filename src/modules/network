@@ -132,11 +132,16 @@ finalize_module_network()
     done
     net_node_cnt=0; for NODE in $NODES; do net_node_cnt=$((net_node_cnt+1)); done
     idx=1
-    while [[  $idx -lt $net_node_cnt ]]; do
-      ibtracert ${LID[0]} ${LID[$idx]} >> $REMORA_OUTDIR/network_trace.txt
-      echo "_____________" >> $REMORA_OUTDIR/network_trace.txt
-      idx=$((idx+1))
-    done
+    if [[ $net_node_cnt -gt 1 ]]; then
+       while [[  $idx -lt $net_node_cnt ]]; do
+         ibtracert ${LID[0]} ${LID[$idx]} >> $REMORA_OUTDIR/network_trace.txt
+         echo "_____________"             >> $REMORA_OUTDIR/network_trace.txt
+         idx=$((idx+1))
+       done
+    else
+         echo "_____________"             >> $REMORA_OUTDIR/network_trace.txt
+    fi
+
 	fi
   fi
 

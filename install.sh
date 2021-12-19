@@ -195,6 +195,14 @@ if [[ "$haveMPICC" == "1" ]] && [[ "$haveMPIFC" == "1" ]]; then
    fi
 fi
 
+if [[ $(hostname -f) =~ ".ls6.tacc" ]] || [[ $(hostname -f) =~ ".frontera.tacc" ]]; then
+   sed -i '/lustre,IO/d' $REMORA_DIR/bin/config/modules
+   sed -i '/lnet,IO/d'   $REMORA_DIR/bin/config/modules
+   echo "** WARNING \"lustre,IO\" and \"lnet,IO\" modules are NOT AVAILABLE. **  "  |  tee -a $INSTALL_LOG
+   echo "**         Recent security changes only allow root access to IO counters." |  tee -a $INSTALL_LOG
+   echo "**         Remora will be updated when a workaround becomes available."    |  tee -a $INSTALL_LOG
+fi
+
 if [[ "$REMORA_BUILD_DIR/docs" != $REMORA_DIR/docs ]]; then
         cp $PWD/docs/modules_help          $REMORA_DIR/docs
         cp $PWD/docs/modules_whatis        $REMORA_DIR/docs
