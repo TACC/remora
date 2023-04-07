@@ -367,7 +367,7 @@ fi  # COLLECTOR == intel_rapl
     printf "%s \n" "]);"                 >> $FILE
 
     printf "%s \n" "var options = { " >> $FILE
-    printf "%s \n" "title: 'Power Consumption (smoothed line)',"       >> $FILE
+    printf "%s \n" "title: '$REMORA_NODE Power Consumption (smoothed)',"       >> $FILE
     printf "%s \n" "titleTextStyle: {color: 'blue', fontSize: '18'},"  >> $FILE
     printf "%s \n" "fontSize: 18,"  >> $FILE
     printf "%s \n" "vAxis: {title: 'Power (watts)'}," >> $FILE
