@@ -18,48 +18,186 @@
 #-      license     MIT
 #========================================================================
 
-# Revised and parts re-writen for newer google corechart & unit testing 
+# Revised and parts re-written for newer google corechart & unit testing 
 #                                                2020-11-25 Kent Milfeld
+# Re-written for using intel_rapl to acquire energy & create power
+#                                                2023-04-07 Kent Milfeld
 # All the functions take three arguments:
 #  1.- The name of the node where this function is running
 #  2.- The full path where the output will be stored/read
 #  3.- The full path to an optional temporary storage location
 
+
 init_module_power()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
+  local  POWER_FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.txt
+  local ENERGY_FILE=$REMORA_TMPDIR/energy_${REMORA_NODE}.txt
+
+  # Updated 2023-03-28 by Kent
+  # Can now use intel RAPL to get Energy, Watts=Energy_uj_now - Energy_uj_prev/delta_time
+
+  local REMORA_POWER_IGNORE    # 0 == don't ignore     1 == ignore  
+  local REMORA_POWER_COLLECTOR # sensors or intel_rapl
+
+  local sockets sockets_m1
+  local has_sensors sensors base_values=()
+  local soc_num
+
+  local J_header J_header_addon W_header W_header_addon
+  local baseln baseln_addon
+
+  sockets=1  #default
+  hash lscpu 2>/dev/null
+  [[ $? == 0 ]] && sockets=$(lscpu | grep 'Socket(s):' | awk '{print $2}')
+  sockets_m1=$(($sockets-1))
+
   #Check if sensors exists. Use hash for this and the result of the command
   hash sensors 2>/dev/null
-  export REMORA_POWER_IGNORE=$?
+  has_sensors=$?                               # 0/1 yes/no 
+  if [[ has_sensors == 0 ]]; then              # test whether sensors provides "power1:"
+     sensors | grep power1 2>/dev/null
+     REMORA_POWER_IGNORE=${PIPESTATUS[1]}      #if power1 found status=0,set don't ignore
+     if [[ $REMORA_POWER_IGNORE == 0 ]]; then  # sensors have power
+        REMORA_POWER_COLLECTOR=sensors         # assuming KNL & only one socket
+
+       #base_values[0]=`date +%s`              # W are no longer putting in a base for Power sensors
+       #base_values[1]=`sensors | grep power1 | awk '{print $2;}'` #TODO: multiple sockets with sensors cmd
+     fi
+  else
+     REMORA_POWER_IGNORE=1       # specify no power utility so far
+     REMORA_POWER_COLLECTOR=none
+  fi
+ 
+  if [[ $REMORA_POWER_IGNORE == 1 ]]; then # test for intel_rapl
+     if [[ -f /sys/devices/virtual/powercap/intel-rapl/intel-rapl:0/energy_uj ]]; then 
+        REMORA_POWER_IGNORE=0
+        REMORA_POWER_COLLECTOR=intel_rapl
+        base_values[0]=`date +%s`
+        for i in $(seq 1 $sockets); do     # get base values
+          soc_num=$(( $i - 1 ))
+          base_values[$i]=$(</sys/devices/virtual/powercap/intel-rapl/intel-rapl:$soc_num/energy_uj)
+        done
+     fi
+  fi 
 
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+
   if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
-      echo "export REMORA_POWER_IGNORE=$REMORA_POWER_IGNORE" >> $REMORA_OUTDIR/remora_env.txt
+      echo "export REMORA_POWER_IGNORE=$REMORA_POWER_IGNORE"       >> $REMORA_OUTDIR/remora_env.txt
+      echo "export REMORA_POWER_COLLECTOR=$REMORA_POWER_COLLECTOR" >> $REMORA_OUTDIR/remora_env.txt
   fi
 
-  if [[ $REMORA_POWER_IGNORE -ne 0 ]]; then
-    [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> power not initialized, sensors not found."                                                      
+  if [[ "$REMORA_POWER_IGNORE" == 1 ]]; then
+     [[ "$REMORA_VERBOSE"    == 1   ]] && echo " -> power not initialized, sensors not found."
     return 1
   fi
 
-  #This just works for 1 CPU systems at this point  TODO: multi-socket systems
-  rm -f $REMORA_TMPDIR/power_${REMORA_NODE}.txt
-  printf "%-17s %-17s\n" "TIME" "POWER"> $REMORA_TMPDIR/power_${REMORA_NODE}.txt
+  J_header=$(printf "%-17s" "TIME" )
+  W_header=$J_header
+  baseln=$(printf "%-17s" ${base_values[0]} )
+
+  if [[ $REMORA_POWER_COLLECTOR == intel_rapl ]]; then
+   
+     [[ $REMORA_POWER_COLLECTOR == intel_rapl ]] && metric="Energy"
+     for i in $(seq 1 $sockets); do
+        soc_num=$(( $i - 1 ))
+        J_header_addon=$(printf "%-17s" "E(uJ)_socket${soc_num}")
+        W_header_addon=$(printf "%-17s"  "P(W)_socket${soc_num}")
+          baseln_addon=$(printf "%-17s"     "${base_values[$i]}")
+        W_header+=$W_header_addon
+        J_header+=$J_header_addon
+        baseln+=$baseln_addon
+     done
+     rm -f $ENERGY_FILE
+     echo "$J_header"  > $ENERGY_FILE
+     echo "$baseln"   >> $ENERGY_FILE
+  fi
+
+  rm -f $POWER_FILE
+  echo "$W_header"     >  $POWER_FILE   #always put in a header for Power file
+                                        #will be filled in during collection
+                                        #either from sensors or energy differences.
+
+  #sleep 1 && echo remove sleep in $0 #used for testing, assure at least 1s before data collection
 }
 
 collect_data_power()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
+  source $REMORA_OUTDIR/remora_env.txt
+  local  POWER_FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.txt
+  local ENERGY_FILE=$REMORA_TMPDIR/energy_${REMORA_NODE}.txt
+
   [[ $REMORA_POWER_IGNORE -ne 0 ]] && return 1
 
-  # KNL sensors output:  power1:      159.00 W  (interval =   1.00 s)
+  local sockets sockets_m1
+  local time_stamp time_base time_seq power
 
-  local TIMESTAMP=`date +%s`
-  local power=`sensors | grep power1 | awk '{print $2;}'`
-  printf "%-17s %-17s\n" $TIMESTAMP $power >> $REMORA_TMPDIR/power_${REMORA_NODE}.txt
+  local prev_line
+  local energy time_str line soc_num energy_uj addon
+  local time_delta energy_delta watts
+
+  # KNL sensors output:  power1:      159.00 W  (interval =   1.00 s)
+  # intel_rapl  output:  12345678   # Energy used by socket # (uJoule)
+
+  sockets=1  #default
+  hash lscpu 2>/dev/null
+  [[ $? == 0 ]] && sockets=$(lscpu | grep 'Socket(s):' | awk '{print $2}')
+  sockets_m1=$(($sockets-1))
+
+  if [[ $REMORA_POWER_COLLECTOR == sensors ]]; then  #for KNL, single socket
+     time_stamp=`date +%s`
+     power=`sensors | grep power1 | awk '{print $2;}'`
+     printf "%-17s %-17s\n" $timestamp $power >> $POWER_FILE
+  fi
+
+  if [[ $REMORA_POWER_COLLECTOR == intel_rapl ]]; then
+
+     time_base=$(  head -2 $ENERGY_FILE | tail -1 | awk '{print $1}')  #get base time saved at init 2nd line
+     prev_line=( $(tail -1 $ENERGY_FILE) )  #get the previous energy line before we write into file.
+
+     energy=()
+     time_stamp=`date +%s`
+     time_str=$(printf "%-17s" "$time_stamp" )
+     line=$time_str
+     for soc_num in $(seq 0 $sockets_m1); do
+        energy_uj=$(</sys/devices/virtual/powercap/intel-rapl/intel-rapl:$soc_num/energy_uj) 
+        addon=$(printf "%-17s" "$energy_uj" )
+        line+=$addon
+        energy+=($energy_uj)    #save energies for creating Power text file
+     done
+     echo "$line" >> $ENERGY_FILE
+
+#    Create Power text file here (instead of at end) for RemoraPy to use.
+#                                     #first element of previous line is previous time
+     time_delta=$( bc <<< "scale=2; $time_stamp - ${prev_line[0]}" )
+     time_seq=$(   bc <<< "scale=2; $time_stamp - $time_base" )
+     time_str=$(printf "%-17s" "$time_seq" )
+     line=$time_str
+
+     prev_line=( "${prev_line[@]:1}" )                   #<- acts like the shift used for args.
+     for soc_num in $(seq 0 $sockets_m1); do
+         #time stamp is only in integer seconds. It is possible for time_delta=0. Handle x/0.
+         if [[ $time_delta -gt 0 ]]; then
+             energy_delta=$( bc <<< "scale=2; (${energy[$soc_num]} - ${prev_line[$soc_num]})/1000000.0" )
+             watts=$(        bc <<< "scale=2; ${energy_delta}  / ${time_delta}" )
+         else 
+             watts=0.00
+         fi
+         addon=$(printf "%-17s" "$watts" )
+         line+=$addon
+     done
+     echo "$line" >> $POWER_FILE
+      
+  fi
+  
 }
+
+
+
 
 
 # This function might perform some processing on the data.
@@ -69,52 +207,163 @@ process_data_power()
   :
 }
 
+monitor_data_power()
+{
+  :
+}
+
+
 plot_data_power()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+
+                # RemPltRes mustbe set, and not equal to zero
+    if [[ -z ${REMORA_PLOT_RESULTS} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
+        return
+    fi
+        #https://gist.github.com/magnetikonline/90d6fe30fc247ef110a1
+
+    local            FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.html  #short name for space
+    local  POWER_TXT_FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.txt
+    local ENERGY_TXT_FILE=$REMORA_TMPDIR/energy_${REMORA_NODE}.txt
+
+    local sockets sockets_m1
+
+    local ln_num iter row word   #common to power and energy_uj blocks.
+    local using_power_data=no
 
     if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
     fi
 
-    if [[ ! -e $REMORA_TMPDIR/power_${REMORA_NODE}.txt ]]; then
-       [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> File $REMORA_TMPDIR/power_${REMORA_NODE}.txt not found."                                                      
+    if [[ $REMORA_POWER_COLLECTOR == sensors ]] && [[ ! -e $POWER_TXT_FILE ]]; then
+       [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> File $POWER_TXT_FILE not found."
        return
     fi
-    local ctime first firsttimestamp timestamp power
+    if [[ $REMORA_POWER_COLLECTOR == intel_rapl ]] && [[ ! -e $ENERGY_TXT_FILE ]]; then
+       [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> File $ENERGY_TXT_FILE not found."
+       return
+    fi
 
-        FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.html
-    FILE_TXT=$REMORA_TMPDIR/power_${REMORA_NODE}.txt
+    sockets=1  #default
+    hash lscpu 2>/dev/null
+    [[ $? == 0 ]] && sockets=$(lscpu | grep 'Socket(s):' | awk '{print $2}')
+    sockets_m1=$(($sockets-1))
 
     printf "%s \n" "<html>"  > $FILE
     printf "%s \n" "<head>" >> $FILE
     printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $FILE
     printf "%s \n" "<script type=\"text/javascript\">"                          >> $FILE
     printf "%s \n" "google.charts.load('current', {'packages':['corechart']});" >> $FILE
-
     printf "%s \n" "google.charts.setOnLoadCallback(drawChart);"      >> $FILE
+
     printf "%s \n" "function drawChart() {"                           >> $FILE
     printf "%s \n" "var data = new google.visualization.DataTable();" >> $FILE
     printf "%s \n" "data.addColumn('number', 'Execution Time (s)');"  >> $FILE
-    printf "%s \n" "data.addColumn('number', 'Power (W)');"           >> $FILE
+
+    for soc_num in 0 $sockets_m1; do
+      printf "%s \n" "data.addColumn('number', 'socket_$soc_num');"   >> $FILE
+    done
     printf "%s\n" "data.addRows(["                                    >> $FILE
 
-    ctime=0
-    first=0
-    firsttimestamp=0
-    while read line; do
+if [[ -f $POWER_TXT_FILE ]]; then  #Could have been created at collection time
 
-       [[ $first -eq 0 ]] && first=1 && continue   #bypass first line
+    ln_num=0
+    while read line; do             #from energy_uj values.
+       [[ $ln_num -eq 0 ]] && ln_num=1 && continue   #bypass 1st line
 
-       [[ $first -eq 1 ]] && first=2 && firsttimestamp=`echo $line | awk '{print $1;}'`
+       row="["
+       for word in $line; do
+           row="$row $word,"
+       done
+       row="$row ],"
+       echo "$row"                       >> $FILE
+       ln_num=$(( $ln_num + 1 ))
+    done < $POWER_TXT_FILE
+    using_power_data=yes
 
-       timestamp=`echo $line | awk '{print $1;}'`
-           power=`echo $line | awk '{print $2;}'`
-       ctime=$[timestamp - firsttimestamp]
+fi  #Power Data == from sensors or created at collection-time by difference
 
-       printf "[%s,%s],\n" $ctime $power >> $FILE
+ 
+####vvv   FOR intel_rapl if power text file not created during collection ####
 
-    done < $FILE_TXT
+if [[ $REMORA_POWER_COLLECTOR == intel_rapl ]] && [[ $using_power_data == no ]] ;then
+    local time_now time_delta time_prev energy_now energy_delta energy_prev=() watts
+ 
+    ln_num=0
+    while read -r line; do  
+   
+      ###########   PROCESS FIRST TWO LINES:  HEADER and BASE Values for 1st difference
+      #             Rates require an initial value given when the module is initialized
+      #             Since energy_uj is a large number (gt 10^9) the base value should not 
+      #             be zero (which would cause the ordinate scale to be excessively large).
+      #             Also, create a Power text file for aggregating results at end.
+   
+    # Line 1                #extract header line and write to file skip processing
+ 
+      [[ $ln_num == 0 ]] && ln_num=$(($ln_num+1)) && echo "$line" |sed 's/E(uJ/P_(W/g' > $POWER_TXT_FILE && continue
+   
+    # Line 2                #extract "previous" values written at module init
+ 
+      if [[ $ln_num == 1 ]]; then
+         iter=0
+         for word in $line; do  
+            [[ $iter == 0 ]] &&   time_prev=$word && time_base=$word
+            [[ $iter != 0 ]] && energy_prev[$iter]=$word  
+            iter=$((iter + 1)) 
+         done
+       
+         ln_num=$(($ln_num+1)) 
+         continue
+      fi  
+   
+    # Line 3-...            #extract data and create rate (difference) to get watts
+                            #creating plot file and power text file at same time
+      iter=0
+      row="["
+      for word in $line; do
+                                   #First element is the time stamp
+         if [[ $iter == 0 ]]; then
+            time_now=$word
+            time_delta=$( bc <<< "scale=2; $time_now - $time_prev" )
+            time_prev=$time_now
+            time_seq=$(   bc <<< "scale=2; $time_now - $time_base" )
+            row="$row $time_seq,"
+            iter=$((iter + 1)) 
+            continue
+         fi  
+                                   #All others are energies (ujoules)
+   
+         energy_now=$word
+         energy_delta=$( bc <<<"($energy_now - ${energy_prev[$iter]})/1000000.0" )
+         energy_prev[$iter]=$energy_now
+
+         if [[ $time_delta -gt 0 ]]; then
+            watts=$( bc <<< "scale=2; $energy_delta / $time_delta" )
+         else
+            watts=0.00
+         fi
+         echo " ln#: $ln_num   iter: $iter   time: $time_now:    E-delt: $energy_delta   T-delt: $time_delta  W: $watts"
+         row="$row $watts,"
+   
+         iter=$((iter + 1)) 
+   
+      done
+      #echo "$row " |sed 's/\[//' |sed 's/,/ /g' >> $POWER_TXT_FILE
+      power_ln=($(echo "$row " |sed 's/\[//' |sed 's/,/ /g') )
+      printf "%-17s" " ${power_ln[@]}" >> $POWER_TXT_FILE
+      printf "\n"                      >> $POWER_TXT_FILE
+ 
+      row="$row ],"
+      echo "$row"    >> $FILE
+    
+      ln_num=$(($ln_num+1))
+    done < $ENERGY_TXT_FILE
+fi  # COLLECTOR == intel_rapl
+
+####^^^   FOR intel_rapl if power text file created during collection ####
+
+
     printf "%s \n" "]);"                 >> $FILE
 
     printf "%s \n" "var options = { " >> $FILE
@@ -123,9 +372,9 @@ plot_data_power()
     printf "%s \n" "fontSize: 18,"  >> $FILE
     printf "%s \n" "vAxis: {title: 'Power (watts)'}," >> $FILE
     printf "%s \n" "hAxis: {title: 'Time (s)'},"      >> $FILE
-    printf "%s \n" "legend: {position: 'none'},"      >> $FILE
+    printf "%s \n" "//legend: {position: 'none'},"    >> $FILE
     printf "%s \n" "curveType: 'function',"           >> $FILE
-    printf "%s \n" "colors: ['green'],"               >> $FILE
+    printf "%s \n" "//colors: ['green'],"             >> $FILE
     printf "%s \n" "pointSize: 10,"                   >> $FILE
     printf "%s \n" "dataOpacity: 0.3,"                >> $FILE
     printf "%s \n" "width:  1024,"                    >> $FILE
@@ -144,47 +393,208 @@ plot_data_power()
     printf "%s \n" "</html> "                         >> $FILE
 }
 
-monitor_data_power()
-{
-  :
-}
-
 finalize_module_power()
 {
-    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    plot_data_power $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+  # call plot_data_power if power data available
+  # create power_aggregated.html if num_nodes>1
+
+  # Uses: lscpu to determine # of sockets
+
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+
+                # RemPltRes must be set, and not equal to zero
+  source $REMORA_OUTDIR/remora_env.txt
+  if [[ -z ${REMORA_PLOT_RESULTS} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
+      return
+  fi
+
+  #NODE PLOT
+  plot_data_power $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+
+  local NODES=( $( cat $REMORA_OUTDIR/remora_nodes.txt ) )
+
+  #AGGREGATE PLOT if node count > 1 AND  if this is master node (1st node in list).
+  if [[ ${#NODES[@]} -gt 1 ]] && [[ "$REMORA_NODE" == "${NODES[0]}" ]]; then 
+
+     local REMORA_MASTER=${NODES[0]}
+     local POWER_AGGREGATED_TXT_FILE=$REMORA_TMPDIR/power_aggregated.txt
+     local                     FILE=$REMORA_TMPDIR/power_aggregated.html
+   
+     local n_socs n_socs_m1 
+     local n_lines n_tm tm_values=() tm soc 
+     local ln_num line iter word soc tm
+     local list=() addon
+     local tm
+   
+     n_socs=1  #default
+     hash lscpu 2>/dev/null
+     [[ $? == 0 ]] && n_socs=$(lscpu | grep 'Socket(s):' | awk '{print $2}')
+     n_socs_m1=$(($n_socs-1))
+
+     n_lines=$(wc -l $REMORA_TMPDIR/power_$REMORA_MASTER.txt | awk '{print $1}')
+     n_tm=$(( $n_lines - 1 ))
+
+     # get times in an array, skip header line 
+     tm_values=( $( awk '{print $1}' $REMORA_TMPDIR/power_${REMORA_MASTER}.txt) )
+
+     #https://unix.stackexchange.com/questions/611813/how-to-implement-2d-matrix-using-shell-script
+     #initialize 2D array[time,socket] to 0
+     declare -A  tm_series
+     for tm in `seq 1 $n_tm`; do
+        for soc in `seq 0 $n_socs_m1`; do
+           tm_series[$tm,$soc]=0.0
+        done
+     done
+
+     for node in ${NODES[@]}; do
+        POWER_NODE_FILE=$REMORA_TMPDIR/power_$node.txt
+        ln_num=0
+        while read line; do 
+           [[ $ln_num == 0 ]] && ln_num=1 && tm=1 && continue
+            iter=0
+            for word in $line; do
+               [[ $iter == 0 ]] && iter=1 && soc=0 && continue
+                               #echo HEREB4 $node word:$word  tm_series: series[$tm,$soc]=${tm_series[$tm,$soc]}
+               tm_series[$tm,$soc]=$( bc <<< "scale=2; ${tm_series[$tm,$soc]} + $word" )
+                               #echo HEREAF $node word:$word  tm_series: series[$tm,$soc]=${tm_series[$tm,$soc]}
+                               #echo ""
+               soc=$(( $soc + 1 ))             
+            done
+            tm=$(( $tm + 1 ))
+        done < $POWER_NODE_FILE
+     done
+
+     #print out to text file
+     list=(TIME `seq 0 1 $n_socs_m1`) 
+     printf "%-17s" "${list[@]}" > $POWER_AGGREGATED_TXT_FILE
+     printf "\n"                >> $POWER_AGGREGATED_TXT_FILE
+
+     for tm in `seq 1 $n_tm`; do
+        line=$(printf "%-17s" "${tm_values[$tm]}" )
+        for soc in `seq 0 $n_socs_m1`; do
+           addon=$(printf "%-17s" "${tm_series[$tm,$soc]}" )
+           line+="$addon"
+        done
+        echo "$line" >> $POWER_AGGREGATED_TXT_FILE
+     done
+
+     printf "%s \n" "<html>"  > $FILE
+     printf "%s \n" "<head>" >> $FILE
+     printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $FILE
+     printf "%s \n" "<script type=\"text/javascript\">"                          >> $FILE
+     printf "%s \n" "google.charts.load('current', {'packages':['corechart']});" >> $FILE
+     printf "%s \n" "google.charts.setOnLoadCallback(drawChart);"      >> $FILE
+ 
+     printf "%s \n" "function drawChart() {"                           >> $FILE
+     printf "%s \n" "var data = new google.visualization.DataTable();" >> $FILE
+     printf "%s \n" "data.addColumn('number', 'Execution Time (s)');"  >> $FILE
+ 
+     for soc_num in 0 $n_socs_m1; do
+       printf "%s \n" "data.addColumn('number', 'socket_$soc_num');"   >> $FILE
+     done
+     printf "%s\n" "data.addRows(["                                    >> $FILE
+ 
+     ln_num=0
+     while read line; do             #from power aggregated values.
+        [[ $ln_num -eq 0 ]] && ln_num=1 && continue   #bypass 1st line
+ 
+        row="["
+        for word in $line; do
+            row="$row $word,"
+        done
+        row="$row ],"
+        echo "$row"                       >> $FILE
+        ln_num=$(( $ln_num + 1 ))
+     done < $POWER_AGGREGATED_TXT_FILE
+ 
+ 
+     printf "%s \n" "]);"                 >> $FILE
+ 
+     printf "%s \n" "var options = { " >> $FILE
+     printf "%s \n" "title: 'Power (Watts) Summed over Nodes (smoothed)',"  >> $FILE
+     printf "%s \n" "titleTextStyle: {color: 'blue', fontSize: '18'},"      >> $FILE
+     printf "%s \n" "fontSize: 18,"  >> $FILE
+     printf "%s \n" "vAxis: {title: 'Power (watts)'}," >> $FILE
+     printf "%s \n" "hAxis: {title: 'Time (s)'},"      >> $FILE
+     printf "%s \n" "//legend: {position: 'none'},"    >> $FILE
+     printf "%s \n" "curveType: 'function',"           >> $FILE
+     printf "%s \n" "//colors: ['green'],"             >> $FILE
+     printf "%s \n" "pointSize: 10,"                   >> $FILE
+     printf "%s \n" "dataOpacity: 0.3,"                >> $FILE
+     printf "%s \n" "width:  1024,"                    >> $FILE
+     printf "%s \n" "height:  800"                     >> $FILE
+     printf "%s \n" " }; "                             >> $FILE
+ 
+     printf "%s \n" "var chart = new google.visualization.LineChart(document.getElementById('line_temp')); " >> $FILE 
+     printf "%s \n" "chart.draw(data, options); "      >> $FILE 
+     printf "%s \n" "} "                               >> $FILE 
+     printf "%s \n" "</script> "                       >> $FILE 
+     printf "%s \n" "</head> "                         >> $FILE 
+ 
+     printf "%s \n" "<body> "                          >> $FILE 
+     printf "%s \n" "  <div id=\"line_temp\"></div> "  >> $FILE 
+     printf "%s \n" "</body> "                         >> $FILE 
+     printf "%s \n" "</html> "                         >> $FILE
+
+  fi # end # of nodes > 1, create aggregated plot 
 }
 
+##########################
+
 if [[ $REMORA_UNIT_TEST == 1  || $REMORA_RUN_UNIT == 1 ]]; then
+    #export REMORA_UNIT_TEST=1 REMORA_RUN_UNIT=1 REMORA_VERBOSE=1
     REMORA_TMPDIR=`pwd`
     REMORA_OUTDIR=`pwd`
-    REMORA_NODE=c000-000
+    REMORA_NODES=(c000-000 c000-001)
     REMORA_PLOT_RESULTS=1
-    REMORA_PERIOD=1
-    echo  $REMORA_NODE >$REMORA_OUTDIR/remora_nodes.txt
+    REMORA_PERIOD=2
+
     rm -f $REMORA_OUTDIR/remora_env.txt
-    rm -f $REMORA_OUTDIR/power_${REMORA_NODE}.txt
-    rm -f $REMORA_TMPDIR/power_${REMORA_NODE}.html
-    V=1; [[ $REMORA_VERBOSE == 1 ]] && V=0
-
-               [[ $V ]] && printf "%s\n" " ->file: $0"
-
-               [[ $V ]] && printf "%s"   " ->     running init_module_power..."
-    init_module_power $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
-               [[ $V ]] && printf "%s\n" "finished."
-
-               [[ $V ]] && printf "%s"   " ->     running collect_data_power"
-    for i in `seq 1 ${REMORA_STEPS:-10}`; do
-      collect_data_power $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
-      sleep $REMORA_PERIOD
-               [[ $V ]] && printf "%s" "."
-    done
-               [[ $V ]] && printf "%s\n" "finished."
-
-               [[ $V ]] && printf "%s"   " ->     running plot_data_power..."
-    plot_data_power $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
-               [[ $V ]] && printf "%s\n" "finished."
-
     rm -f $REMORA_OUTDIR/remora_nodes.txt
-    rm -f $REMORA_OUTDIR/remora_env.txt
+    for node in ${REMORA_NODES[@]}; do
+    rm -f $REMORA_OUTDIR/energy_uj_${node}.txt
+    rm -f $REMORA_OUTDIR/power_${node}.txt
+    rm -f $REMORA_TMPDIR/power_${node}.html
+    done
+
+    touch $REMORA_OUTDIR/remora_nodes.txt
+    for node in ${REMORA_NODES[@]}; do
+       echo  $node >>$REMORA_OUTDIR/remora_nodes.txt
+    done
+
+    V=0; [[ $REMORA_VERBOSE == 1 ]] && V=1
+
+               [[ $V == 1 ]] && printf "%s\n" " ->file: $0"
+
+               [[ $V == 1 ]] && printf "%s"   " ->     running init_module_power..."
+    for node in ${REMORA_NODES[@]}; do
+      init_module_power $node $REMORA_OUTDIR $REMORA_TMPDIR
+    done
+    sleep $REMORA_PERIOD
+               [[ $V == 1 ]] && printf "%s\n" "finished."
+
+    STEPS=${REMORA_STEPS:-20}
+               [[ $V == 1 ]] && printf "%s"   " ->     running collect_data_power, ${STEPS} steps: "
+    for i in `seq 1 $STEPS`; do
+
+      for node in ${REMORA_NODES[@]}; do
+         collect_data_power $node $REMORA_OUTDIR $REMORA_TMPDIR
+      done
+      sleep $REMORA_PERIOD
+               [[ $V == 1 ]] && printf "%s" "."
+    done
+               [[ $V == 1 ]] && printf "%s\n" "finished."
+
+               [[ $V == 1 ]] && printf "%s"   " ->     running plot_data_power..."
+    for node in ${REMORA_NODES[@]}; do
+      plot_data_power $node $REMORA_OUTDIR $REMORA_TMPDIR
+    done
+
+    for node in ${REMORA_NODES[@]}; do
+      finalize_module_power $node $REMORA_OUTDIR $REMORA_TMPDIR
+    done
+               [[ $V == 1 ]] && printf "%s\n" "finished."
+
+   #rm -f $REMORA_OUTDIR/remora_nodes.txt
+   #rm -f $REMORA_OUTDIR/remora_env.txt
 fi

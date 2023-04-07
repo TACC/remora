@@ -46,7 +46,9 @@
 #
 #========================================================================
 #  HISTORY
-#       2020/12/18  Will be version 1.8.6.
+#       2023/04/07  Power can now use intel_rapl.  
+#                   Now aggregated power plot is created.
+#       2020/12/18  Will be version 1(dot)8(dot)5.
 #                   Numa plot Hits rename to assignments, now shows
 #                   2MB pages as red component in total bar .
 #                   Cleaned up numa logic for total and 2MB pages.
