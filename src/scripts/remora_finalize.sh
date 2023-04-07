@@ -151,12 +151,15 @@ function remora_finalize() {
     #Move output files to their folders based on the configuration file
     #If some files are missing, don't output the error message
     for i in "${!REMORA_MODULES[@]}"; do
-        if [[ "$REMORA_VERBOSE" == "1" ]]; then
-            echo "REMORA: Moving output files for ${REMORA_MODULES[$i]}"
-        fi
-        mv $REMORA_OUTDIR/${REMORA_MODULES[$i]}* $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
+        [[ "$REMORA_VERBOSE" == "1" ]] &&
+             echo "REMORA: Moving output files for ${REMORA_MODULES[$i]}"
+        
+        mv $REMORA_OUTDIR/${REMORA_MODULES[$i]}*    $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
         [[ ${REMORA_MODULES[$i]} == "eth" ]] &&
              mv $REMORA_OUTDIR/network_eth_traffic* $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
+        [[ ${REMORA_MODULES[$i]} == "power" ]] &&
+             mv $REMORA_OUTDIR/energy_*             $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
+
         sleep 0.2
     done
 
