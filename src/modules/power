@@ -261,7 +261,7 @@ plot_data_power()
     printf "%s \n" "var data = new google.visualization.DataTable();" >> $FILE
     printf "%s \n" "data.addColumn('number', 'Execution Time (s)');"  >> $FILE
 
-    for soc_num in 0 $sockets_m1; do
+    for soc_num in $(seq 0 $sockets_m1); do
       printf "%s \n" "data.addColumn('number', 'socket_$soc_num');"   >> $FILE
     done
     printf "%s\n" "data.addRows(["                                    >> $FILE
@@ -489,7 +489,7 @@ finalize_module_power()
      printf "%s \n" "var data = new google.visualization.DataTable();" >> $FILE
      printf "%s \n" "data.addColumn('number', 'Execution Time (s)');"  >> $FILE
  
-     for soc_num in 0 $n_socs_m1; do
+     for soc_num in $(seq 0 $n_socs_m1); do
        printf "%s \n" "data.addColumn('number', 'socket_$soc_num');"   >> $FILE
      done
      printf "%s\n" "data.addRows(["                                    >> $FILE
