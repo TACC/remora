@@ -12,7 +12,7 @@
 #% remora_report_mic.sh $NODE $REMORA_OUTDIR $REMORA_PERIOD $REMORA_SYMMETRIC $REMORA_MODE $REMORA_BIN
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.5
+#-      version     REMORA 1.8.6
 #-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
 #-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)

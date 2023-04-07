@@ -183,6 +183,10 @@ function remora_finalize() {
                printf "<h2>%s utilization</h2> \n" ${REMORA_MODULES[$i]} >> $REMORA_OUTDIR/remora_summary.html
             fi
 
+            if [[ "${REMORA_MODULES[$i]}" == "power" ]]; then
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/power_aggregated.html" "Aggregated" >> $REMORA_OUTDIR/remora_summary.html
+            fi
+
             if [[ "${REMORA_MODULES[$i]}" == "lustre" ]]; then
                 printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/lustre_aggregated.html" "Aggregated" >> $REMORA_OUTDIR/remora_summary.html
             fi

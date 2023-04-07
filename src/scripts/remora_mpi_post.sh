@@ -12,7 +12,7 @@
 #% remora_mpi_post.sh
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.5
+#-      version     REMORA 1.8.6
 #-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
 #-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)

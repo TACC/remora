@@ -38,7 +38,7 @@
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.5
+#-      version     REMORA 1.8.6
 #-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
 #-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
@@ -46,7 +46,7 @@
 #
 #========================================================================
 #  HISTORY
-#       2020/12/18  Will be version 1.8.5.
+#       2020/12/18  Will be version 1.8.6.
 #                   Numa plot Hits rename to assignments, now shows
 #                   2MB pages as red component in total bar .
 #                   Cleaned up numa logic for total and 2MB pages.
