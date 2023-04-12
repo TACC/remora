@@ -182,7 +182,15 @@ collect_data_power()
      for soc_num in $(seq 0 $sockets_m1); do
          #time stamp is only in integer seconds. It is possible for time_delta=0. Handle x/0.
          if [[ $time_delta -gt 0 ]]; then
-             energy_delta=$( bc <<< "scale=2; (${energy[$soc_num]} - ${prev_line[$soc_num]})/1000000.0" )
+
+             delta=$( bc <<< "scale=2; ${energy[$soc_num]} - ${prev_line[$soc_num]}" )
+#                                   #If delta is negative, counter wrapped
+#                                   #Fix: just add the counter limit (128G) to difference.
+             if [[ $delta -lt 0 ]]; then
+                energy_delta=$( bc <<< "scale=2; (${delta} + 128000000000)/1000000.0" )
+             else
+                energy_delta=$( bc <<< "scale=2;  ${delta}/1000000.0" )
+             fi
              watts=$(        bc <<< "scale=2; ${energy_delta}  / ${time_delta}" )
          else 
              watts=0.00

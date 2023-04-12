@@ -157,6 +157,7 @@ function remora_finalize() {
         mv $REMORA_OUTDIR/${REMORA_MODULES[$i]}*    $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
         [[ ${REMORA_MODULES[$i]} == "eth" ]] &&
              mv $REMORA_OUTDIR/network_eth_traffic* $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
+
         [[ ${REMORA_MODULES[$i]} == "power" ]] &&
              mv $REMORA_OUTDIR/energy_*             $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
 
@@ -186,7 +187,7 @@ function remora_finalize() {
                printf "<h2>%s utilization</h2> \n" ${REMORA_MODULES[$i]} >> $REMORA_OUTDIR/remora_summary.html
             fi
 
-            if [[ "${REMORA_MODULES[$i]}" == "power" ]]; then
+            if [[ "${REMORA_MODULES[$i]}" == "power" ]] && [[ $NodeCount -gt 1 ]]; then
                 printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/power_aggregated.html" "Aggregated" >> $REMORA_OUTDIR/remora_summary.html
             fi
 
