@@ -191,11 +191,11 @@ check_gpu() {
 
 check_cpu() {
     # Check if CPU module is active
-    if [[ `grep cpu $REMORA_BIN/config/modules` ]]; then 
-        export REMORA_EFFECTIVE_PERIOD=$((REMORA_PERIOD-1))
-    else
+   #if [[ `grep cpu $REMORA_BIN/config/modules` ]]; then 
+   #    export REMORA_EFFECTIVE_PERIOD=$((REMORA_PERIOD-1))
+   #else
         export REMORA_EFFECTIVE_PERIOD=$REMORA_PERIOD
-    fi
+   #fi
     echo "export REMORA_EFFECTIVE_PERIOD=$REMORA_EFFECTIVE_PERIOD" >> $REMORA_OUTDIR/remora_env.txt
 }
 
