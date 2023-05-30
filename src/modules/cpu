@@ -57,7 +57,7 @@ collect_data_cpu()
         print str
         }
     }
-  }' >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.txt
+  }' >> $REMORA_TMPDIR/cpu_${REMORA_NODE}.txt  & disown
 }
 
 
