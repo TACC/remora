@@ -29,12 +29,20 @@ init_module_numa()
  
     source $REMORA_OUTDIR/remora_env.txt
 
+    local remora_date_precision
+    if [[ $REMORA_DATE_PREC_AVAIL =~ ms ]] && [[ $REMORA_DATE_PRECISION == s ]]; then 
+      remora_date_precision="ms"
+    else
+      remora_date_precision=$REMORA_DATE_PRECISION
+    fi  
+
+
     local numNodes=$(numastat | egrep  'node[0-9]' |wc -w)
 
     local id SZ=18
     local header active_pg_header huge_pg_header add_2_header
 
-    header=$(printf "%-${SZ}s" "TIME($REMORA_DATE_PRECISION)")
+    header=$(printf "%-${SZ}s" "TIME($remora_date_precision)")
 
     active_pg_header=$(printf "%-${SZ}s" "anon_Pg(KiB)")
     huge_pg_header=$(  printf "%-${SZ}s" "anon_HugePg(KiB)")
@@ -81,10 +89,14 @@ collect_data_numa(){
     local idx i j
     local data=() out val
 
-    #Get a timestamp in seconds for this data sample
+    # numa should always use ms or ns percisions
 
-    timestamp=`date +%s`
-    timestamp=`date $REMORA_DATE_FORMAT`
+    if [[ $REMORA_DATE_PREC_AVAIL =~ ms ]] && [[ $REMORA_DATE_PRECISION == s ]]; then 
+      timestamp=`date +%s%3N`
+    else
+      timestamp=`date $REMORA_DATE_FORMAT`
+    fi
+
                                                # NUMA statistics
     numStat=`numastat -c`
     numNodes=`echo $numStat | grep -o ' Node' | wc -l`
@@ -183,7 +195,14 @@ plot_data_numa()
     local active hugepg
     local fgn_sums=() header_plus_sum
     local idx val
-    local tm_units=$REMORA_DATE_PRECISION
+
+    local tm_units
+    if [[ $REMORA_DATE_PREC_AVAIL =~ ms ]] && [[ $REMORA_DATE_PRECISION == s ]]; then
+      tm_units="ms"
+    else
+      tm_units=$REMORA_DATE_PRECISION
+    fi
+
 
     printf "%s \n" "<html>"  > $FILE
     printf "%s \n" "<head>" >> $FILE
@@ -500,7 +519,7 @@ finalize_module_numa()
 
 ######## UNIT TEST ###############
 
-if [[ $REMORA_NUMA_UNIT_TEST == 1 ]]; then
+if [[ $REMORA_UNIT_TEST == 1  || $REMORA_RUN_UNIT == 1 ]]; then
     MOD_NAME=numa
 
     REMORA_TMPDIR=`pwd`
@@ -508,7 +527,15 @@ if [[ $REMORA_NUMA_UNIT_TEST == 1 ]]; then
     REMORA_NODES=(c000-000 c000-001)
     REMORA_PLOT_RESULTS=1
 
-    rm -f $REMORA_OUTDIR/remora_env.txt
+    cat <<-"EOF" >$REMORA_OUTDIR/remora_env.txt
+   #export REMORA_DATE_PRECISION=ms  
+   #export REMORA_DATE_FORMAT=+%s%3N
+   export REMORA_DATE_PRECISION=s  
+   export REMORA_DATE_FORMAT=+%s
+EOF
+ls -ltr remora_env.txt
+
+#   rm -f $REMORA_OUTDIR/remora_env.txt
     rm -f $REMORA_OUTDIR/remora_nodes.txt
     for node in ${REMORA_NODES[@]}; do
     rm -f $REMORA_OUTDIR/${MOD_NAME}_stats_${node}.txt
@@ -555,6 +582,6 @@ if [[ $REMORA_NUMA_UNIT_TEST == 1 ]]; then
                [[ $V == 1 ]] && printf "%s\n" " finished $NAME unit test."
 
    #rm -f $REMORA_OUTDIR/remora_nodes.txt
-   #rm -f $REMORA_OUTDIR/remora_env.txt
+    rm -f $REMORA_OUTDIR/remora_env.txt
 fi
 
