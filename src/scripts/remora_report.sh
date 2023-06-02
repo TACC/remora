@@ -50,7 +50,7 @@ REMORA_OUTDIR=$3
 # from a different shell
    echo "#EOF" >> $REMORA_OUTDIR/remora_env.txt
   
-mit=0.100  # (sec)  If REMORA_PERIOD - collection time < collect_limit, warn user
+collect_limit=0.100  # (sec)  If REMORA_PERIOD - collection time < collect_limit, warn user
 
 reported_warn=no reported_crit=no period_cntr=1 info=""
 

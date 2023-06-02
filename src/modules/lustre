@@ -110,13 +110,13 @@ collect_data_lustre()
                 col_id=0
                 for fs in "${IFSNAMES[@]}"; do
                     if [[ "$REMORA_VERBOSE" == "1" ]]; then
-                        echo "cat /proc/fs/lustre/mdc/$fs*/stats | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc"
-                        echo "cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes | awk '{print $7;}' | paste -sd+ | bc"
-                        echo "cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes | awk '{print $7;}' | paste -sd+ | bc"
+                        echo "cat /proc/fs/lustre/mdc/$fs*/stats   | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc"
+                        echo "cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes   | awk '{print $7;}' | paste -sd+ | bc"
+                        echo "cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes  | awk '{print $7;}' | paste -sd+ | bc"
                     fi
-                    COUNTER[$col_id]=`cat /proc/fs/lustre/mdc/$fs*/stats | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc`
-                    COUNTER[$((col_id+1))]=`cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes | awk '{print $7;}' | paste -sd+ | bc`
-                    COUNTER[$((col_id+2))]=`cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes | awk '{print $7;}' | paste -sd+ | bc`
+                    COUNTER[$col_id]=`      cat /proc/fs/lustre/mdc/$fs*/stats   | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc`
+                    COUNTER[$((col_id+1))]=`cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes   | awk '{print $7;}' | paste -sd+ | bc`
+                    COUNTER[$((col_id+2))]=`cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes  | awk '{print $7;}' | paste -sd+ | bc`
                     col_id=$((col_id+3))
                 done
                 # This will have TIMESTAMP FS1_IOPS FS1_READ FS1_WRITE FS2_IOPS FS2_READ FS2_WRITE ....
