@@ -39,6 +39,7 @@ init_module_lustre()
                 HEADER=()
                 HEADER[$hdx]=`echo TIMESTAMP`
                 hdx=$((hdx+1))
+
                 while read -r line; do
                     if [[ $idx == 0 ]]; then
                         idx=$((idx+1))
@@ -47,7 +48,8 @@ init_module_lustre()
                     IFSNAMES[$idx-1]=`echo $line  | sed 's/.*:\///' | awk '{print $1;}'`
                     local TEMP=`echo $line | sed 's/.*:\///' | awk '{print $6;}'`
                     FSNAMES[$idx-1]=`echo "${TEMP////}"`
-                    HEADER[$hdx]=`echo "${FSNAMES[$idx-1]}-RQ"`
+
+                    HEADER[$hdx]=`  echo "${FSNAMES[$idx-1]}-RQ"`
                     HEADER[$hdx+1]=`echo "${FSNAMES[$idx-1]}-RD"`
                     HEADER[$hdx+2]=`echo "${FSNAMES[$idx-1]}-WR"`
                     if [[ "$REMORA_VERBOSE" == "1" ]]; then
@@ -59,7 +61,7 @@ init_module_lustre()
 
                 # Write lustre data file header
                 printf "%-17s"  "${HEADER[@]}" >> $REMORA_TMPDIR/lustre_stats_${REMORA_NODE}.txt
-                printf "\n"  >> $REMORA_TMPDIR/lustre_stats_${REMORA_NODE}.txt
+                printf "\n"                    >> $REMORA_TMPDIR/lustre_stats_${REMORA_NODE}.txt
 
                 # If monitor mode active, generate monitor file header
                 if [[ "$REMORA_MODE" == "MONITOR" ]]; then
@@ -99,24 +101,43 @@ collect_data_lustre()
     # read_bytes        1364393 samples [bytes] 1 4194304 336228258590
     # write_bytes         7771 samples [bytes] 1 315502 5346139
 
+
+    local collect_command
     if [[ "$REMORA_SYMMETRIC" == "0" ]]; then
         if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
             if [[ "$REMORA_LUSTRE" == "1" ]]; then
                 REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-                local LUSTRE_DIR_PATH=/proc/fs/lustre
+
+                if [[  -f /scratch/projects/tacc/remora/collect_data ]]; then
+                   if [[ ! -z $REMORA_IO_COLLECTOR ]]; then
+                      collector_command=$REMORA_IO_COLLECTOR
+                   else
+                      collector_command="/scratch/projects/tacc/remora/collect_data "
+                   fi
+                   cmd_iops=" $collector_command  | grep \$fs | grep req_waittime | awk '{print \$4;}'"
+                   cmd_read=" $collector_command  | grep \$fs | grep read_bytes   | awk '{print \$6;}'"
+                   cmd_write=" $collector_command | grep \$fs | grep write_bytes  | awk '{print \$6;}'"
+                else
+                   cmd_iops=" cat /proc/fs/lustre/mdc/\$fs*/stats   |grep req_waittime | awk '{print \$2;}'"
+                   cmd_read=" cat /proc/fs/lustre/llite/\$fs*/stats |grep read_bytes   | awk '{print \$7;}'"
+                   cmd_write="cat /proc/fs/lustre/llite/\$fs*/stats |grep write_bytes" | awk '{print \$7;}'
+                fi
+
                 local TIMESTAMP=`date +%s`
                 local idx=0
                 local COUNTER=()
                 col_id=0
                 for fs in "${IFSNAMES[@]}"; do
+
                     if [[ "$REMORA_VERBOSE" == "1" ]]; then
-                        echo "cat /proc/fs/lustre/mdc/$fs*/stats   | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc"
-                        echo "cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes   | awk '{print $7;}' | paste -sd+ | bc"
-                        echo "cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes  | awk '{print $7;}' | paste -sd+ | bc"
+                        echo " eval $cmd_iops  | paste -sd+ | bc"
+                        echo " eval $cmd_read  | paste -sd+ | bc"
+                        echo " eval $cmd_write | paste -sd+ | bc"
                     fi
-                    COUNTER[$col_id]=`      cat /proc/fs/lustre/mdc/$fs*/stats   | grep req_waittime | awk '{print $2;}' | paste -sd+ | bc`
-                    COUNTER[$((col_id+1))]=`cat /proc/fs/lustre/llite/$fs*/stats | grep read_bytes   | awk '{print $7;}' | paste -sd+ | bc`
-                    COUNTER[$((col_id+2))]=`cat /proc/fs/lustre/llite/$fs*/stats | grep write_bytes  | awk '{print $7;}' | paste -sd+ | bc`
+
+                    COUNTER[$col_id]=`      eval $cmd_iops  | paste -sd+ | bc`
+                    COUNTER[$((col_id+1))]=`eval $cmd_read  | paste -sd+ | bc`
+                    COUNTER[$((col_id+2))]=`eval $cmd_write | paste -sd+ | bc`
                     col_id=$((col_id+3))
                 done
                 # This will have TIMESTAMP FS1_IOPS FS1_READ FS1_WRITE FS2_IOPS FS2_READ FS2_WRITE ....
@@ -545,3 +566,76 @@ finalize_module_lustre()
 
 #    rm $REMORA_TMPDIR/remora_lustre_names_${REMORA_NODE}.tmp
 }
+
+######## UNIT TEST ###############
+
+if [[ $REMORA_UNIT_TEST_ALL == 1  || $REMORA_UNIT_TEST == "lustre" ]]; then
+
+    MOD_NAME=lustre
+    REMORA_TMPDIR=`pwd`
+    REMORA_OUTDIR=`pwd`
+    REMORA_NODES=(c000-000 c000-001)
+    export REMORA_PLOT_RESULTS=1
+    export REMORA_SYMMETRIC=0
+    export REMORA_MODE=FULL
+    export REMORA_LUSTRE=1
+
+    cat <<-"EOF" >$REMORA_OUTDIR/remora_env.txt
+   #export REMORA_DATE_PRECISION=ms  
+   #export REMORA_DATE_FORMAT=+%s%3N
+    export REMORA_DATE_PRECISION=s  
+    export REMORA_DATE_FORMAT=+%s
+EOF
+    ls -ltr remora_env.txt
+
+#   rm -f $REMORA_OUTDIR/remora_env.txt
+    rm -f $REMORA_OUTDIR/remora_nodes.txt
+    for node in ${REMORA_NODES[@]}; do
+    rm -f $REMORA_OUTDIR/${MOD_NAME}_stats_${node}.txt
+    rm -f $REMORA_OUTDIR/${MOD_NAME}_${node}.html
+    done
+
+    for node in ${REMORA_NODES[@]}; do
+       echo  $node >>$REMORA_OUTDIR/remora_nodes.txt
+    done
+
+    V=0; [[ $REMORA_VERBOSE == 1 ]] && V=1 
+
+               [[ $V == 1 ]] && printf "%s\n" " -> file: $0"
+
+               [[ $V == 1 ]] && printf "%s"   " -> running init_module_${MOD_NAME}..."
+    for node in ${REMORA_NODES[@]}; do
+      eval init_module_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
+    done
+    sleep $REMORA_PERIOD
+               [[ $V == 1 ]] && printf "%s\n" " finished."
+
+    STEPS=${REMORA_UNIT_TEST_STEPS:-20}
+               [[ $V == 1 ]] && printf "%s"   " ->     running collect_data_${NAME}, ${STEPS} steps: "
+    for i in `seq 1 $STEPS`; do
+
+      for node in ${REMORA_NODES[@]}; do
+         eval collect_data_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
+      done
+      sleep $REMORA_PERIOD
+               [[ $V == 1 ]] && printf "%s" "." 
+    done
+               [[ $V == 1 ]] && printf "%s\n" " finished."
+
+if [[ 1 == 0 ]]; then
+               [[ $V == 1 ]] && printf "%s"   " -> running plot_data_${MOD_NAME}..."
+    for node in ${REMORA_NODES[@]}; do
+      eval plot_data_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
+    done
+               [[ $V == 1 ]] && printf "%s\n" " finished."
+
+    for node in ${REMORA_NODES[@]}; do
+      eval finalize_module_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
+    done
+               [[ $V == 1 ]] && printf "%s\n" " finished $NAME unit test."
+fi
+
+   #rm -f $REMORA_OUTDIR/remora_nodes.txt
+    rm -f $REMORA_OUTDIR/remora_env.txt
+fi
+
