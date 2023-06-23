@@ -169,7 +169,7 @@ plot_data_lustre()
     # If requesting ns precision, use it; otherwise us ms if available; otherwise us s(sec)
     source $REMORA_OUTDIR/remora_env.txt
     if [[ $REMORA_DATE_PRECISION =~ 'ns' ]]; then
-       tm_factor=1000000.0
+       tm_factor=1000000000.0
        precision=ns
        DATE_FORMAT="$REMORA_DATE_FORMAT"
     else
@@ -178,7 +178,7 @@ plot_data_lustre()
           precision=ms
           DATE_FORMAT="+%s%3N"
        elif [[ $REMORA_DATE_PREC_AVAIL =~ 'ns' ]]; then
-          tm_factor=1000000.0
+          tm_factor=1000000000.0
           precision=ns
           DATE_FORMAT="+%s%N"
        else
@@ -447,7 +447,7 @@ finalize_module_lustre()
     # If requesting ns precision, use it; otherwise us ms if available; otherwise us s(sec)
     source $REMORA_OUTDIR/remora_env.txt
     if [[ $REMORA_DATE_PRECISION =~ 'ns' ]]; then
-       tm_factor=1000000.0
+       tm_factor=1000000000.0
        precision=ns
        date_format="$REMORA_date_format"
     else
@@ -456,7 +456,7 @@ finalize_module_lustre()
           precision=ms
           date_format="+%s%3N"
        elif [[ $REMORA_DATE_PREC_AVAIL =~ 'ns' ]]; then
-          tm_factor=1000000.0
+          tm_factor=1000000000.0
           precision=ns
           date_format="+%s%N"
        else
