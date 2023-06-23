@@ -54,15 +54,6 @@ USAGE="
     source $REMORA_BIN/aux/extra
     check_date_precision
 
-#    # TODO fix this -- call precision routine
-#    cat <<-"EOF" >$REMORA_OUTDIR/remora_env.txt
-#   #export REMORA_DATE_PRECISION=ms  
-#   #export REMORA_DATE_FORMAT=+%s%3N
-#    export REMORA_DATE_PRECISION=s  
-#    export REMORA_DATE_FORMAT=+%s
-#EOF
-#end Precision
-
     V=0; [[ $REMORA_VERBOSE == 1 ]] && V=1 
 
                [[ $V == 1 ]] && printf "%s\n" " -> file: $0"
@@ -82,9 +73,19 @@ USAGE="
                [[ $V == 1 ]] && printf "%s"   " -> running collect on $MOD_NAME, ${STEPS} steps: "
     for node in ${REMORA_NODES[@]}; do
       for step in `seq 1 $STEPS`; do
-        tm_0=$( date +%s%N )
-        eval collect_data_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
-        tm_1=$(date +%s%N)
+
+        if [[ $REMORA_BINARIES == 1 ]]; then
+     
+             tm_0=$( date +%s%N )
+             $REMORA_BIN/binaries/$MOD_NAME
+             tm_1=$(date +%s%N)
+     
+        else
+             tm_0=$( date +%s%N )
+             eval collect_data_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
+             tm_1=$(date +%s%N)
+        fi  
+
         collect_tm=$( bc<<<"scale=4; ($tm_1-$tm_0)/1000000000" )
         printf " -> %s  %5d Time: %3.6f\n" $node $step $collect_tm 
 
