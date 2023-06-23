@@ -56,9 +56,21 @@ reported_warn=no reported_crit=no period_cntr=1 info=""
 
 while [[ 1 ]]; do
 
+if [[ $REMORA_BINARIES == 1 ]]; then
+
+     for MODULE in "${REMORA_MODULES[@]}"; do
+         tm_0=$( date +%s%N )
+         if [[ "$REMORA_VERBOSE" == "1" ]]; then
+             echo "collect_binary_$MODULE $NODE $OUTDIR $TMPDIR"
+         fi
+         $REMORA_BIN/binaries/$MODULE
+         tm_1=$(date +%s%N)
+     done
+else
    tm_0=$( date +%s%N )
-   remora_execute_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR "${REMORA_MODULES[@]}"
+      remora_execute_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR "${REMORA_MODULES[@]}"
    tm_1=$(date +%s%N)
+fi
 
    sleep_time=$( bc<<<"scale=4; $REMORA_PERIOD - ($tm_1-$tm_0)/1000000000" )
 

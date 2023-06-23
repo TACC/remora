@@ -558,7 +558,7 @@ ls -ltr remora_env.txt
     sleep $REMORA_PERIOD
                [[ $V == 1 ]] && printf "%s\n" " finished."
 
-    STEPS=${REMORA_STEPS:-20}
+    STEPS=${REMORA_STEPS:-4}
                [[ $V == 1 ]] && printf "%s"   " ->     running collect_data_${NAME}, ${STEPS} steps: "
     for i in `seq 1 $STEPS`; do
 

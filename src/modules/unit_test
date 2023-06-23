@@ -1,0 +1,105 @@
+#!/bin/bash
+######## UNIT TEST ###############
+export REMORA_MODE=FULL
+export REMORA_SYMMETRIC=0
+
+#v      USAGE
+USAGE=" 
+ unit_test [-h|--help]  #command syntax + list of module names
+ unit_test remora_module_name
+"
+              #TODO get from configuration file
+    MOD_LIST=(cpu dvs eth gpu ib impi impi_mpip lnet lustre memory network numa opa power temperature)
+    
+    if [[ $# == 0 ]] || [[ $1 =~ '-h' ]]; then
+       echo "$USAGE" 
+       echo -e "    Module List: \n    ${MOD_LIST[@]}"
+       #TODO print list of known modules
+       exit 0
+    fi
+    MOD_NAME=$1
+    
+    if [[ ! ${MOD_LIST[@]} =~ .*$MOD_NAME.* ]]; then
+      echo " -> ERROR:$MOD_NAME not found in module list:"
+      echo " ->       ${MOD_LIST[@]}"
+      exit 1
+    fi
+#^  end USAGE
+
+
+    REMORA_TMPDIR=`pwd`
+    REMORA_OUTDIR=`pwd`
+    rm -f $REMORA_OUTDIR/remora*.tmp
+    rm -f $REMORA_OUTDIR/*.txt
+    rm -f $REMORA_OUTDIR/*.html
+
+#v  Job Info
+    source $REMORA_BIN/aux/scheduler
+    get_job_id
+    if [[ $REMORA_JOB_ID != -1 ]]; then
+      get_node_list
+    else
+       NODES="c000-000"   # NOT job (possibly front-end; just make up a node name
+       echo " -> This is not an interactive job, will use the pseudo node name c000-000."
+    fi
+    REMORA_NODES=( $NODES )
+    rm -f $REMORA_OUTDIR/remora_nodes.txt
+    for node in ${REMORA_NODES[@]}; do
+       echo  $node >>$REMORA_OUTDIR/remora_nodes.txt
+    done
+#end Job Info
+
+#   Precision
+    REMORA_PLOT_RESULTS=1
+    source $REMORA_BIN/aux/extra
+    check_date_precision
+
+#    # TODO fix this -- call precision routine
+#    cat <<-"EOF" >$REMORA_OUTDIR/remora_env.txt
+#   #export REMORA_DATE_PRECISION=ms  
+#   #export REMORA_DATE_FORMAT=+%s%3N
+#    export REMORA_DATE_PRECISION=s  
+#    export REMORA_DATE_FORMAT=+%s
+#EOF
+#end Precision
+
+    V=0; [[ $REMORA_VERBOSE == 1 ]] && V=1 
+
+               [[ $V == 1 ]] && printf "%s\n" " -> file: $0"
+
+               [[ $V == 1 ]] && printf "%s"   " -> running init_module_${MOD_NAME}..."
+   #echo -e "\n HERE source $REMORA_BIN/modules/$MOD_NAME"
+    source                  $REMORA_BIN/modules/$MOD_NAME
+   #echo -e " END SOURCE  HERE source $REMORA_BIN/modules/$MOD_NAME"
+
+    for node in ${REMORA_NODES[@]}; do
+      eval init_module_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
+    done
+    sleep $REMORA_PERIOD
+               [[ $V == 1 ]] && printf "%s\n" " finished."
+
+    STEPS=${REMORA_UT_STEPS:-20}
+               [[ $V == 1 ]] && printf "%s"   " -> running collect on $MOD_NAME, ${STEPS} steps: "
+    for node in ${REMORA_NODES[@]}; do
+      for step in `seq 1 $STEPS`; do
+        tm_0=$( date +%s%N )
+        eval collect_data_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
+        tm_1=$(date +%s%N)
+        collect_tm=$( bc<<<"scale=4; ($tm_1-$tm_0)/1000000000" )
+        printf " -> %s  %5d Time: %3.6f\n" $node $step $collect_tm 
+
+      done
+      sleep $REMORA_PERIOD
+    done
+               [[ $V == 1 ]] && printf "%s\n" " ->    finished."
+
+               [[ $V == 1 ]] && printf "%s"   " -> running plot_data_${MOD_NAME}..."
+    for node in ${REMORA_NODES[@]}; do
+      eval plot_data_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
+    done
+               [[ $V == 1 ]] && printf "%s\n" " finished."
+
+    for node in ${REMORA_NODES[@]}; do
+      eval finalize_module_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
+    done
+               [[ $V == 1 ]] && printf "%s\n" " finished $NAME unit test."
