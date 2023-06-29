@@ -4,6 +4,7 @@
 # Change CC, MPICC and the corresponding flags to match your own compiler in
 # file "Makefile.in". You should not have to edit this file at all.
 #
+# v2_0   (2023-06-29)  Albert Lu & Kent Milfeld
 # v1_8_4 (2020-10-19)  Kent Milfeld
 # v1_8_3 (2018-04-25)  Kent Milfeld/Si Liu
 # v1_8_2 (2017-08-08)  Carlos Rosales-Fernandez
@@ -19,16 +20,24 @@ export PHI_BUILD=0
 # Do not change anything below this line
 #--------------------------------------------------------------------------------
 
+REMORA_BUILD_DIR=$PWD
+
+if [[ -d $REMORA_BUILD_DIR/src/C_modules ]] &&  [[ "x0" != "x$REMORA_BINARIES" ]]; then
+   REMORA_BINARIES=1
+else
+   REMORA_BINARIES=0
+fi
+
 mkdir -p $REMORA_DIR/bin
 mkdir -p $REMORA_DIR/include
 mkdir -p $REMORA_DIR/lib
 mkdir -p $REMORA_DIR/share
 mkdir -p $REMORA_DIR/docs
+[[ $REMORA_BINARIES == 1 ]] &&
+mkdir -p $REMORA_DIR/bin/binaries
 
-REMORA_BUILD_DIR=$PWD
-
-VERSION=1.8.5
-COPYRIGHT1="Copyright 2017 The University of Texas at Austin."
+VERSION=2.0
+COPYRIGHT1="Copyright 2023 The University of Texas at Austin."
 COPYRIGHT2="License: MIT <http://opensource.org/licenses/MIT>"
 COPYRIGHT3="This is free software: you are free to change and redistribute it."
 COPYRIGHT4="There is NO WARRANTY of any kind"
@@ -167,10 +176,19 @@ if [[ "$PHI_BUILD" == "1" ]]; then
 	cp -v ./ma $REMORA_DIR/bin                     |  tee -a $INSTALL_LOG
 fi
 
+if [[ $REMORA_BINARIES == 1 ]]; then
+  cd $PWD/src/C_modules 
+  make
+  make install
+fi
+cd $REMORA_BUILD_DIR
+
 echo "Copying all scripts to installation folder ..." |  tee -a $INSTALL_LOG
 
-cd $REMORA_BUILD_DIR
 cp -vr ./src/* $REMORA_DIR/bin
+rm -rf         $REMORA_DIR/bin/C_modules
+
+echo "Copying all scripts to installation folder ..." |  tee -a $INSTALL_LOG
 
 if [[ "$haveMPICC" == "0" ]] || [[ "$haveMPIFC" == "0" ]]; then
     sed -i '/impi,MPI/d'      $REMORA_DIR/bin/config/modules
