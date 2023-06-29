@@ -30,7 +30,7 @@ scriptinfo() { head -${SCRIPT_HEADSIZE:-99} ${0} | grep -e "^#-" | sed -e "s/^#-
 print_error() { printf '\033[0;31mREMORA Error: \033[0;34m '"$1"' \033[0m \n'; }
 print_info()  { printf '\033[0;34mREMORA Notification: \033[0;34m '"$1"' \033[0m \n'; }
 
-function show_time () {
+function show_time() {
   num=$1/1000000000
   ((milisec=($1/1000000)%1000))
   min=0
@@ -105,29 +105,38 @@ parse_environment() {
         export REMORA_PERIOD=10
     fi
     # If data collection period is set to somethign lower than 1 second, reset it
-    if [[ "$REMORA_PERIOD" -lt "1" ]]; then
+    if  [[ $(bc<<< "$REMORA_PERIOD < 1") -eq 1 ]]; then
         export REMORA_PERIOD=1
     fi
 
-	# Check if monitor period is set and use a sane default value
+	# Check if MONITOR period is set and use a sane default value
 	if [[ -z "$REMORA_MONITOR_PERIOD" ]]; then
 		export REMORA_MONITOR_PERIOD=10
 	fi
+                     #If binary directory exists, and REMORA_BINARIES != 0
+   if [[ -d $REMORA_BIN/../binaries ]] &&  [[ "x0" != "x$REMORA_BINARIES" ]]; then
+      export REMORA_BINARIES=1
+   else
+      export REMORA_BINARIES=0
+   fi
+
+
 
     # Enable only critical warnings by default
-    # 0: disabel all warnings
+    # 0: disable all warnings
     # 1: enable excessive memory and io usage warnings
     # 2: enable all warnings
     if [[ -z "$REMORA_WARNING" ]]; then
         export REMORA_WARNING=1
     fi
 
-    echo "export REMORA_WARNING=$REMORA_WARNING" >> $REMORA_OUTDIR/remora_env.txt
-    echo "export REMORA_MODE=$REMORA_MODE"       >> $REMORA_OUTDIR/remora_env.txt
-    echo "export REMORA_PERIOD=$REMORA_PERIOD"   >> $REMORA_OUTDIR/remora_env.txt
-    echo "export REMORA_VERBOSE=$REMORA_VERBOSE" >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_WARNING=$REMORA_WARNING"   >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_MODE=$REMORA_MODE"         >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_PERIOD=$REMORA_PERIOD"     >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_VERBOSE=$REMORA_VERBOSE"   >> $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_MONITOR_PERIOD=$REMORA_MONITOR_PERIOD" >> $REMORA_OUTDIR/remora_env.txt
-#   Allow ms and ns time precision on date
+    echo "export REMORA_BINARIES=$REMORA_BINARIES" >> $REMORA_OUTDIR/remora_env.txt
+
 }
 
 is_mpi_job() {
@@ -203,7 +212,11 @@ check_cpu() {
 check_io() {
     # Check if lustre / dvs / other file systems are present
     REMORA_LUSTRE=0
-    if [[ -d /proc/fs/lustre ]]; then
+   #if [[ -d /proc/fs/lustre ]]; then  
+   #                               Latest lustre uses root protected /sys/kernel/debug/...
+   #                               and stats are not available in /proc/fs/lustre/mdc or .../llite
+    ls /proc/fs/lustre/mdc/home*/stats >& /dev/null
+    if [[  $? == 0 ]]; then
         export REMORA_LUSTRE=1
     fi
     echo "export REMORA_LUSTRE=$REMORA_LUSTRE" >> $REMORA_OUTDIR/remora_env.txt
@@ -234,7 +247,7 @@ remora_read_active_modules()
     fi
 
     fileItemString=$(cat $CONFIGPATH/modules | cut -f1 -d "," | tr "\n" " ")
-    outDirsString=$(cat $CONFIGPATH/modules | cut -f2 -d "," | tr "\n" " ")
+    outDirsString=$( cat $CONFIGPATH/modules | cut -f2 -d "," | tr "\n" " ")
     REMORA_MODULES=($fileItemString)
     REMORA_MODULES_OUTDIRS=($outDirsString)
 
@@ -266,12 +279,12 @@ init_folders() {
     else
 		export REMORA_TMPDIR=$REMORA_TMPDIR/remora_$REMORA_JOB_ID
     fi
-	mkdir -p $REMORA_TMPDIR
-	rm -rf $REMORA_TMPDIR/*
+    mkdir -p $REMORA_TMPDIR
+    rm -rf $REMORA_TMPDIR/*
 
     # Setup output subdirectories
     mkdir $REMORA_OUTDIR/INFO
-	mkdir $REMORA_OUTDIR/MONITOR
+    mkdir $REMORA_OUTDIR/MONITOR
 
     remora_read_active_modules
     #Create the output folders depending on the info passed on the configuration file (second column)
@@ -296,8 +309,8 @@ init_folders() {
 
 capture_environment() {
     #Text file containing job report environmental variables and start-end timestamp
-    #date >> $REMORA_OUTDIR/vars.txt
-    #echo "" >> $REMORA_OUTDIR/vars.txt
+    #date                                        >> $REMORA_OUTDIR/vars.txt
+    #echo ""                                     >> $REMORA_OUTDIR/vars.txt
     #echo "REMORA_TMPDIR    : $REMORA_TMPDIR"    >> $REMORA_OUTDIR/vars.txt 
     #echo "REMORA_PERIOD    : $REMORA_PERIOD"    >> $REMORA_OUTDIR/vars.txt
     #echo "REMORA_VERBOSE   : $REMORA_VERBOSE"   >> $REMORA_OUTDIR/vars.txt

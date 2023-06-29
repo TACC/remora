@@ -31,7 +31,7 @@ REMORA_OUTDIR=$3
    
    source $REMORA_OUTDIR/remora_env.txt
    
-# Create TMPDIR if it si not there
+# Create TMPDIR if it is not there
    mkdir -p $REMORA_TMPDIR
 
 # Generate unique file for transfer completion check 
@@ -43,8 +43,10 @@ REMORA_OUTDIR=$3
 #Read the list of active modules from the configuration file
    remora_read_active_modules
    
-#Configure the modules (they might not need it)
-   remora_configure_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+#Configure the modules if no binaries.  Various scripts initialize ("configure") modules here.
+   if [[ $REMORA_BINARIES == 0 ]]; then
+      remora_configure_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+   fi
    
 # Tag end of file so that we know when it is OK to source / read
 # from a different shell
@@ -56,19 +58,20 @@ reported_warn=no reported_crit=no period_cntr=1 info=""
 
 while [[ 1 ]]; do
 
-if [[ $REMORA_BINARIES == 1 ]]; then
+  if [[ $REMORA_BINARIES == 1 ]]; then
 
      for MODULE in "${REMORA_MODULES[@]}"; do
          tm_0=$( date +%s%N )
-         if [[ "$REMORA_VERBOSE" == "1" ]]; then
-             echo "collect_binary_$MODULE $NODE $OUTDIR $TMPDIR"
-         fi
+         [[ "$REMORA_VERBOSE" == "1" ]] && echo "Binary Module Execution: $MODULE $NODE $OUTDIR $TMPDIR"
          $REMORA_BIN/binaries/$MODULE
+         echo "Collection on binary module: $MODULE" >> $HOME/collection_summary
          tm_1=$(date +%s%N)
      done
-else
+
+  else
    tm_0=$( date +%s%N )
       remora_execute_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR "${REMORA_MODULES[@]}"
+         echo "Collection on script modules: " >> $HOME/collection_summary
    tm_1=$(date +%s%N)
 fi
 

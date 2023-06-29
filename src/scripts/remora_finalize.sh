@@ -81,7 +81,7 @@ function remora_finalize() {
         COMMAND="$REMORA_BIN/scripts/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE >>$REMORA_OUTDIR/.remora_out_$NODE  & "
         if [[ "$REMORA_VERBOSE" == "1" ]]; then
             echo "REMORA: launching remote postprocessing (plotting, etc)"
-            echo "ssh -q -n $NODE $COMMAND"
+            echo "        ssh -q -n $NODE $COMMAND"
         fi  
         #Right now this is putting the command in the background and continuing 
         #(so the remora can finish, therefore epilog might  #kill everything! We need to fix it
@@ -107,7 +107,7 @@ function remora_finalize() {
         while [[ `ssh $NODE $CMD` -gt 0 ]]; do
             sleep 0.05
             if [ "$REMORA_VERBOSE" == "1" ]; then
-                [[ $cnt -eq 0 ]] && printf "Post processing waiting on Node # $cnt"
+                [[ $cnt -eq 0 ]] && printf "Post processing waiting on Node: $NODE"
                 [[ $cnt -ne 0 ]] && printf "."
             fi
             cnt=$((cnt+1))
@@ -117,10 +117,7 @@ function remora_finalize() {
 
     sleep 0.5 #Add a small delay so that files are transferred (deal with Lustre latency)
 
-    if [[ "$REMORA_VERBOSE" == "1" ]]; then
-        echo ""
-        echo "REMORA: All REMORA postprocesses have finished"
-    fi
+    [[ "$REMORA_VERBOSE" == "1" ]] && echo -e "\nREMORA: All REMORA postprocesses have finished"
 
     # Clean up the instance of remora summary running on the master node
     if [[ "$REMORA_MODE" == "MONITOR" ]]; then
@@ -151,8 +148,7 @@ function remora_finalize() {
     #Move output files to their folders based on the configuration file
     #If some files are missing, don't output the error message
     for i in "${!REMORA_MODULES[@]}"; do
-        [[ "$REMORA_VERBOSE" == "1" ]] &&
-             echo "REMORA: Moving output files for ${REMORA_MODULES[$i]}"
+        [[ "$REMORA_VERBOSE" == "1" ]] &&  echo "REMORA: Moving output files for ${REMORA_MODULES[$i]}"
         
         mv $REMORA_OUTDIR/${REMORA_MODULES[$i]}*    $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
         [[ ${REMORA_MODULES[$i]} == "eth" ]] &&
@@ -164,9 +160,8 @@ function remora_finalize() {
         sleep 0.2
     done
 
-    if [[ "$REMORA_VERBOSE" == "1" ]]; then
-        echo "REMORA: Generating base HTML file"
-    fi
+    [[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA: Generating base HTML file"
+
     #We simply create an HTML file with links to all the different results
     if [[ "$REMORA_PLOT_RESULTS" != "0" ]] ; then
         printf "%s \n" "<html lang=\"en\">" > $REMORA_OUTDIR/remora_summary.html
@@ -233,26 +228,20 @@ function remora_finalize() {
 
     #Continue after generating the HTML file
     if [[ "$REMORA_MODE" == "MONITOR" ]]; then
-        if [[ "$REMORA_VERBOSE" == "1" ]]; then
-            echo "REMORA: Handling MONITOR files"
-        fi
+        [[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA: Handling MONITOR files"
         rm -f $REMORA_TMPDIR/.monitor
         mv    $REMORA_OUTDIR/monitor* $REMORA_OUTDIR/MONITOR/
     fi
 
     # Clean up TMPDIR if necessary
     if [[ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]]; then
-        if [[ "$REMORA_VERBOSE" == "1" ]]; then
-            echo "REMORA: Removing $REMORA_TMPDIR"
-        fi
+        [[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA: Removing $REMORA_TMPDIR"
         rm -rf $REMORA_TMPDIR
     fi
 
     #Clean the zz files (files used to make sure all transfers have finished)
     rm -f $REMORA_OUTDIR/zz.*
 
-    if [[ "$REMORA_VERBOSE" == "1" ]]; then
-        echo ""
-        echo "REMORA finalize finished"
-    fi
+    [[ "$REMORA_VERBOSE" == "1" ]] && echo -e "\nREMORA finalize finished"
 }
+

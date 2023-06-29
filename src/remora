@@ -44,8 +44,13 @@
 #-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
 #
+#-      version     REMORA 2.0
+#-      authors     Albert Lu      (  cylu@tacc.utexas.edu)
+#-                  Kent Milfeld   (milfeld@tacc.utexas.edu)
+#
 #========================================================================
 #  HISTORY
+#       2023/04-06  Version 2.0 by Albert Lu and Kent Milfeld
 #       2023/04/07  Power can now use intel_rapl.  
 #                   Now aggregated power plot is created.
 #       2020/12/18  Will be version 1(dot)8(dot)5.
@@ -113,6 +118,7 @@ export REMORA_TOP_PID=$$
 
 remora_pids=`pgrep -x remora`
 
+#Make sure no old remora daemons are running. (e.g. for interative development)
 for pid in $remora_pids; do
     if [[ $pid != $REMORA_TOP_PID ]]; then
         echo "ERROR: there is another instance of REMORA already running."
@@ -127,14 +133,12 @@ SCRIPT_NAME="$(basename ${0})"
 
 # Parse input and setup data collection
 #Source the remora_init script (it defines the function that initializes REMORA)
-source $REMORA_BIN/scripts/remora_init.sh
-#Call the initialization function
-remora_init "$@"
 
-#Source the remora_collect script
-source $REMORA_BIN/scripts/remora_collect.sh
-#Start data collection
-remora_collect "$@"
+source $REMORA_BIN/scripts/remora_init.sh
+remora_init "$@"                             #Call the initialization function (Verbose in script)
+
+source $REMORA_BIN/scripts/remora_collect.sh #Source the remora_collect script
+remora_collect "$@"                          #Start data collection (Verbose is in script )
 
 # Need to wait for file system commit
 lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
@@ -151,16 +155,6 @@ if [[ "$REMORA_MODE" == "MONITOR" ]]; then
 	echo ""
 fi
 
-# Now that we are collecting data in the background
-# We can start he actual application
-if [[ "$REMORA_VERBOSE" == "1" ]]; then
-  echo ""
-  echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-  echo "REMORA: Running command: $@ "
-  echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-  echo ""
-fi
-
 #                                  Some MPI modules require mpiP.so (REMORA_PRELOAD)
 #                                  Build up / tear down LD_PRELOAD in a simple way
 if [[ ! -z $REMORA_PRELOAD ]]; then    # IF REMORA_PRELOAD is defined, do the following
@@ -172,12 +166,15 @@ if [[ ! -z $REMORA_PRELOAD ]]; then    # IF REMORA_PRELOAD is defined, do the fo
    fi
 fi
 
-#Log the start time
-START=$(date +%s%N)
-#Run the command!!!!
-"$@"
-#Log the end time
-END=$(date +%s%N)
+# Now that we are collecting data in the background We can start he actual application
+if [[ "$REMORA_VERBOSE" == "1" ]]; then
+  echo -e "\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+  echo "REMORA: Running command: $@ "
+  echo -e "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+fi
+START=$(date +%s%N)     #Log the start time
+"$@"                    #Run the command !!!
+END=$(date +%s%N)       #Log the end time
 
 if [[ ! -z $REMORA_PRELOAD ]]; then       #Tear down LD_PRELOAD
    if [[ "$LD_PRELOAD" == "$REMORA_PRELOAD" ]]; then
@@ -187,7 +184,6 @@ if [[ ! -z $REMORA_PRELOAD ]]; then       #Tear down LD_PRELOAD
    fi
 fi
 
-#Once the command has finished, source the finalize method
+#Once the command has finished, source and execute finalize method
 source $REMORA_BIN/scripts/remora_finalize.sh
-#Finalize REMORA
 remora_finalize $END $START
