@@ -179,7 +179,6 @@ fi
 if [[ $REMORA_BINARIES == 1 ]]; then
   cd $PWD/src/C_modules 
   make
-  make install
 fi
 cd $REMORA_BUILD_DIR
 
