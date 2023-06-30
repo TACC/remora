@@ -22,7 +22,7 @@ export PHI_BUILD=0
 
 REMORA_BUILD_DIR=$PWD
 
-if [[ -d $REMORA_BUILD_DIR/src/C_data_collectors_src]] &&  [[ "x0" != "x$REMORA_BINARIES" ]]; then
+if [[ -d $REMORA_BUILD_DIR/src/C_data_collectors_src ]] &&  [[ "x0" != "x$REMORA_BINARIES" ]]; then
    REMORA_BINARIES=1
 else
    REMORA_BINARIES=0
@@ -33,8 +33,6 @@ mkdir -p $REMORA_DIR/include
 mkdir -p $REMORA_DIR/lib
 mkdir -p $REMORA_DIR/share
 mkdir -p $REMORA_DIR/docs
-[[ $REMORA_BINARIES == 1 ]] &&
-mkdir -p $REMORA_DIR/bin/binaries
 
 VERSION=2.0
 COPYRIGHT1="Copyright 2023 The University of Texas at Austin."
