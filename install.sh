@@ -22,7 +22,7 @@ export PHI_BUILD=0
 
 REMORA_BUILD_DIR=$PWD
 
-if [[ -d $REMORA_BUILD_DIR/src/C_collectors ]] &&  [[ "x0" != "x$REMORA_BINARIES" ]]; then
+if [[ -d $REMORA_BUILD_DIR/src/C_data_collectors_src]] &&  [[ "x0" != "x$REMORA_BINARIES" ]]; then
    REMORA_BINARIES=1
 else
    REMORA_BINARIES=0
@@ -177,7 +177,7 @@ if [[ "$PHI_BUILD" == "1" ]]; then
 fi
 
 if [[ $REMORA_BINARIES == 1 ]]; then
-  cd $REMORA_BUILD_DIR/src/C_collectors
+  cd $REMORA_BUILD_DIR/src/C_data_collectors_src
   make
 fi
 cd $REMORA_BUILD_DIR
@@ -185,7 +185,7 @@ cd $REMORA_BUILD_DIR
 echo "Copying all scripts to installation folder ..." |  tee -a $INSTALL_LOG
 
 cp -vr ./src/* $REMORA_DIR/bin
-rm -rf         $REMORA_DIR/bin/C_collectors
+rm -rf         $REMORA_DIR/bin/C_data_collectors_src
 
 echo "Copying all scripts to installation folder ..." |  tee -a $INSTALL_LOG
 

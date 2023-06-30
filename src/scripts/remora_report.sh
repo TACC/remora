@@ -63,7 +63,7 @@ while [[ 1 ]]; do
      for MODULE in "${REMORA_MODULES[@]}"; do
          tm_0=$( date +%s%N )
          [[ "$REMORA_VERBOSE" == "1" ]] && echo "Binary Module Execution: $MODULE $NODE $OUTDIR $TMPDIR"
-         $REMORA_BIN/binaries/$MODULE
+         eval $REMORA_BIN/binary_data_collectors/data_collect_$MODULE
          echo "Collection on binary module: $MODULE" >> $HOME/collection_summary
          tm_1=$(date +%s%N)
      done

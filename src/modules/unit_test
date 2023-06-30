@@ -80,7 +80,7 @@ USAGE="
         if [[ $REMORA_BINARIES == 1 ]]; then
      
              tm_0=$( date +%s%N )
-             $REMORA_BIN/../binaries/$MOD_NAME
+             $REMORA_BIN/binary_data_collectors/data_collect_$MOD_NAME
              tm_1=$(date +%s%N)
      
         else
