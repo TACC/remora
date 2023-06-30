@@ -44,9 +44,9 @@ REMORA_OUTDIR=$3
    remora_read_active_modules
    
 #Configure the modules if no binaries.  Various scripts initialize ("configure") modules here.
-   if [[ $REMORA_BINARIES == 0 ]]; then
+  #if [[ $REMORA_BINARIES == 0 ]]; then
       remora_configure_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
-   fi
+  #fi
    
 # Tag end of file so that we know when it is OK to source / read
 # from a different shell
@@ -63,8 +63,7 @@ while [[ 1 ]]; do
      for MODULE in "${REMORA_MODULES[@]}"; do
          tm_0=$( date +%s%N )
          [[ "$REMORA_VERBOSE" == "1" ]] && echo "Binary Module Execution: $MODULE $NODE $OUTDIR $TMPDIR"
-         eval $REMORA_BIN/binary_data_collectors/data_collect_$MODULE
-         echo "Collection on binary module: $MODULE" >> $HOME/collection_summary
+         eval $REMORA_BIN/binary_data_collectors/data_collect_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
          tm_1=$(date +%s%N)
      done
 

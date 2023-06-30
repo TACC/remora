@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 
   clock_gettime(CLOCK_REALTIME, &now);
 
-  double time_now = ((double)now.tv_sec*1e9 + now.tv_nsec)/1000000;
+  double time_now = ((double)now.tv_sec*1e9 + now.tv_nsec)/1000000000;
 
   FILE *file;
 

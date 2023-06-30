@@ -3,6 +3,13 @@
 export REMORA_MODE=FULL
 export REMORA_SYMMETRIC=0
 
+                  #If binary directory exists, and REMORA_BINARIES != 0
+if [[ -d $REMORA_BIN/binary_data_collectors ]] &&  [[ "x0" != "x$REMORA_BINARIES" ]]; then
+   export REMORA_BINARIES=1
+else
+   export REMORA_BINARIES=0
+fi 
+
 #v      USAGE
 USAGE=" 
  unit_test [-h|--help]  #command syntax + list of module names
@@ -80,7 +87,7 @@ USAGE="
         if [[ $REMORA_BINARIES == 1 ]]; then
      
              tm_0=$( date +%s%N )
-             $REMORA_BIN/binary_data_collectors/data_collect_$MOD_NAME
+             $REMORA_BIN/binary_data_collectors/data_collect_$MOD_NAME $node $REMORA_OUTDIR $REMORA_TMPDIR
              tm_1=$(date +%s%N)
      
         else

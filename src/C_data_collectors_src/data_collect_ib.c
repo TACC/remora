@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
   if (is_tmp_file_exists) {
  
     char output_path[PATH_BUFFER_SIZE];
-    snprintf(output_path, sizeof(output_path), "%s/ib_%s.txt", argv[3], argv[1]);
+    snprintf(output_path, sizeof(output_path), "%s/ib_packets-%s.txt", argv[3], argv[1]);
     file = fopen(output_path, "a+");
 
     fprintf(file, "%.3f ", 0.5 * (time_old + time_new));

@@ -114,7 +114,7 @@ parse_environment() {
 		export REMORA_MONITOR_PERIOD=10
 	fi
                      #If binary directory exists, and REMORA_BINARIES != 0
-   if [[ -d $REMORA_BIN/../binaries ]] &&  [[ "x0" != "x$REMORA_BINARIES" ]]; then
+   if [[ -d $REMORA_BIN/binary_data_collectors ]] &&  [[ "x0" != "x$REMORA_BINARIES" ]]; then
       export REMORA_BINARIES=1
    else
       export REMORA_BINARIES=0
