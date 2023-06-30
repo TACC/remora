@@ -72,7 +72,7 @@ collect_data_temperature()
 
   for CPU in `seq 0 $NCPUsM1`; do
 
-    TIMESTAMP=`date +%s`
+    TIMESTAMP=`date +%s.%3N`
 
     files=$( ls -v /sys/devices/platform/coretemp.${CPU}/hwmon/hwmon?/temp*_input )
   
@@ -150,7 +150,8 @@ plot_data_temperature()
         [[ $first -eq 1 ]] && first=2 && firsttimestamp=`echo $line | awk '{print $1;}'`
 
         timestamp=`echo $line | awk '{print $1;}'`
-        ctime=$[timestamp - firsttimestamp]
+       #ctime=$[timestamp - firsttimestamp]
+        ctime=$(bc <<< "$timestamp - $firsttimestamp")
 
         idx=0
         sout=$ctime
@@ -206,38 +207,3 @@ finalize_module_temperature()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     plot_data_temperature $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 }
-
-
-if [[ $REMORA_UNIT_TEST == 1  || $REMORA_RUN_UNIT == 1 ]]; then
-    REMORA_TMPDIR=`pwd`
-    REMORA_OUTDIR=`pwd`
-    REMORA_NODE=c000-000
-    REMORA_PLOT_RESULTS=1
-    REMORA_PERIOD=1
-    echo  $REMORA_NODE >$REMORA_OUTDIR/remora_nodes.txt
-    rm -f $REMORA_OUTDIR/remora_env.txt
-    rm -f $REMORA_TMPDIR/temperature_cpu*_${REMORA_NODE}.txt
-    rm -f $REMORA_TMPDIR/temperature_${REMORA_NODE}.html
-    V=1; [[ $REMORA_VERBOSE == 1 ]] && V=0
-
-               [[ $V ]] && printf "%s\n" " ->file: $0"
-
-               [[ $V ]] && printf "%s"   " ->     running init_module_temperature..."
-    init_module_temperature $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
-               [[ $V ]] && printf "%s\n" "finished."
-
-               [[ $V ]] && printf "%s"   " ->     running collect_data_temperature"
-    for i in `seq 1 ${REMORA_STEPS:-10}`; do
-      collect_data_temperature $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
-      sleep $REMORA_PERIOD
-               [[ $V ]] && printf "%s" "."
-    done
-               [[ $V ]] && printf "%s\n" "finished."
-
-               [[ $V ]] && printf "%s"   " ->     running plot_data_temperature..."
-    plot_data_temperature $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
-               [[ $V ]] && printf "%s\n" "finished."
-
-    rm -f $REMORA_OUTDIR/remora_nodes.txt
-    rm -f $REMORA_OUTDIR/remora_env.txt
-fi

@@ -70,11 +70,11 @@ USAGE="
     source                  $REMORA_BIN/modules/$MOD_NAME
    #echo -e " END SOURCE  HERE source $REMORA_BIN/modules/$MOD_NAME"
 
-    if [[ $REMORA_BINARIES != 1 ]]; then    #when using binaries, init is performed on first collection.
+   #if [[ $REMORA_BINARIES != 1 ]]; then    #when using binaries, init is performed on first collection.
        for node in ${REMORA_NODES[@]}; do
          eval init_module_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
        done
-    fi
+   #fi
 
     sleep $REMORA_PERIOD
                [[ $V == 1 ]] && printf "%s\n" " finished."
