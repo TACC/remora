@@ -5,9 +5,9 @@ export REMORA_SYMMETRIC=0
 
                   #If binary directory exists, and REMORA_BINARIES != 0
 if [[ -d $REMORA_BIN/binary_data_collectors ]] &&  [[ "x0" != "x$REMORA_BINARIES" ]]; then
-   export REMORA_BINARIES=1
+   export REMORA_BINARIES=1  collect_type=binary
 else
-   export REMORA_BINARIES=0
+   export REMORA_BINARIES=0  collect_type=script
 fi 
 
 #v      USAGE
@@ -66,21 +66,17 @@ USAGE="
                [[ $V == 1 ]] && printf "%s\n" " -> file: $0"
 
                [[ $V == 1 ]] && printf "%s"   " -> running init_module_${MOD_NAME}..."
-   #echo -e "\n HERE source $REMORA_BIN/modules/$MOD_NAME"
     source                  $REMORA_BIN/modules/$MOD_NAME
-   #echo -e " END SOURCE  HERE source $REMORA_BIN/modules/$MOD_NAME"
 
-   #if [[ $REMORA_BINARIES != 1 ]]; then    #when using binaries, init is performed on first collection.
-       for node in ${REMORA_NODES[@]}; do
-         eval init_module_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
-       done
-   #fi
+    for node in ${REMORA_NODES[@]}; do
+      eval init_module_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
+    done
 
     sleep $REMORA_PERIOD
                [[ $V == 1 ]] && printf "%s\n" " finished."
 
     STEPS=${REMORA_UT_STEPS:-20}
-               [[ $V == 1 ]] && printf "%s"   " -> running collect on $MOD_NAME, ${STEPS} steps: "
+               [[ $V == 1 ]] && printf "%s"   " -> running collect on $collect_type $MOD_NAME, ${STEPS} steps: "
     for node in ${REMORA_NODES[@]}; do
       for step in `seq 1 $STEPS`; do
 

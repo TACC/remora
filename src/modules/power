@@ -41,14 +41,8 @@ init_module_power()
   # Can now use intel RAPL to get Energy, Watts=Energy_uj_now - Energy_uj_prev/delta_time
     source $REMORA_OUTDIR/remora_env.txt
 
-    local remora_date_precision
-    if [[ $REMORA_DATE_PREC_AVAIL =~ ms ]] && [[ $REMORA_DATE_PRECISION == s ]]; then 
-      remora_date_precision="ms"
-      remora_date_format='+%s%3N'
-    else
-      remora_date_precision=$REMORA_DATE_PRECISION
-      remora_date_format=$REMORA_DATE_FORMAT
-    fi 
+  local remora_date_precision="ms"
+  local remora_date_format='+%s%3N'
 
   local REMORA_POWER_IGNORE    # 0 == don't ignore     1 == ignore  
   local REMORA_POWER_COLLECTOR # sensors or intel_rapl
@@ -142,18 +136,9 @@ collect_data_power()
 
   source $REMORA_OUTDIR/remora_env.txt
 
-    # power should always use ms or ns precisions (non KNL)
-
-    local prec_factor remora_date_format
-    if [[ $REMORA_DATE_PREC_AVAIL =~ ms ]] && [[ $REMORA_DATE_PRECISION == s ]]; then
-      remora_date_format='+%s%3N'
-      prec_factor=1000.0
-    else
-      remora_date_format=$REMORA_DATE_FORMAT
-      [[ $REMORA_DATE_PRECISION == s  ]] && prec_factor=1000000.0
-      [[ $REMORA_DATE_PRECISION == ms ]] && prec_factor=1000.0
-      [[ $REMORA_DATE_PRECISION == ns ]] && prec_factor=1.0
-    fi
+  # power should always use ms (or ns precisions (for non KNL))
+  local  remora_date_format='+%s.%3N'
+  local  prec_factor=1000.0
 
   local  POWER_FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.txt
   local ENERGY_FILE=$REMORA_TMPDIR/energy_${REMORA_NODE}.txt
@@ -200,28 +185,23 @@ collect_data_power()
 
 #    Create Power text file here (instead of at end) for RemoraPy to use.
 #                                     #first element of previous line is previous time
-     time_delta=$( bc <<< "scale=2; $time_stamp - ${prev_line[0]}" )
-     time_seq=$(   bc <<< "scale=2; $time_stamp - $time_base" )
+     time_delta=$( bc <<< "scale=3; $time_stamp - ${prev_line[0]}" )
+     time_seq=$(   bc <<< "scale=3; $time_stamp - $time_base" )
      time_str=$(printf "%-17s" "$time_seq" )
      line=$time_str
 
      prev_line=( "${prev_line[@]:1}" )                   #<- acts like the shift used for args.
      for soc_num in $(seq 0 $sockets_m1); do
-         #time stamp is only in integer seconds. It is possible for time_delta=0. Handle x/0.
-         if [[ $time_delta -gt 0 ]]; then
 
-             delta=$( bc <<< "scale=2; ${energy[$soc_num]} - ${prev_line[$soc_num]}" )
-#                                   #If delta is negative, counter wrapped
-#                                   #Fix: just add the counter limit (265G) to difference.
-             if [[ $delta -lt 0 ]]; then
-                energy_delta=$( bc <<< "scale=2; (${delta} + 265438953472)/$prec_factor" )
-             else
-                energy_delta=$( bc <<< "scale=2;  ${delta}/$prec_factor" )
-             fi
-             watts=$(        bc <<< "scale=2; ${energy_delta}  / ${time_delta}" )
-         else 
-             watts=0.00
+         delta=$( bc <<< "scale=2; ${energy[$soc_num]} - ${prev_line[$soc_num]}" )
+#                               #If delta is negative, counter wrapped
+#                               #Fix: just add the counter limit (265G) to difference.
+         if [[ $delta -lt 0 ]]; then
+            energy_delta=$( bc <<< "scale=2; (${delta} + 265438953472)/$prec_factor" )
+         else
+            energy_delta=$( bc <<< "scale=2;  ${delta}/$prec_factor" )
          fi
+         watts=$(           bc <<< "scale=2; ${energy_delta}  / ${time_delta}" )
          addon=$(printf "%-17s" "$watts" )
          line+=$addon
      done
@@ -285,14 +265,6 @@ plot_data_power()
     [[ $? == 0 ]] && sockets=$(lscpu | grep 'Socket(s):' | awk '{print $2}')
     sockets_m1=$(($sockets-1))
 
-    local tm_units
-    if [[ $REMORA_DATE_PREC_AVAIL =~ ms ]] && [[ $REMORA_DATE_PRECISION == s ]]; then
-      tm_units="ms"
-    else
-      tm_units=$REMORA_DATE_PRECISION
-    fi  
-
-
     printf "%s \n" "<html>"  > $FILE
     printf "%s \n" "<head>" >> $FILE
     printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $FILE
@@ -302,7 +274,7 @@ plot_data_power()
 
     printf "%s \n" "function drawChart() {"                           >> $FILE
     printf "%s \n" "var data = new google.visualization.DataTable();" >> $FILE
-    printf "%s \n" "data.addColumn('number', 'Execution Time ($tm_units)');"  >> $FILE
+    printf "%s \n" "data.addColumn('number', 'Execution Time (sec)');">> $FILE
 
     for soc_num in $(seq 0 $sockets_m1); do
       printf "%s \n" "data.addColumn('number', 'socket_$soc_num');"   >> $FILE
@@ -581,74 +553,3 @@ finalize_module_power()
 
   fi # end # of nodes > 1, create aggregated plot 
 }
-
-##########################
-
-if [[ $REMORA_UNIT_TEST == 1  || $REMORA_RUN_UNIT == 1 ]]; then
-
-    #export REMORA_UNIT_TEST=1 REMORA_RUN_UNIT=1 REMORA_VERBOSE=1
-    MOD_NAME=power
-
-    REMORA_TMPDIR=`pwd`
-    REMORA_OUTDIR=`pwd`
-    REMORA_NODES=(c000-000 c000-001)
-    REMORA_PLOT_RESULTS=1
-    REMORA_PERIOD=2
-
-    cat <<-"EOF" >$REMORA_OUTDIR/remora_env.txt
-    export REMORA_DATE_PRECISION=ms  
-    export REMORA_DATE_FORMAT=+%s%3N
-    export REMORA_DATE_PREC_AVAIL="ms_s_ns"
-    #export REMORA_DATE_PRECISION=s  
-    #export REMORA_DATE_FORMAT=+%s
-EOF
-
-#   rm -f $REMORA_OUTDIR/remora_env.txt
-    rm -f $REMORA_OUTDIR/remora_nodes.txt
-    for node in ${REMORA_NODES[@]}; do
-    rm -f $REMORA_OUTDIR/energy_uj_${node}.txt
-    rm -f $REMORA_OUTDIR/power_${node}.txt
-    rm -f $REMORA_TMPDIR/power_${node}.html
-    done
-
-    touch $REMORA_OUTDIR/remora_nodes.txt
-    for node in ${REMORA_NODES[@]}; do
-       echo  $node >>$REMORA_OUTDIR/remora_nodes.txt
-    done
-
-    V=0; [[ $REMORA_VERBOSE == 1 ]] && V=1
-
-               [[ $V == 1 ]] && printf "%s\n" " ->file: $0"
-
-               [[ $V == 1 ]] && printf "%s"   " ->     running init_module_power..."
-    for node in ${REMORA_NODES[@]}; do
-      init_module_power $node $REMORA_OUTDIR $REMORA_TMPDIR
-    done
-    sleep $REMORA_PERIOD
-               [[ $V == 1 ]] && printf "%s\n" "finished."
-
-    STEPS=${REMORA_STEPS:-20}
-               [[ $V == 1 ]] && printf "%s"   " ->     running collect_data_power, ${STEPS} steps: "
-    for i in `seq 1 $STEPS`; do
-
-      for node in ${REMORA_NODES[@]}; do
-         collect_data_power $node $REMORA_OUTDIR $REMORA_TMPDIR
-      done
-      sleep $REMORA_PERIOD
-               [[ $V == 1 ]] && printf "%s" "."
-    done
-               [[ $V == 1 ]] && printf "%s\n" "finished."
-
-               [[ $V == 1 ]] && printf "%s"   " ->     running plot_data_power..."
-    for node in ${REMORA_NODES[@]}; do
-      plot_data_power $node $REMORA_OUTDIR $REMORA_TMPDIR
-    done
-
-    for node in ${REMORA_NODES[@]}; do
-      finalize_module_power $node $REMORA_OUTDIR $REMORA_TMPDIR
-    done
-               [[ $V == 1 ]] && printf "%s\n" "finished."
-
-   #rm -f $REMORA_OUTDIR/remora_nodes.txt
-   #rm -f $REMORA_OUTDIR/remora_env.txt
-fi

@@ -91,11 +91,7 @@ collect_data_numa(){
 
     # numa should always use ms or ns percisions
 
-    if [[ $REMORA_DATE_PREC_AVAIL =~ ms ]] && [[ $REMORA_DATE_PRECISION == s ]]; then 
-      timestamp=`date +%s%3N`
-    else
-      timestamp=`date $REMORA_DATE_FORMAT`
-    fi
+   timestamp=`date +%s.%3N`
 
                                                # NUMA statistics
     numStat=`numastat -c`
@@ -119,8 +115,8 @@ collect_data_numa(){
     #FYI: Committed_AS does not include IO buffers.
     #FYI: Active_anon were not being recorded on Rocky Lonestar6, switched to "AnonPages".
     #Active_anon_kb=$(grep 'Active(anon)'  /proc/meminfo | sed 's/.*: *\([0-9]*\) *kB/\1/')
-        anonPg_kb=$(grep 'AnonPages'     /proc/meminfo | sed 's/.*: *\([0-9]*\) *kB/\1/')
-    anonHugePg_kb=$(grep 'AnonHugePages' /proc/meminfo | sed 's/.*: *\([0-9]*\) *kB/\1/')
+          anonPg_kb=$(grep 'AnonPages'     /proc/meminfo | sed 's/.*: *\([0-9]*\) *kB/\1/')
+      anonHugePg_kb=$(grep 'AnonHugePages' /proc/meminfo | sed 's/.*: *\([0-9]*\) *kB/\1/')
 
     out=""
 
@@ -226,11 +222,11 @@ plot_data_numa()
     printf "%s \n" "google.charts.setOnLoadCallback(drawUsed);" >> $FILE
  
 ##### Mem in Use
-    printf "%s \n" "function drawHits() {"                                      >> $FILE
-    printf "%s \n" "var data = new google.visualization.DataTable();"           >> $FILE
-    printf "%s \n" "data.addColumn('number', 'Execution Time ($tm_units)');"    >> $FILE
-    printf "%s %s %s \n" "data.addColumn('number', 'Anon Pages');"              >> $FILE
-    printf "%s %s %s \n" "data.addColumn('number', 'Anon HugePgs');"            >> $FILE
+    printf "%s \n" "function drawHits() {"                              >> $FILE
+    printf "%s \n" "var data = new google.visualization.DataTable();"   >> $FILE
+    printf "%s \n" "data.addColumn('number', 'Execution Time (sec)');"  >> $FILE
+    printf "%s %s %s \n" "data.addColumn('number', 'Anon Pages');"      >> $FILE
+    printf "%s %s %s \n" "data.addColumn('number', 'Anon HugePgs');"    >> $FILE
 
     firsttimestamp=0
     ctime=0
@@ -252,7 +248,8 @@ plot_data_numa()
 
         ln_vals=( $line )
         timestamp=${ln_vals[0]}
-        ctime=$[timestamp - firsttimestamp]
+       #ctime=$[timestamp - firsttimestamp]
+        time=$(bc <<< "$timestamp - $firsttimestamp")
 
         printf "["                 >> $FILE
         printf "%s," $ctime        >> $FILE
@@ -322,7 +319,8 @@ plot_data_numa()
         fi
 
         timestamp=${ln_vals[0]} 
-        ctime=$[timestamp - firsttimestamp]
+       #ctime=$[timestamp - firsttimestamp]
+        ctime=$(bc <<< "$timestamp - $firsttimestamp")
         printf "["          >> $FILE
         printf "%s," $ctime >> $FILE
 
@@ -397,7 +395,8 @@ plot_data_numa()
         fi
         
         timestamp=${ln_vals[0]}
-        ctime=$[timestamp - firsttimestamp]
+       #ctime=$[timestamp - firsttimestamp]
+        ctime=$( bc <<< "$timestamp - $firsttimestamp )
         printf "["                          >> $FILE
         printf "%s," $ctime                 >> $FILE
         for i in `seq $numNodes`; do
@@ -457,7 +456,8 @@ plot_data_numa()
         fi
 
         local timestamp=`echo $line | awk '{print $1;}'`
-        ctime=$[timestamp - firsttimestamp]
+       #ctime=$[timestamp - firsttimestamp]
+        ctime=$(bc <<< "$timestamp - $firsttimestamp")
         printf "["                               >> $FILE
         printf "%s," $ctime                      >> $FILE
         
@@ -516,72 +516,3 @@ finalize_module_numa()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     plot_data_numa $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 }
-
-######## UNIT TEST ###############
-
-if [[ $REMORA_UNIT_TEST == 1  || $REMORA_RUN_UNIT == 1 ]]; then
-    MOD_NAME=numa
-
-    REMORA_TMPDIR=`pwd`
-    REMORA_OUTDIR=`pwd`
-    REMORA_NODES=(c000-000 c000-001)
-    REMORA_PLOT_RESULTS=1
-
-    cat <<-"EOF" >$REMORA_OUTDIR/remora_env.txt
-   #export REMORA_DATE_PRECISION=ms  
-   #export REMORA_DATE_FORMAT=+%s%3N
-   export REMORA_DATE_PRECISION=s  
-   export REMORA_DATE_FORMAT=+%s
-EOF
-ls -ltr remora_env.txt
-
-#   rm -f $REMORA_OUTDIR/remora_env.txt
-    rm -f $REMORA_OUTDIR/remora_nodes.txt
-    for node in ${REMORA_NODES[@]}; do
-    rm -f $REMORA_OUTDIR/${MOD_NAME}_stats_${node}.txt
-    rm -f $REMORA_OUTDIR/${MOD_NAME}_${node}.html
-    done
-
-    touch $REMORA_OUTDIR/remora_nodes.txt
-    for node in ${REMORA_NODES[@]}; do
-       echo  $node >>$REMORA_OUTDIR/remora_nodes.txt
-    done
-
-    V=0; [[ $REMORA_VERBOSE == 1 ]] && V=1 
-
-               [[ $V == 1 ]] && printf "%s\n" " -> file: $0"
-
-               [[ $V == 1 ]] && printf "%s"   " -> running init_module_${MOD_NAME}..."
-    for node in ${REMORA_NODES[@]}; do
-      eval init_module_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
-    done
-    sleep $REMORA_PERIOD
-               [[ $V == 1 ]] && printf "%s\n" " finished."
-
-    STEPS=${REMORA_STEPS:-4}
-               [[ $V == 1 ]] && printf "%s"   " ->     running collect_data_${NAME}, ${STEPS} steps: "
-    for i in `seq 1 $STEPS`; do
-
-      for node in ${REMORA_NODES[@]}; do
-         eval collect_data_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
-      done
-      sleep $REMORA_PERIOD
-               [[ $V == 1 ]] && printf "%s" "." 
-    done
-               [[ $V == 1 ]] && printf "%s\n" " finished."
-
-               [[ $V == 1 ]] && printf "%s"   " -> running plot_data_${MOD_NAME}..."
-    for node in ${REMORA_NODES[@]}; do
-      eval plot_data_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
-    done
-               [[ $V == 1 ]] && printf "%s\n" " finished."
-
-    for node in ${REMORA_NODES[@]}; do
-      eval finalize_module_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
-    done
-               [[ $V == 1 ]] && printf "%s\n" " finished $NAME unit test."
-
-   #rm -f $REMORA_OUTDIR/remora_nodes.txt
-    rm -f $REMORA_OUTDIR/remora_env.txt
-fi
-

@@ -110,7 +110,8 @@ plot_data_memory()
         fi
         #Calculate time as the difference between current timestamp and initial timestamp
         local timestamp=`echo $line | awk '{print $1;}'`
-        ctime=$[timestamp - firsttimestamp]
+       #ctime=$[timestamp - firsttimestamp]
+        ctime=$(bc <<< "$timestamp - $firsttimestamp")
         #Put data into the chart
         printf "[" >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
         printf "%s," $ctime >> $REMORA_TMPDIR/memory_${REMORA_NODE}.html
