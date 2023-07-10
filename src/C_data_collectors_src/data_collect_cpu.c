@@ -163,8 +163,8 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < n_cpus; i++) {
 
-      frac = ((time_tot_new[i] - time_tot_old[i])-(time_idle_new[i] - time_idle_old[i])) * 100.0 / (time_tot_new[i] - time_tot_old[i]);
-      avg_frac_usr += frac;
+      //frac = ((time_tot_new[i] - time_tot_old[i])-(time_idle_new[i] - time_idle_old[i])) * 100.0 / (time_tot_new[i] - time_tot_old[i]);
+      //avg_frac_usr += frac;
 
       frac = (time_usr_new[i] - time_usr_old[i]) * 100.0 / (time_tot_new[i] - time_tot_old[i]);
       avg_frac_usr += frac;
@@ -185,29 +185,35 @@ int main(int argc, char *argv[])
     snprintf(output_path, sizeof(output_path), "%s/cpu_%s.txt", argv[3], argv[1]);
     file = fopen(output_path, "a+");
 
-    fprintf(file, "%.3f ", 0.5 * (time_new + time_old));
-    fprintf(file, "%.3f ", avg_frac_usr);
+    fprintf(file, "%stime %.3f\n", "%", 0.5 * (time_new + time_old));
+    fprintf(file, "%susr %.3f ", "%", avg_frac_usr);
 
     for (int i = 0; i < n_cpus; i++) {
       frac = (time_usr_new[i] - time_usr_old[i]) * 100.0 / (time_tot_new[i] - time_tot_old[i]);
-      fprintf(file, "%.3f ", frac);
+      if (i == n_cpus - 1)
+        fprintf(file, "%.3f\n", frac);
+      else
+        fprintf(file, "%.3f ", frac);
     }
 
-    fprintf(file, "%.3f ", avg_frac_sys);
+    fprintf(file, "%ssys %.3f ", "%", avg_frac_sys);
 
     for (int i = 0; i < n_cpus; i++) {
       frac = (time_sys_new[i] - time_sys_old[i]) * 100.0 / (time_tot_new[i] - time_tot_old[i]);
-      fprintf(file, "%.3f ", frac);
+      if (i == n_cpus - 1)
+        fprintf(file, "%.3f\n", frac);
+      else
+        fprintf(file, "%.3f ", frac);
     }
    
-    fprintf(file, "%.3f ", avg_frac_idle);
+    fprintf(file, "%sidle %.3f ", "%", avg_frac_idle);
 
     for (int i = 0; i < n_cpus; i++) {
       frac = (time_idle_new[i] - time_idle_old[i]) * 100.0 / (time_tot_new[i] - time_tot_old[i]);
-      if (i < n_cpus - 1)
-        fprintf(file, "%.3f ", frac);
-      else
+      if (i == n_cpus - 1)
         fprintf(file, "%.3f\n", frac);
+      else
+        fprintf(file, "%.3f ", frac);
     }
     fclose(file);
   }

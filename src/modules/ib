@@ -126,7 +126,7 @@ plot_data_ib()
             firsttimestamp=`echo $line | awk '{print $1;}'`
         fi
         local timestamp=`echo $line | awk '{print $1;}'`
-        ctime=$[timestamp - firsttimestamp]
+        ctime=$(bc <<< "$timestamp - $firsttimestamp")
         printf "[%s," $ctime >> $REMORA_TMPDIR/ib_${REMORA_NODE}.html
         idx=0
         out=""

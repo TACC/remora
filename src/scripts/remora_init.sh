@@ -114,11 +114,11 @@ function remora_init() {
     fi
     check_io
 
-    # Check TIMER precision (date precision) and if REMORA_DATE_PRECISION is set
-    if [[ "$REMORA_VERBOSE" == "1" ]]; then
-        echo "  Checking date precision (timer) & if REMORA_DATE_PRECISION is set"
-    fi
-    check_date_precision
+   ## Check TIMER precision (date precision) and if REMORA_DATE_PRECISION is set
+   #if [[ "$REMORA_VERBOSE" == "1" ]]; then
+   #    echo "  Checking date precision (timer) & if REMORA_DATE_PRECISION is set"
+   #fi
+   #check_date_precision
 
     if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo "REMORA initialization finished"

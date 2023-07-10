@@ -166,7 +166,7 @@ plot_data_eth()
             firsttimestamp=`echo $line | awk '{print $1;}'`
         fi
         local timestamp=`echo $line | awk '{print $1;}'`
-        ctime=$[timestamp - firsttimestamp]
+        ctime=$(bc <<< "$timestamp - $firsttimestamp")
         printf "[%s," $ctime >> $REMORA_TMPDIR/eth_${REMORA_NODE}.html
         idx=0
         out=""

@@ -18,7 +18,15 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
-  const char *dev_hfi1_0="/sys/class/infiniband/hfi1_0/ports/1/counters";
+//const char *dev_adapter_0="/sys/class/infiniband/hfi1_0/ports/1/counters";
+  
+  char *dev_mlx5_0="/sys/class/infiniband/mlx5_0/ports/1/counters";
+  char *dev_hfi1_0="/sys/class/infiniband/hfi1_0/ports/1/counters";
+  char *dev_adapter_0;
+
+  DIR *dir = opendir(dev_mlx5_0);
+  if (dir){ dev_adapter_0=dev_mlx5_0; closedir(dir); }
+  else    { dev_adapter_0=dev_hfi1_0;                }
 
   char opa_xmit_pack_cntr[PATH_BUFFER_SIZE];
   char opa_rcv_pack_cntr[PATH_BUFFER_SIZE];
@@ -27,16 +35,14 @@ int main(int argc, char *argv[])
 
   bool found_opa = false;
 
-  DIR *dir = NULL;
-
-  // dev_hfi1_0
+  // dev_adapter_0
   if (!found_opa) {
-    dir = opendir(dev_hfi1_0);
+    dir = opendir(dev_adapter_0);
     if (dir) {
-      snprintf(opa_xmit_pack_cntr, sizeof(opa_xmit_pack_cntr), "%s/%s", dev_hfi1_0, "port_xmit_packets");
-      snprintf(opa_rcv_pack_cntr, sizeof(opa_rcv_pack_cntr), "%s/%s", dev_hfi1_0, "port_rcv_packets");
-      snprintf(opa_xmit_byte_cntr, sizeof(opa_xmit_byte_cntr), "%s/%s", dev_hfi1_0, "port_xmit_data");
-      snprintf(opa_rcv_byte_cntr, sizeof(opa_rcv_byte_cntr), "%s/%s", dev_hfi1_0, "port_rcv_data");
+      snprintf(opa_xmit_pack_cntr, sizeof(opa_xmit_pack_cntr), "%s/%s", dev_adapter_0, "port_xmit_packets");
+      snprintf(opa_rcv_pack_cntr,  sizeof(opa_rcv_pack_cntr),  "%s/%s", dev_adapter_0, "port_rcv_packets");
+      snprintf(opa_xmit_byte_cntr, sizeof(opa_xmit_byte_cntr), "%s/%s", dev_adapter_0, "port_xmit_data");
+      snprintf(opa_rcv_byte_cntr,  sizeof(opa_rcv_byte_cntr),  "%s/%s", dev_adapter_0, "port_rcv_data");
       found_opa = true;
     }
     if (dir != NULL)
@@ -205,9 +211,9 @@ int main(int argc, char *argv[])
   if (is_tmp_file_exists) {
  
     char output_path[PATH_BUFFER_SIZE];
-    snprintf(output_path, sizeof(output_path), "%s/opa_%s.txt", argv[3], argv[1]);
+  //snprintf(output_path, sizeof(output_path), "%s/opa_%s.txt", argv[3], argv[1]);
+    snprintf(output_path, sizeof(output_path), "%s/opa_packets-%s.txt", argv[3], argv[1]);
     file = fopen(output_path, "a+");
-
     fprintf(file, "%.3f ", 0.5 * (time_new + time_old));
 
     for (int i = 0; i < 4; i++) {

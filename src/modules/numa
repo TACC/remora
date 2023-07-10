@@ -27,22 +27,14 @@ init_module_numa()
   if [[ "$REMORA_MODE" == "FULL" ]]; then
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
  
-    source $REMORA_OUTDIR/remora_env.txt
-
-    local remora_date_precision
-    if [[ $REMORA_DATE_PREC_AVAIL =~ ms ]] && [[ $REMORA_DATE_PRECISION == s ]]; then 
-      remora_date_precision="ms"
-    else
-      remora_date_precision=$REMORA_DATE_PRECISION
-    fi  
-
+   #source $REMORA_OUTDIR/remora_env.txt
 
     local numNodes=$(numastat | egrep  'node[0-9]' |wc -w)
 
     local id SZ=18
     local header active_pg_header huge_pg_header add_2_header
 
-    header=$(printf "%-${SZ}s" "TIME($remora_date_precision)")
+    header=$(printf "%-${SZ}s" "TIME(sec)")
 
     active_pg_header=$(printf "%-${SZ}s" "anon_Pg(KiB)")
     huge_pg_header=$(  printf "%-${SZ}s" "anon_HugePg(KiB)")
@@ -82,7 +74,7 @@ collect_data_numa(){
   if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
-    source $REMORA_OUTDIR/remora_env.txt
+   #source $REMORA_OUTDIR/remora_env.txt
 
     local timestamp numStat numNodes nodesless1 name
     local stats=()
@@ -176,7 +168,7 @@ plot_data_numa()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
-    source $REMORA_OUTDIR/remora_env.txt
+   #source $REMORA_OUTDIR/remora_env.txt
 
     local FILE=$REMORA_TMPDIR/numa_${REMORA_NODE}.html
 
@@ -191,14 +183,6 @@ plot_data_numa()
     local active hugepg
     local fgn_sums=() header_plus_sum
     local idx val
-
-    local tm_units
-    if [[ $REMORA_DATE_PREC_AVAIL =~ ms ]] && [[ $REMORA_DATE_PRECISION == s ]]; then
-      tm_units="ms"
-    else
-      tm_units=$REMORA_DATE_PRECISION
-    fi
-
 
     printf "%s \n" "<html>"  > $FILE
     printf "%s \n" "<head>" >> $FILE
@@ -248,8 +232,8 @@ plot_data_numa()
 
         ln_vals=( $line )
         timestamp=${ln_vals[0]}
-       #ctime=$[timestamp - firsttimestamp]
-        time=$(bc <<< "$timestamp - $firsttimestamp")
+       #ctime=$[timestamp -  firsttimestamp]
+        ctime=$(bc <<< "$timestamp - $firsttimestamp")
 
         printf "["                 >> $FILE
         printf "%s," $ctime        >> $FILE
@@ -267,7 +251,7 @@ plot_data_numa()
     printf "%s \n" "var options = { "                              >> $FILE
     printf "%s \n" "title : 'Memory in Use (MiB)',"                >> $FILE
     printf "%s \n" "vAxis: {title: 'Active Anonymous Mem (MiB)'}," >> $FILE
-    printf "%s \n" "hAxis: {title: 'Time ($tm_units)'},"           >> $FILE
+    printf "%s \n" "hAxis: {title: 'Time (sec)'},"                 >> $FILE
 
 #   printf "%s \n" "//legend: {position: 'none'},"    >> $FILE
 #   printf "%s \n" "//curveType: 'function',"         >> $FILE
@@ -286,7 +270,7 @@ plot_data_numa()
 
     printf "%s \n" "function drawMiss() {"                                    >> $FILE
     printf "%s \n" "var data = new google.visualization.DataTable();"         >> $FILE
-    printf "%s \n" "data.addColumn('number', 'Execution Time ($tm_units)');"  >> $FILE
+    printf "%s \n" "data.addColumn('number', 'Execution Time (sec)');"        >> $FILE
     for i in `seq 0 $(( numNodes - 1 ))`; do
         printf "%s %s %s \n" "data.addColumn('number', 'Node"$i"');"          >> $FILE
     done
@@ -348,7 +332,7 @@ plot_data_numa()
    #printf "%s \n" "title : 'NUMA Remote Assigned Memory (foreign)'," >> $FILE
     printf "%s \n" "title : '$header_plus_sum',"                      >> $FILE
     printf "%s \n" "vAxis: {title: 'Remote Allocated (MiB)'},"        >> $FILE
-    printf "%s \n" "hAxis: {title: 'Time ($tm_units)'},"              >> $FILE
+    printf "%s \n" "hAxis: {title: 'Time (sec)'},"                    >> $FILE
     printf "%s \n" "seriesType: 'bars',"                              >> $FILE
     printf "%s \n" "bar: { groupWidth: '95%' },"                      >> $FILE
     printf "%s \n" "isStacked: true,"                                 >> $FILE
@@ -372,7 +356,7 @@ plot_data_numa()
     printf "%s \n" "function drawFree() {"                               >> $FILE
     printf "%s \n" "var data = google.visualization.arrayToDataTable([ " >> $FILE
     #printf "%s \n" "var data = new google.visualization.DataTable();"   >> $FILE
-    printf "%s \n" "['Execution Time ($tm_units)'"  >> $FILE
+    printf "%s \n" "['Execution Time (sec)'"                             >> $FILE
     for i in `seq 0 $(( numNodes - 1 ))`; do
         printf "%s %s %s \n" ", 'Node"$i"'"         >> $FILE
     done
@@ -396,7 +380,7 @@ plot_data_numa()
         
         timestamp=${ln_vals[0]}
        #ctime=$[timestamp - firsttimestamp]
-        ctime=$( bc <<< "$timestamp - $firsttimestamp )
+        ctime=$( bc <<< "$timestamp - $firsttimestamp")
         printf "["                          >> $FILE
         printf "%s," $ctime                 >> $FILE
         for i in `seq $numNodes`; do
@@ -412,7 +396,7 @@ plot_data_numa()
     printf "%s \n" "var options = { "       >> $FILE
     printf "%s \n" "title : 'NUMA Free',"   >> $FILE
     printf "%s \n" "vAxis: {title: 'MBs'}," >> $FILE
-    printf "%s \n" "hAxis: {title: 'Time ($tm_units)'}," >> $FILE
+    printf "%s \n" "hAxis: {title: 'Time (sec)'}," >> $FILE
     printf "%s \n" "isStacked: true,"       >> $FILE
     printf "%s \n" "width: 800, "           >> $FILE
     printf "%s \n" "height: 600, "          >> $FILE
@@ -431,7 +415,7 @@ plot_data_numa()
 
     printf "%s \n" "function drawUsed() {"              >> $FILE
     printf "%s \n" "var data = google.visualization.arrayToDataTable([ " >> $FILE
-    printf "%s \n" "['Execution Time ($tm_units)'"      >> $FILE
+    printf "%s \n" "['Execution Time (sec)'"            >> $FILE
     for i in `seq 0 $(( numNodes - 1 ))`; do
         printf "%s %s %s \n" ", 'Node"$i"'"             >> $FILE
     done
@@ -474,7 +458,7 @@ plot_data_numa()
     printf "%s \n" "var options = { "            >> $FILE
     printf "%s \n" "title : 'NUMA Used',"        >> $FILE
     printf "%s \n" "vAxis: {title: 'MBs'},"      >> $FILE
-    printf "%s \n" "hAxis: {title: 'Time ($tm_units)'}," >> $FILE
+    printf "%s \n" "hAxis: {title: 'Time (sec)'}," >> $FILE
     printf "%s \n" "isStacked: true,"            >> $FILE
     printf "%s \n" "width: 800, "                >> $FILE
     printf "%s \n" "height: 600, "               >> $FILE

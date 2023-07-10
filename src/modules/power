@@ -32,17 +32,17 @@ init_module_power()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
-  source $REMORA_OUTDIR/remora_env.txt
+ #source $REMORA_OUTDIR/remora_env.txt
 
   local  POWER_FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.txt
   local ENERGY_FILE=$REMORA_TMPDIR/energy_${REMORA_NODE}.txt
 
   # Updated 2023-03-28 by Kent
   # Can now use intel RAPL to get Energy, Watts=Energy_uj_now - Energy_uj_prev/delta_time
-    source $REMORA_OUTDIR/remora_env.txt
+ #  source $REMORA_OUTDIR/remora_env.txt
 
   local remora_date_precision="ms"
-  local remora_date_format='+%s%3N'
+  local remora_date_format='+%s.%3N'
 
   local REMORA_POWER_IGNORE    # 0 == don't ignore     1 == ignore  
   local REMORA_POWER_COLLECTOR # sensors or intel_rapl

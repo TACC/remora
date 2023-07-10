@@ -62,6 +62,7 @@ int main(int argc, char *argv[])
   char *rest;
   char *time_str;
   double time_old;
+  double time_init;
 
   if (file != NULL)  {
     is_tmp_file_exists = true;
@@ -81,14 +82,22 @@ int main(int argc, char *argv[])
       if (rest == end)
           break;
       else {
-        if (idx < n_sockets)
+        if (idx < n_sockets) {
           energy_list_old[idx] = val;
-        else
-          energy_list_overflow[idx] = (unsigned int)(val);
+        }
+        else {
+          energy_list_overflow[idx-n_sockets] = (unsigned int)(val);
+          if (idx == 2 * n_sockets - 1) {
+            rest = end;
+            break;
+          }
+        }
         idx++;
       }
       rest = end;
     }
+    time_init = atof(rest);
+
     fclose(file);
   }
 
@@ -138,6 +147,9 @@ int main(int argc, char *argv[])
 
   double time_new = ((double)now.tv_sec*1e9 + now.tv_nsec) / 1000000000;
 
+  if (!is_tmp_file_exists)
+    time_init = time_new;
+
   for (int i = 0; i < n_sockets; i++)
     energy_list_diff[i] /= (time_new - time_old);
 
@@ -148,12 +160,9 @@ int main(int argc, char *argv[])
     fprintf(file, "%llu ", energy_list_new[i]);
   }
   for (int i = 0; i < n_sockets; i++) {
-    fprintf(file, "%u", energy_list_overflow[i]);
-    if (i <= n_sockets-2)
-      fprintf(file, " ");
-    else
-      fprintf(file, "\n");
+    fprintf(file, "%u ", energy_list_overflow[i]);
   }
+  fprintf(file, "%.9f\n", time_init);
 
   fclose(file);
 
@@ -168,7 +177,7 @@ int main(int argc, char *argv[])
     snprintf(output_path, sizeof(output_path), "%s/energy_%s.txt", argv[3], argv[1]);
     file = fopen(output_path, "a+");
 
-    fprintf(file, "%.6f ", time_new);
+    fprintf(file, "%.6f ", time_new - time_init);
 
     for (int i = 0; i < n_sockets; i++)  {
       fprintf(file, "%llu", energy_list_new[i] + energy_list_overflow[i] * ENERGY_MAX);
@@ -184,10 +193,10 @@ int main(int argc, char *argv[])
     snprintf(output_path, sizeof(output_path), "%s/power_%s.txt", argv[3], argv[1]);
     file = fopen(output_path, "a+");
 
-    fprintf(file, "%.6f ", 0.5 * (time_new + time_old));
+    fprintf(file, "%.6f ", 0.5 * (time_new + time_old) - time_init);
 
     for (int i = 0; i < n_sockets; i++)  {
-      fprintf(file, "%llu", energy_list_diff[i]);
+      fprintf(file, "%.3f", energy_list_diff[i]/1000000.0);
       if (i == n_sockets - 1)
         fprintf(file, "\n");
       else

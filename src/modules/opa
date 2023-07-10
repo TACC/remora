@@ -27,10 +27,13 @@ init_module_opa()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     if [[ "$REMORA_SYMMETRIC" == "0" ]]; then
         if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
-            opa_xmit_packs_cntr="/sys/class/infiniband/hfi1_0/ports/1/counters/port_xmit_packets"
-             opa_rcv_packs_cntr="/sys/class/infiniband/hfi1_0/ports/1/counters/port_rcv_packets"
-            opa_xmit_bytes_cntr="/sys/class/infiniband/hfi1_0/ports/1/counters/port_xmit_data"
-             opa_rcv_bytes_cntr="/sys/class/infiniband/hfi1_0/ports/1/counters/port_rcv_data"
+            [[ -d /sys/class/infiniband/hfi1_0 ]] && adapter=hfi1_0 
+            [[ -d /sys/class/infiniband/mlx5_0 ]] && adapter=mlx5_0
+
+            opa_xmit_packs_cntr="/sys/class/infiniband/$adapter/ports/1/counters/port_xmit_packets"
+             opa_rcv_packs_cntr="/sys/class/infiniband/$adapter/ports/1/counters/port_rcv_packets"
+            opa_xmit_bytes_cntr="/sys/class/infiniband/$adapter/ports/1/counters/port_xmit_data"
+             opa_rcv_bytes_cntr="/sys/class/infiniband/$adapter/ports/1/counters/port_rcv_data"
 
             opa_xmit_packs=`cat $opa_xmit_packs_cntr`
              opa_rcv_packs=`cat  $opa_rcv_packs_cntr`
@@ -47,7 +50,7 @@ collect_data_opa()
     if [[ "$REMORA_SYMMETRIC" == "0" ]]; then
         if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
 
-            local TIMESTAMP=`date +%s`
+            local TIMESTAMP=`date +%s.%3N`
             local new_opa_xmit_packs=`cat $opa_xmit_packs_cntr`
             local  new_opa_rcv_packs=`cat $opa_rcv_packs_cntr`
             local new_opa_xmit_bytes=`cat $opa_xmit_bytes_cntr`
@@ -109,7 +112,7 @@ plot_data_opa()
             firsttimestamp=`echo $line | awk '{print $1;}'`
         fi
         local timestamp=`echo $line | awk '{print $1;}'`
-        ctime=$[timestamp - firsttimestamp]
+        ctime=$(bc <<< "$timestamp - $firsttimestamp")
         printf "[%s," $ctime >> $REMORA_TMPDIR/opa_${REMORA_NODE}.html
         idx=0
         out=""

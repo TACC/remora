@@ -69,13 +69,19 @@ int main(int argc, char *argv[])
 
   double time_new = ((double)now.tv_sec*1e9 + now.tv_nsec) / 1000000000;
 
+  //char *user_name = getlogin();
+  //struct passwd *pw = getpwnam(user_name);
+
   pid_t current_pid = getpid();
 
-  char *user_name = getlogin();
-  struct passwd *pw = getpwnam(user_name);
+  //char *user_name = getlogin();
+  //struct passwd *pw = getpwnam(user_name);
+
+  uid_t uid = geteuid ();
+  struct passwd *pw = getpwuid (uid);
 
   if (!pw)  {
-    fprintf(stderr, "Error: getpwnam failed for user %s\n", user_name);
+    fprintf(stderr, "Error: getpwnam failed for user %s\n", pw->pw_name);
     return EXIT_FAILURE;
   }
 

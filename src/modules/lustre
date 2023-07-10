@@ -124,7 +124,8 @@ collect_data_lustre()
                 fi
 
                #local TIMESTAMP=`date +%s`
-                local TIMESTAMP=`date +%s%3N`
+               #local TIMESTAMP=`date +%s%3N`
+                local TIMESTAMP=`date +%s.%3N`
                 local idx=0
                 local COUNTER=()
                 col_id=0
@@ -164,30 +165,7 @@ plot_data_lustre()
         return
     fi
 
-    local precision tm_factor diff tm_delta tm_offset
-
-    # If requesting ns precision, use it; otherwise us ms if available; otherwise us s(sec)
-    source $REMORA_OUTDIR/remora_env.txt
-    if [[ $REMORA_DATE_PRECISION =~ 'ns' ]]; then
-       tm_factor=1000000000.0
-       precision=ns
-       DATE_FORMAT="$REMORA_DATE_FORMAT"
-    else
-       if [[ $REMORA_DATE_PREC_AVAIL =~ 'ms' ]]; then
-          tm_factor=1000.0
-          precision=ms
-          DATE_FORMAT="+%s%3N"
-       elif [[ $REMORA_DATE_PREC_AVAIL =~ 'ns' ]]; then
-          tm_factor=1000000000.0
-          precision=ns
-          DATE_FORMAT="+%s%N"
-       else
-          tm_factor=1.0
-          precision=s
-          DATE_FORMAT="+%s"
-       fi
-    fi
-
+    local diff tm_delta tm_offset
 
     ## Generate the plot for the current node
     printf "%s \n" "<html>" > $REMORA_TMPDIR/lustre_${REMORA_NODE}.html
@@ -210,7 +188,6 @@ plot_data_lustre()
     local previousline=""
     local idx
 
-    #echo "TM_FACTOR=$tm_factor PRECISION=$precision DATE_FORMAT=$DATE_FORMAT "
     while read line; do
         if [[ $lineno -eq 1 ]]; then
             idx=0
@@ -248,17 +225,20 @@ plot_data_lustre()
         for i in $line; do
             if [[ $idx -eq 0 ]]; then
                #val=$[i - firsttimestamp]
-               #val=`echo "scale=2;  $val / $tm_factor" | bc`
+               #val=`echo "scale=2;  $val" | bc`
                #elapsedtime=$[i-previous[$idx]]
-                tm_delta=$[i-previous[$idx]]
-                tm_offset=$(echo "scale=9;  $tm_delta / 2" | bc)
-                diff=$[i - firsttimestamp]
-                val=`echo "scale=3;  ($diff-$tm_offset) / $tm_factor" | bc`
+               #tm_delta=$[i-previous[$idx]]
+                tm_delta=$(bc <<< "scale=3; $i-${previous[$idx]}")
+                tm_offset=$(echo "scale=3;  $tm_delta / 2" | bc)
+               #diff=$[i - firsttimestamp]
+                diff=$(bc <<< "scale=3; $i - $firsttimestamp")
+                val=`echo "scale=3;  $diff-$tm_offset" | bc`
                 #echo "$idx  i=$i previous=${previous[$idx]}   tm_delta=$tm_delta  tm_offset=$tm_offset diff=$diff val=$val"
             else
-                diff=$[i - previous[$idx]]
-               #echo " *******************1 ${REMORA_NODE} ($diff * $tm_factor) / $tm_delta -- $i"
-                val=`echo "scale=3;  ($diff * $tm_factor) / $tm_delta" | bc`
+               #diff=$[i - previous[$idx]]
+                diff=$(bc <<< "scale=3; $i - ${previous[$idx]}")
+               #echo " *******************1 ${REMORA_NODE} $diff / $tm_delta -- $i"
+                val=`echo "scale=3;  $diff / $tm_delta" | bc`
             fi
             local pos=`expr $idx % 3`
             if [[ $pos -eq 1 ||  $idx -eq 0 ]]; then
@@ -443,32 +423,6 @@ finalize_module_lustre()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     plot_data_lustre $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 
-    local precision tm_factor date_format tm_delta tm_offset
-    # If requesting ns precision, use it; otherwise us ms if available; otherwise us s(sec)
-    source $REMORA_OUTDIR/remora_env.txt
-    if [[ $REMORA_DATE_PRECISION =~ 'ns' ]]; then
-       tm_factor=1000000000.0
-       precision=ns
-       date_format="$REMORA_date_format"
-    else
-       if [[ $REMORA_DATE_PREC_AVAIL =~ 'ms' ]]; then
-          tm_factor=1000.0
-          precision=ms
-          date_format="+%s%3N"
-       elif [[ $REMORA_DATE_PREC_AVAIL =~ 'ns' ]]; then
-          tm_factor=1000000000.0
-          precision=ns
-          date_format="+%s%N"
-       else
-          tm_factor=1.0
-          precision=s
-          date_format="+%s"
-       fi
-    fi
-
-
-
-
     ## Postprocess to generate the summary
     REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
     if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]] && [[ "$REMORA_SYMMETRIC" == "0" ]]; then
@@ -531,12 +485,12 @@ finalize_module_lustre()
                         d2=(`sed "${next}q;d" $REMORA_OUTDIR/$file | awk '{ print $1 " " $2 " " $3 " " $4 }'`)
                         tm_delta=$[d2[0]-d1[0]]
                         tm_offset=$(echo "scale=9;  $tm_delta / 2" | bc)
-                        rtime=`echo "scale=6; ( ${d2[0]} - $startTime - $tm_offset)/$tm_factor" | bc`
+                        rtime=`echo "scale=6;  ${d2[0]} - $startTime - $tm_offset" | bc`
                         #echo ${d1[0]}  ${d2[0]} tm_delta=$tm_delta $rtime
  #?? TODO: check is these are in MB or BYTES
-                        fsio=`echo "scale=6; $tm_factor * ( ${d2[1]} - ${d1[1]} ) / (             ( ${d2[0]} - ${d1[0]} ) )" | bc`
-                        fsrd=`echo "scale=6; $tm_factor * ( ${d2[2]} - ${d1[2]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
-                        fswr=`echo "scale=6; $tm_factor * ( ${d2[3]} - ${d1[3]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
+                        fsio=`echo "scale=6;  ( ${d2[1]} - ${d1[1]} ) / (             ( ${d2[0]} - ${d1[0]} ) )" | bc`
+                        fsrd=`echo "scale=6;  ( ${d2[2]} - ${d1[2]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
+                        fswr=`echo "scale=6;  ( ${d2[3]} - ${d1[3]} ) / ( 1000000.0 * ( ${d2[0]} - ${d1[0]} ) )" | bc`
                         printf "%-17f %-17f %-17f %-17f\n" $rtime $fsio $fsrd $fswr >> $REMORA_OUTDIR/lustre_${FS}_rate.txt
                     done
                 done
@@ -625,76 +579,3 @@ finalize_module_lustre()
 
 #    rm $REMORA_TMPDIR/remora_lustre_names_${REMORA_NODE}.tmp
 }
-
-######## UNIT TEST ###############
-
-if [[ $REMORA_UNIT_TEST_ALL == 1  || $REMORA_UNIT_TEST == "lustre" ]]; then
-
-    MOD_NAME=lustre
-    REMORA_TMPDIR=`pwd`
-    REMORA_OUTDIR=`pwd`
-    REMORA_NODES=(c000-000 c000-001)
-    export REMORA_PLOT_RESULTS=1
-    export REMORA_SYMMETRIC=0
-    export REMORA_MODE=FULL
-    export REMORA_LUSTRE=1
-
-    cat <<-"EOF" >$REMORA_OUTDIR/remora_env.txt
-   #export REMORA_DATE_PRECISION=ms  
-   #export REMORA_DATE_FORMAT=+%s%3N
-    export REMORA_DATE_PRECISION=s  
-    export REMORA_DATE_FORMAT=+%s
-EOF
-    ls -ltr remora_env.txt
-
-#   rm -f $REMORA_OUTDIR/remora_env.txt
-    rm -f $REMORA_OUTDIR/remora_nodes.txt
-    for node in ${REMORA_NODES[@]}; do
-    rm -f $REMORA_OUTDIR/${MOD_NAME}_stats_${node}.txt
-    rm -f $REMORA_OUTDIR/${MOD_NAME}_${node}.html
-    done
-
-    for node in ${REMORA_NODES[@]}; do
-       echo  $node >>$REMORA_OUTDIR/remora_nodes.txt
-    done
-
-    V=0; [[ $REMORA_VERBOSE == 1 ]] && V=1 
-
-               [[ $V == 1 ]] && printf "%s\n" " -> file: $0"
-
-               [[ $V == 1 ]] && printf "%s"   " -> running init_module_${MOD_NAME}..."
-    for node in ${REMORA_NODES[@]}; do
-      eval init_module_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
-    done
-    sleep $REMORA_PERIOD
-               [[ $V == 1 ]] && printf "%s\n" " finished."
-
-    STEPS=${REMORA_UNIT_TEST_STEPS:-20}
-               [[ $V == 1 ]] && printf "%s"   " ->     running collect_data_${NAME}, ${STEPS} steps: "
-    for i in `seq 1 $STEPS`; do
-
-      for node in ${REMORA_NODES[@]}; do
-         eval collect_data_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
-      done
-      sleep $REMORA_PERIOD
-               [[ $V == 1 ]] && printf "%s" "." 
-    done
-               [[ $V == 1 ]] && printf "%s\n" " finished."
-
-if [[ 1 == 0 ]]; then
-               [[ $V == 1 ]] && printf "%s"   " -> running plot_data_${MOD_NAME}..."
-    for node in ${REMORA_NODES[@]}; do
-      eval plot_data_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
-    done
-               [[ $V == 1 ]] && printf "%s\n" " finished."
-
-    for node in ${REMORA_NODES[@]}; do
-      eval finalize_module_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
-    done
-               [[ $V == 1 ]] && printf "%s\n" " finished $NAME unit test."
-fi
-
-   #rm -f $REMORA_OUTDIR/remora_nodes.txt
-    rm -f $REMORA_OUTDIR/remora_env.txt
-fi
-

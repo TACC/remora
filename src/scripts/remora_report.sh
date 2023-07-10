@@ -56,24 +56,27 @@ reported_warn=no reported_crit=no period_cntr=1 info=""
 
 while [[ 1 ]]; do
 
-  if [[ $REMORA_BINARIES == 1 ]]; then
+   [[ $REMORA_BINARIES == 1 ]] && rm -f /dev/shm/remora_*     #things may be left behind from a previous run
 
-     for MODULE in "${REMORA_MODULES[@]}"; do
-         tm_0=$( date +%s%N )
-         [[ "$REMORA_VERBOSE" == "1" ]] && echo "Binary Module Execution: $MODULE $NODE $OUTDIR $TMPDIR"
-         eval $REMORA_BIN/binary_data_collectors/data_collect_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
-         echo "Collection on binary module: $MODULE" >> $HOME/collection_summary
-         tm_1=$(date +%s%N)
-     done
+   tm_0=$( date +%s.%N )
+   for MODULE in "${REMORA_MODULES[@]}"; do
 
-  else
-   tm_0=$( date +%s%N )
-      remora_execute_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR "${REMORA_MODULES[@]}"
-         echo "Collection on script modules: " >> $HOME/collection_summary
-   tm_1=$(date +%s%N)
-fi
+     if [[ -e $REMORA_BIN/binary_data_collectors/data_collect_$MODULE ]] && [[ $REMORA_BINARIES == 1 ]]; then
 
-   sleep_time=$( bc<<<"scale=4; $REMORA_PERIOD - ($tm_1-$tm_0)/1000000000" )
+       [[ "$REMORA_VERBOSE" == "1" ]] && echo "Binary Module Data Collection: $MODULE $NODE $OUTDIR $TMPDIR"
+       eval $REMORA_BIN/binary_data_collectors/data_collect_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+                       echo "Collection on binary (R_BINARIES=$REMORA_BINARIES) module: $MODULE" >> $HOME/collection_summary
+
+     else
+       [[ "$REMORA_VERBOSE" == "1" ]] && echo "Script-only Module data Collection: $MODULE $NODE $OUTDIR $TMPDIR"
+       eval collect_data_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+                       echo "Collection on script (R_BINARIES=$REMORA_BINARIES) module: $MODULE" >> $HOME/collection_summary
+     fi
+
+   done
+   tm_1=$(date +%s.%N)
+
+   sleep_time=$( bc<<<"scale=4; $REMORA_PERIOD - ($tm_1-$tm_0)" )
 
    ## Just checking here: make sure collection time is not exceeding REMORA_PERIOD.
    ##                     Will not worry about 2ms if test (8ms if warning/critical printed).
