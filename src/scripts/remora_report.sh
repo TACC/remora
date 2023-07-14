@@ -50,6 +50,7 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  # use for debugging
 
       [[ "$REMORA_VERBOSE" == "1" ]] && echo init_module_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
      
+      source $REMORA_BIN/modules/$MODULE
       init_module_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 
    done
