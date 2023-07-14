@@ -113,11 +113,25 @@ parse_environment() {
 	if [[ -z "$REMORA_MONITOR_PERIOD" ]]; then
 		export REMORA_MONITOR_PERIOD=10
 	fi
-                     #If binary directory exists, and REMORA_BINARIES != 0
+
+   # Check if binary directory exists, then set  REMORA_BINARIES  to 1
    if [[ -d $REMORA_BIN/binary_data_collectors ]] &&  [[ "x0" != "x$REMORA_BINARIES" ]]; then
       export REMORA_BINARIES=1
    else
       export REMORA_BINARIES=0
+   fi
+
+   # Check if binary directory exists, then set  REMORA_BINARIES  to 1
+   if [[ ! -z  "$REMORA_CONFIGPATH" ]]; then 
+     CONFIGPATH=$REMORA_CONFIGPATH
+   else
+     CONFIGPATH=$REMORA_BIN/config
+   fi
+
+   if [[ ! -z  "$REMORA_MODULEPATH" ]]; then 
+     MODULEPATH=$REMORA_MODULEPATH
+   else
+     MODULEPATH=$REMORA_BIN/modules
    fi
 
 
@@ -136,6 +150,8 @@ parse_environment() {
     echo "export REMORA_VERBOSE=$REMORA_VERBOSE"   >> $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_MONITOR_PERIOD=$REMORA_MONITOR_PERIOD" >> $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_BINARIES=$REMORA_BINARIES" >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_CONFIGPATH=$CONFIGPATH"    >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_MODULEPATH=$MODULEPATH"    >> $REMORA_OUTDIR/remora_env.txt
 
 }
 
@@ -228,29 +244,112 @@ check_io() {
     echo "export REMORA_DVS=$REMORA_DVS" >> $REMORA_OUTDIR/remora_env.txt
 }
 
-remora_read_active_modules()
+
+remora_set_active_modules()
 {
     if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo "  Checking active modules"
     fi
+    source $REMORA_OUTDIR/remora_env.txt
 
     local CONFIGPATH=$REMORA_BIN/config
     local MODULEPATH=$REMORA_BIN/modules
+
     #Check if REMORA_MODULE_PATH and REMORA_CONFIG_PATH have been defined
     #This allows users to store a config file in user space as well
     #as modules
+
     if [[ -n "$REMORA_CONFIG_PATH" ]]; then
-        CONFIGPATH=$REMORA_MODULE_PATH
-    fi
+        CONFIGPATH=$REMORA_CONFIG_PATH
+    fi  
     if [[ -n "$REMORA_MODULE_PATH" ]]; then
         MODULEPATH=$REMORA_MODULE_PATH
+    fi  
+
+   config_modules=$( cat $CONFIGPATH/modules | cut -f1 -d "," | tr "\n" " " )
+   config_outdirs=$( cat $CONFIGPATH/modules | cut -f2 -d "," | tr "\n" " " )
+   REMORA_CONFIG_MODULES=(         $config_modules )
+   REMORA_CONFIG_MODULES_OUTDIRS=( $config_outdirs )
+
+ remora_modules=( "${REMORA_CONFIG_MODULES[@]}" )
+                                                      #### New vvv Jun4 9, 2023
+    # If User specifies modules in REMORA_MODULES env var.
+    if [[ ! -z $REMORA_MODULES ]]; then
+       env_mods=( $REMORA_MODULES )
+                                      # JIC: change characters to lower case   
+       for i in ${env_mods[@]}; do mod_list+=( $(tr '[:upper:]' '[:lower:]' <<< $i) ); done
+       
+       if [[ "${mod_list[@]}" =~ '-' ]]; then     # if negative list of modules, remove them
+    
+          #Check for proper use
+          negative_count=$( echo "${mod_list[@]}" | tr -cd -- '-' | wc -c | sed 's/ //g' )
+          if [[ "${#mod_list[@]}" != "$negative_count" ]]; then
+             echo " -> *** WARNING *** Negative and non-negative items in REMORA_MODULES:"
+             echo " ->                 ($REMORA_MODULES). See remora -h for usage."
+             echo " ->                 Will use default modules in Configure directory."
+             mod_list=()
+          else
+             # ALL OK
+             echo " -> Removing (negative-prefixed) modules found in REMORA_MODULES: $REMORA_MODULES."
+          fi
+       
+          rm_modules=( $( echo "${mod_list[@]}" | sed 's/-//g' ) )  #remove all neg char
+    
+          remora_modules=() 
+          remora_modules=( ${REMORA_CONFIG_MODULES[@]} )
+    
+          # Remove each value in rm_modules from remora_modules, loop over indices (note !).
+          for rm_mod in "${rm_modules[@]}"; do
+             found=no
+             for j in "${!remora_modules[@]}"; do
+               if [[ ${remora_modules[$j]} == ${rm_mod} ]]; then
+                  unset remora_modules[$j] 
+                  found=yes 
+               fi
+             done 
+             if [[ $found == no ]]; then
+                echo " *** WARNING *** Cannot remove module \"$rm_mod\" (from REMORA_MODULES) because not active/available."
+             fi
+          done
+          remora_modules=( ${remora_modules[@]} )  #re-index (removes gaps)
+    
+       else    #Just a list of modules to use
+          echo  "  -> Only using module(s) from \$REMORA_MODULES env var: ${mod_list[@]}"
+          remora_modules=( ${mod_list[@]} )
+    
+         # Check: Make sure user provided valid modules
+          for i in "${!remora_modules[@]}"; do
+             found=no
+             for j in "${!REMORA_CONFIG_MODULES[@]}"; do
+                [[ ${REMORA_CONFIG_MODULES[$j]} == ${remora_modules[$i]} ]] && found=yes
+             done 
+             if [[ $found != yes ]]; then
+                echo " *** ERROR *** Module \"${remora_modules[$i]}\" in env var REMORA_MODULES is not available."
+                exit    #Maybe this is too strick, but what alternative would be used?
+             fi
+          done
+       fi
+    
+    else
+       echo " -> Using modules specified in the $CONFIGPATH/modules file."
+       fileItemString=$(cat $CONFIGPATH/modules | cut -f1 -d "," | tr "\n" " ")
+       remora_modules=($fileItemString)
     fi
 
-    fileItemString=$(cat $CONFIGPATH/modules | cut -f1 -d "," | tr "\n" " ")
-    outDirsString=$( cat $CONFIGPATH/modules | cut -f2 -d "," | tr "\n" " ")
-    REMORA_MODULES=($fileItemString)
-    REMORA_MODULES_OUTDIRS=($outDirsString)
+       #echo FINAL module list:  "${remora_modules[@]}"
+       REMORA_MODULES=( "${remora_modules[@]}" )
+                                                      #### New ^^^ June  9, 2023
+                                                      #### New vvv July 11, 2023, ACTIVE_MODULES_OUTDIRS
+    for rm_id in "${!REMORA_MODULES[@]}"; do
+        for cm_id in  "${!REMORA_CONFIG_MODULES[@]}"; do
+          [[ ${REMORA_MODULES[$rm_id]} == ${REMORA_CONFIG_MODULES[$cm_id]} ]] && REMORA_ACTIVE_MODULES_OUTDIRS[$rm_id]=${REMORA_CONFIG_MODULES_OUTDIRS[$cm_id]}
+        done
+    done
 
+    echo "export REMORA_ACTIVE_MODULES=\"${REMORA_MODULES[@]}\""                        >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_ACTIVE_MODULES_OUTDIRS=\"${REMORA_ACTIVE_MODULES_OUTDIRS[@]}\"" >> $REMORA_OUTDIR/remora_env.txt
+
+                                                      ##KM Is is necessary to source them here?
     for MODULE in "${REMORA_MODULES[@]}"
     do  
       source $MODULEPATH/$MODULE
@@ -258,12 +357,49 @@ remora_read_active_modules()
         echo "      Module $MODULE is active"
       fi  
     done
+
 }
 
+
+# remora_read_active_modules()
+# {
+#     if [[ "$REMORA_VERBOSE" == "1" ]]; then
+#         echo "  Checking active modules"
+#     fi
+# 
+#     local CONFIGPATH=$REMORA_BIN/config
+#     local MODULEPATH=$REMORA_BIN/modules
+#     #Check if REMORA_MODULE_PATH and REMORA_CONFIG_PATH have been defined
+#     #This allows users to store a config file in user space as well
+#     #as modules
+#     if [[ -n "$REMORA_CONFIG_PATH" ]]; then
+#         CONFIGPATH=$REMORA_CONFIG_PATH
+#     fi
+#     if [[ -n "$REMORA_MODULE_PATH" ]]; then
+#         MODULEPATH=$REMORA_MODULE_PATH
+#     fi
+# 
+#     fileItemString=$(cat $CONFIGPATH/modules | cut -f1 -d "," | tr "\n" " ")
+#     outDirsString=$( cat $CONFIGPATH/modules | cut -f2 -d "," | tr "\n" " ")
+#     REMORA_MODULES=($fileItemString)
+#     REMORA_MODULES_OUTDIRS=($outDirsString)
+# 
+#     for MODULE in "${REMORA_MODULES[@]}"
+#     do  
+#       source $MODULEPATH/$MODULE
+#       if [[ "$REMORA_VERBOSE" == "1" ]]; then
+#         echo "      Module $MODULE is active"
+#       fi  
+#     done
+# }
+
 init_folders() {
+
     CWD=`pwd`
-    # Determing current work directory
+    # Determining current work directory
     REMORA_OUTDIR=$CWD/remora_$REMORA_JOB_ID
+VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out
+
     if [[ -d $REMORA_OUTDIR ]]; then
       n=1
       while [[ -d $REMORA_OUTDIR-$n ]]; do
@@ -271,53 +407,46 @@ init_folders() {
       done
       mv $REMORA_OUTDIR $REMORA_OUTDIR-$n
     fi
+
     mkdir -p $REMORA_OUTDIR
-    rm -rf $REMORA_OUTDIR/*
+    rm   -rf $REMORA_OUTDIR/*   #JIC
+
     # Determine directory for temporary files
     if [[ -z "$REMORA_TMPDIR" ]]; then
         export REMORA_TMPDIR=$REMORA_OUTDIR
     else
 		export REMORA_TMPDIR=$REMORA_TMPDIR/remora_$REMORA_JOB_ID
     fi
+#                                ##KFM is this done on nodes in remora_report.sh?k
     mkdir -p $REMORA_TMPDIR
-    rm -rf $REMORA_TMPDIR/*
+    rm   -rf $REMORA_TMPDIR/*
+
+    echo "export REMORA_OUTDIR=$REMORA_OUTDIR"  > $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_TMPDIR=$REMORA_TMPDIR" >> $REMORA_OUTDIR/remora_env.txt
 
     # Setup output subdirectories
     mkdir $REMORA_OUTDIR/INFO
     mkdir $REMORA_OUTDIR/MONITOR
 
-    remora_read_active_modules
-    #Create the output folders depending on the info passed on the configuration file (second column)
-    for MODULE in "${REMORA_MODULES_OUTDIRS[@]}"; do
-      [[ -d $REMORA_OUTDIR/$MODULE ]] || mkdir $REMORA_OUTDIR/$MODULE
-    done
+    #remora_read_active_modules
+     remora_set_active_modules
 
-    echo "export REMORA_OUTDIR=$REMORA_OUTDIR"  > $REMORA_OUTDIR/remora_env.txt
-    echo "export REMORA_TMPDIR=$REMORA_TMPDIR" >> $REMORA_OUTDIR/remora_env.txt
+   #Create the output folders depending on the info passed on the configuration file (second column)
+    for DIR in ${REMORA_ACTIVE_MODULES_OUTDIRS[@]}; do
+      #[[ -d $REMORA_OUTDIR/$DIR ]] || mkdir -p $REMORA_OUTDIR/$DIR
+      mkdir -p $REMORA_OUTDIR/$DIR
+    done
 
     date >> $REMORA_OUTDIR/remora_timestamp.txt
 
 	# Generate unique file for transfer completion check 
 	# on distributed file systems
     for node in $NODES; do
-        touch $REMORA_OUTDIR/zz.$node
+        touch $REMORA_OUTDIR/zz.$node   ##KFM ##KM  zz.node control
     done
-
-    # Pass output directory name to parent remora script
-#    echo $REMORA_OUTDIR
 }
 
 capture_environment() {
-    #Text file containing job report environmental variables and start-end timestamp
-    #date                                        >> $REMORA_OUTDIR/vars.txt
-    #echo ""                                     >> $REMORA_OUTDIR/vars.txt
-    #echo "REMORA_TMPDIR    : $REMORA_TMPDIR"    >> $REMORA_OUTDIR/vars.txt 
-    #echo "REMORA_PERIOD    : $REMORA_PERIOD"    >> $REMORA_OUTDIR/vars.txt
-    #echo "REMORA_VERBOSE   : $REMORA_VERBOSE"   >> $REMORA_OUTDIR/vars.txt
-    #echo "REMORA_MODE      : $REMORA_MODE"      >> $REMORA_OUTDIR/vars.txt
-    #echo "REMORA_CUDA      : $REMORA_CUDA"      >> $REMORA_OUTDIR/vars.txt
-    #echo "REMORA_PARALLEL  : $REMORA_PARALLEL"  >> $REMORA_OUTDIR/vars.txt
-    #echo "REMORA_SYMMETRIC : $REMORA_SYMMETRIC" >> $REMORA_OUTDIR/vars.txt
 
     #Dump environment during run
     env > $REMORA_OUTDIR/runtime_env.txt

@@ -31,18 +31,18 @@ source $REMORA_BIN/aux/extra
 source $REMORA_BIN/modules/modules_utils
 
 source $REMORA_OUTDIR/remora_env.txt
-
-#Read the list of active modules from the configuration file
-remora_read_active_modules
+REMORA_MODULES=( $REMORA_ACTIVE_MODULES )
+export REMORA_MODULES
 
 #Configure the modules (they might not need it)
 remora_monitor_summary $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR 
 
 while [[ 1 ]]; do
 	if [[ "$REMORA_VERBOSE" == "1" ]]; then
-        echo "sleep $REMORA_MONITOR_PERIOD"
-    fi
-    remora_monitor_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR "${REMORA_MODULES[@]}"
+        echo "sleep monitor for $REMORA_MONITOR_PERIOD "
+   fi
+   remora_monitor_modules $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR "${REMORA_MODULES[@]}"
 	remora_monitor_summary $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR 
-    sleep $REMORA_MONITOR_PERIOD
+   sleep $REMORA_MONITOR_PERIOD
+
 done

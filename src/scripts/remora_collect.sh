@@ -12,7 +12,7 @@
 # remora_collect "$@"
 #========================================================================
 # IMPLEMENTATION
-#      version     REMORA 1.8.6
+#-      version     REMORA 1.8.6
 #      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
 #                  Antonio Gomez  ( agomez@tacc.utexas.edu)
 #      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
@@ -30,6 +30,8 @@ function remora_collect() {
     [[ "$REMORA_MONITOR"   == "1" ]] && [[ "$REMORA_VERBOSE"   == "1" ]] && echo " REMORA: MONITOR daemon processes (remora_monitor.sh)."
     [[ "$REMORA_SYMMETRIC" == "1" ]] && [[ "$REMORA_VERBOSE"   == "1" ]] && echo " REMORA: REPORT MIC daemon processes (remora_report_mic.sh)."
 
+VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out    #for debugging
+
     for NODE in $NODES
     do
         # This is the core of REMORA. It runs the remora_report.sh daemon on each node allocated to the job.
@@ -39,12 +41,12 @@ function remora_collect() {
         COMMAND="$REMORA_BIN/scripts/remora_report.sh $NODE $REMORA_BIN $REMORA_OUTDIR >> $REMORA_OUTDIR/.remora_out_$NODE & "
 
         if [[ "$REMORA_VERBOSE" == "1" ]]; then
-            echo "REMORA: LAUNCHING remora daemon remora_report.sh process on $NODE"
-            echo "        ssh -f -n PATH=$PATH $NODE $COMMAND"
+            echo "REMORA: LAUNCHING remora_report.sh background process (in remora_collect function) on $NODE."
+            echo "        ssh -f -n $NODE $COMMAND"
         fi
             ssh -f -n $NODE PATH=$PATH $COMMAND  # PATH is included to make so that tools are found (i.e. mpstat)
 
-        [[ "$REMORA_VERBOSE" == "1" ]] && echo " REMORA: FINISHED  remora daemon remora_report.sh launch  on $NODE."
+        [[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA: FINISHED remora_report.sh LAUNCH  on $NODE."
 
         # Only do this if MONITOR mode is active  TODO: explain what monitor.sh does.
         if [[ "$REMORA_MODE" == "MONITOR" ]]; then
@@ -76,5 +78,5 @@ function remora_collect() {
 
     done
 
-    [[ "$REMORA_VERBOSE" == "1" ]] && echo -e "REMORA: all collection processes launched.\n"
+    [[ "$REMORA_VERBOSE" == "1" ]] && echo -e "REMORA: all remote remora_report.sh collection processes launched.\n"
 }

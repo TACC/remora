@@ -56,7 +56,7 @@ collect_data_opa()
             local new_opa_xmit_bytes=`cat $opa_xmit_bytes_cntr`
             local  new_opa_rcv_bytes=`cat $opa_rcv_bytes_cntr`
 
-            printf "%d %10d %10d %10d %10d\n" $TIMESTAMP \
+            printf "%f %10d %10d %10d %10d\n" $TIMESTAMP \
                 $((new_opa_xmit_packs-opa_xmit_packs)) \
                 $((new_opa_rcv_packs-opa_rcv_packs)) \
                 $((new_opa_xmit_bytes-opa_xmit_bytes)) \

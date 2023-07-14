@@ -197,7 +197,8 @@ collect_data_power()
 #                               #If delta is negative, counter wrapped
 #                               #Fix: just add the counter limit (265G) to difference.
          if [[ $delta -lt 0 ]]; then
-            energy_delta=$( bc <<< "scale=2; (${delta} + 265438953472)/$prec_factor" )
+           #energy_delta=$( bc <<< "scale=2; (${delta} + 265438953472)/$prec_factor" )
+            energy_delta=$( bc <<< "scale=2; (${delta} + 262143328850)/$prec_factor" )
          else
             energy_delta=$( bc <<< "scale=2;  ${delta}/$prec_factor" )
          fi

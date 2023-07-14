@@ -18,20 +18,22 @@
 #========================================================================
 
 #Call the init_module function of each active module
-remora_configure_modules()
-{
-    source $REMORA_BIN/aux/extra
-    source $REMORA_BIN/modules/modules_utils
-    remora_read_active_modules
-
-    for MODULE in "${REMORA_MODULES[@]}"
-    do
-        if [[ "$REMORA_VERBOSE" == "1" ]]; then
-            echo init_module_$MODULE $1 $2 $3 
-        fi
-        init_module_$MODULE $1 $2 $3
-    done
-}
+##KM should be name remora_init_modules()
+##KME should just do this loop in repora_report!!!!
+# remora_configure_modules()
+# {
+#     source $REMORA_BIN/aux/extra
+#     source $REMORA_BIN/modules/modules_utils
+#     remora_read_active_modules
+# 
+#     for MODULE in "${REMORA_MODULES[@]}"
+#     do
+#         if [[ "$REMORA_VERBOSE" == "1" ]]; then
+#             echo init_module_$MODULE $1 $2 $3 
+#         fi
+#         init_module_$MODULE $1 $2 $3
+#     done
+# }
 
 # Call the monitor_module function of each active module
 remora_monitor_modules()
@@ -51,35 +53,24 @@ remora_monitor_modules()
     done
 }
 
-#Call the c llect_data_module function of each active module
-remora_execute_modules()
-{
-    local NODE=$1
-    local OUTDIR=$2
-    local TMPDIR=$3
-    shift 3
-    REMORA_MODULES=("${@}")
-
-    for MODULE in "${REMORA_MODULES[@]}"
-    do
-        if [[ "$REMORA_VERBOSE" == "1" ]]; then
-            echo "collect_data_$MODULE $NODE $OUTDIR $TMPDIR"
-        fi
-        collect_data_$MODULE $NODE $OUTDIR $TMPDIR
-    done
-}
-
-#Call the finalize_module function of each active module
-remora_finalize_modules()
-{
-    for MODULE in "${REMORA_MODULES[@]}"
-    do
-        if [[ "$REMORA_VERBOSE" == "1" ]]; then
-            echo finalize_module_$MODULE $1 $2 $3 
-        fi
-        finalize_module_$MODULE $1 $2 $3
-    done
-}
+#Call the collect_data_module function of each active module
+##KM should be name remora_collect_data_modules()
+# remora_execute_modules()
+# {
+#     local NODE=$1
+#     local OUTDIR=$2
+#     local TMPDIR=$3
+#     shift 3
+#     REMORA_MODULES=("${@}")
+# 
+#     for MODULE in "${REMORA_MODULES[@]}"
+#     do
+#         if [[ "$REMORA_VERBOSE" == "1" ]]; then
+#             echo "collect_data_$MODULE $NODE $OUTDIR $TMPDIR"
+#         fi
+#         collect_data_$MODULE $NODE $OUTDIR $TMPDIR
+#     done
+# }
 
 # Here we just make sure the visible monitor file is updated all at one time
 remora_monitor_summary()

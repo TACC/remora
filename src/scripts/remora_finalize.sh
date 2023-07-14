@@ -13,7 +13,7 @@
 # remora_finalize $END $START
 #========================================================================
 # IMPLEMENTATION
-#      version     REMORA 1.8.5
+#-      version     REMORA 1.8.6
 #      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
 #                  Antonio Gomez  ( agomez@tacc.utexas.edu)
 #      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
@@ -25,9 +25,13 @@
 source $REMORA_BIN/aux/extra
 source $REMORA_BIN/aux/report
 
-source $REMORA_OUTDIR/remora_env.txt
-
 function remora_finalize() {
+VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  #for debugging
+
+    source $REMORA_OUTDIR/remora_env.txt
+    REMORA_MODULES=( $REMORA_ACTIVE_MODULES )
+    REMORA_MODULES_OUTDIRS=( $REMORA_ACTIVE_MODULES_OUTDIRS )
+    export REMORA_MODULES REMORA_MODULES_OUTDIRS
 
     if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo ""
@@ -79,6 +83,7 @@ function remora_finalize() {
         fi  
 
         COMMAND="$REMORA_BIN/scripts/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE >>$REMORA_OUTDIR/.remora_out_$NODE  & "
+
         if [[ "$REMORA_VERBOSE" == "1" ]]; then
             echo "REMORA: launching remote postprocessing (plotting, etc)"
             echo "        ssh -q -n $NODE $COMMAND"
@@ -143,13 +148,12 @@ function remora_finalize() {
     source $REMORA_BIN/aux/extra
     source $REMORA_BIN/modules/modules_utils
 
-    remora_read_active_modules
-
     #Move output files to their folders based on the configuration file
     #If some files are missing, don't output the error message
-    for i in "${!REMORA_MODULES[@]}"; do
+
+    for i in ${!REMORA_MODULES[@]}; do
         [[ "$REMORA_VERBOSE" == "1" ]] &&  echo "REMORA: Moving output files for ${REMORA_MODULES[$i]}"
-        
+
         mv $REMORA_OUTDIR/${REMORA_MODULES[$i]}*    $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
         [[ ${REMORA_MODULES[$i]} == "eth" ]] &&
              mv $REMORA_OUTDIR/network_eth_traffic* $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
@@ -172,7 +176,7 @@ function remora_finalize() {
 	printf "  ** NOTICE: IO Modules are not available on ls6. For security,\n"   >> $REMORA_OUTDIR/remora_summary.html
 	printf "  **         root access is now required to extract IO data.     "   >> $REMORA_OUTDIR/remora_summary.html
 	printf "</pre>\n"  >> $REMORA_OUTDIR/remora_summary.html
-        for i in "${!REMORA_MODULES[@]}"; do
+        for i in ${!REMORA_MODULES[@]}; do
 
             R_module="${REMORA_MODULES[$i]}"
 

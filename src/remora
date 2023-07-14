@@ -39,12 +39,13 @@
 #========================================================================
 #- IMPLEMENTATION
 #-      version     REMORA 1.8.6
+#-
+#-                  up to mid 2017
 #-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
 #-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
 #-      license     MIT
-#
-#-      version     REMORA 2.0
+#-                  after mid 2017
 #-      authors     Albert Lu      (  cylu@tacc.utexas.edu)
 #-                  Kent Milfeld   (milfeld@tacc.utexas.edu)
 #
@@ -143,9 +144,13 @@ remora_collect "$@"                          #Start data collection (Verbose is 
 # Need to wait for file system commit
 lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
 while [[ "$lastline" != "#EOF" ]]; do
+[[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA: WAITING"
     lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
+    sleep 0.5
 done
+
 source $REMORA_OUTDIR/remora_env.txt
+[[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA: Finished waiting for remote remora_report.sh processes to begin"
 
 # Output real time results if running in monitor mode
 if [[ "$REMORA_MODE" == "MONITOR" ]]; then
