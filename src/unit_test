@@ -58,8 +58,8 @@ USAGE="
 
 #   Precision
     REMORA_PLOT_RESULTS=1
-    source $REMORA_BIN/aux/extra
-    check_date_precision
+   #source $REMORA_BIN/aux/extra
+   #check_date_precision
 
     V=0; [[ $REMORA_VERBOSE == 1 ]] && V=1 
 
@@ -67,7 +67,7 @@ USAGE="
 
                [[ $V == 1 ]] && printf "%s"   " -> running init_module_${MOD_NAME}..."
     source                  $REMORA_BIN/modules/$MOD_NAME
-
+    rm -r /dev/shm/remora_*
     for node in ${REMORA_NODES[@]}; do
       eval init_module_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
     done
