@@ -32,7 +32,7 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  # use for debugging
    source $REMORA_BIN/modules/modules_utils
    
    source $REMORA_OUTDIR/remora_env.txt
-   REMORA_MODULES=( "${REMORA_ACTIVE_MODULES[@]}" )
+   REMORA_MODULES=(  ${REMORA_ACTIVE_MODULES[@]}  )
    export REMORA_MODULES
    
 # Create TMPDIR if it is not there

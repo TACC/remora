@@ -57,7 +57,6 @@ plot_data_impi_mpip()
     if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
     fi  
-
     REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
     if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
         # Get overall data from generated file
@@ -163,16 +162,24 @@ finalize_module_impi_mpip()
   source $REMORA_OUTDIR/remora_env.txt
 
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-
   if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
     if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
       if [[ -e "$REMORA_BIN/../lib/libmpiP.so" ]] ; then
           cd $REMORA_OUTDIR/..
-          # Check for mpiP output in case code was not MPI based
-          fileNum=$( ls -ltr *.mpiP )
-          if [[ -n "$fileNum" ]]; then
+          # Why go to the directory, why not bring the file into REMORA_OUTDIR ##KM
+          # Check for mpiP output in case code was not MPI based 
+          #fileNum=$( ls -ltr *.mpiP ) 
 
-            outfile=$(  ls -ltr *.mpiP | tail -n 1 | awk '{print $9}' )
+          mpip_file=$(ls -1 *.mpiP)
+          if [[ ! -n "$mpip_file" ]]; then
+             # otherwise maybe in $REMORA_OUTDIR (for remora_post_crash)
+             mpip_file=$(ls -1 $REMORA_OUTDIR/*.mpiP)
+          fi
+
+          if [[ -n "$mpip_file" ]]; then
+
+           #outfile=$(  ls -ltr $mpip_file | tail -n 1 | awk '{print $9}' )
+            outfile=$mpip_file
             mpiNum=$(   grep -c "MPI Task Assignment" $outfile ) 
             nodeNum=$(  cat $REMORA_OUTDIR/remora_nodes.txt | wc -l )
             tTime=$( grep "*" $outfile | head -n 1 | awk '{print $2}' )
@@ -184,8 +191,8 @@ finalize_module_impi_mpip()
             mpiTime=$( echo "scale=2; $mpiTime / $mpiNum " | bc ) 
             mpiFrac=$( echo "scale=2; 100.0 * $mpiTime / $totTime" | bc ) 
 
-	    echo "Number of Nodes      : $nodeNum"     >  $REMORA_OUTDIR/impi_mpip_info.txt
-	    echo "Number of MPI Tasks  : $mpiNum"      >> $REMORA_OUTDIR/impi_mpip_info.txt
+            echo "Number of Nodes      : $nodeNum"     >  $REMORA_OUTDIR/impi_mpip_info.txt
+            echo "Number of MPI Tasks  : $mpiNum"      >> $REMORA_OUTDIR/impi_mpip_info.txt
             echo "Total Execution Time : $totTime (s)" >> $REMORA_OUTDIR/impi_mpip_info.txt
             echo "MPI Execution Time   : $mpiTime (s)" >> $REMORA_OUTDIR/impi_mpip_info.txt
             echo "MPI Fraction of Time : $mpiFrac (%)" >> $REMORA_OUTDIR/impi_mpip_info.txt

@@ -40,6 +40,10 @@ show_final_report() {
     echo "=============================== REMORA SUMMARY ===============================" | tee -a $REMORA_OUTDIR/remora_summary.txt
 # Print memory usage to stdout
 # I can't think of a case were virtual would be less than resident, so let's report only virtual in stdout (which triggers OOM killer)..
+
+# If file already has header, remove it
+    sed -i '/#HOST.*/d' $REMORA_OUTDIR/memory_all_nodes.txt
+
     if [[ -e $REMORA_OUTDIR/memory_all_nodes.txt ]]; then
        #if [ "$REMORA_CUDA" == "0" ]; then
             max_Vmem_used=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print max}' $REMORA_OUTDIR/memory_all_nodes.txt)
@@ -178,10 +182,11 @@ show_final_report() {
       fi
      fi
     fi
-
+    local short_outdir=${REMORA_OUTDIR/$HOME/\$HOME}
     printf "%s\n" $dbar | tee -a $REMORA_OUTDIR/remora_summary.txt
     printf "%-29s %-1s %-d %-7s\n" " Sampling Period" ":" $REMORA_PERIOD "seconds" | tee -a $REMORA_OUTDIR/remora_summary.txt
-    printf "%-29s %-1s %-s\n"     " Report Directory" ":" R=$REMORA_OUTDIR         | tee -a $REMORA_OUTDIR/remora_summary.txt
+#   printf "%-29s %-1s %-s\n"     " Report Directory" ":" R=$REMORA_OUTDIR         | tee -a $REMORA_OUTDIR/remora_summary.txt
+    printf "%-29s %-1s %-s\n"     " Report Directory" ":" R=$short_outdir          | tee -a $REMORA_OUTDIR/remora_summary.txt
     if [[ "$REMORA_PLOT_RESULTS" != "0" ]] ; then
         printf "%-29s %-1s %-s\n" " Google Plots HTML Index Page" ":" \$R/remora_summary.html | tee -a $REMORA_OUTDIR/remora_summary.txt
     fi

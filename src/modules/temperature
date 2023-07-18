@@ -100,21 +100,21 @@ plot_data_temperature()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     local NCPUs NCPUsM1 cpu ctime first firsttimestamp timestamp idx sout
+    local node
 
     if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
        return
     fi
+    
+    node=$REMORA_NODE
+    if [[ ! -f $REMORA_TMPDIR/temperature_cpu0_${REMORA_NODE}.txt ]]; then
 
-    if [[ ! -e $REMORA_TMPDIR/temperature_cpu0_${REMORA_NODE}.txt ]]; then
-       if [[ "$REMORA_VERBOSE" == "1" ]]; then
-           echo " -> File $REMORA_TMPDIR/temperature_cpu0_${REMORA_NODE}.txt not found in plot_data."
-       fi
-       return
+          return
     fi
 
-    FILE=$REMORA_TMPDIR/temperature_${REMORA_NODE}.html
+    FILE=$REMORA_TMPDIR/temperature_${node}.html
 
-    NCPUs=$(ls $REMORA_TMPDIR/temperature_cpu*_${REMORA_NODE}.txt |wc -w)
+    NCPUs=$(ls $REMORA_TMPDIR/temperature_cpu*_${node}.txt |wc -w)
     NCPUsM1=$((NCPUs-1))
 
     printf "%s \n" "<html>"  > $FILE
@@ -124,7 +124,7 @@ plot_data_temperature()
     printf "%s \n" "google.charts.load('current', {'packages':['corechart']});" >> $FILE
 
   for CPU in `seq 0 $NCPUsM1`; do
-    FILE_TXT=$REMORA_TMPDIR/temperature_cpu${CPU}_${REMORA_NODE}.txt
+    FILE_TXT=$REMORA_TMPDIR/temperature_cpu${CPU}_${node}.txt
 
     printf "%s \n" "google.charts.setOnLoadCallback(drawTcpu${CPU});"           >> $FILE
 

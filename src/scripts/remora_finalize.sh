@@ -153,8 +153,8 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  #for debugging
 
     for i in ${!REMORA_MODULES[@]}; do
         [[ "$REMORA_VERBOSE" == "1" ]] &&  echo "REMORA: Moving output files for ${REMORA_MODULES[$i]}"
-
         mv $REMORA_OUTDIR/${REMORA_MODULES[$i]}*    $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
+
         [[ ${REMORA_MODULES[$i]} == "eth" ]] &&
              mv $REMORA_OUTDIR/network_eth_traffic* $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]} 2> /dev/null
 

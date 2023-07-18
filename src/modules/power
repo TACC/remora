@@ -237,11 +237,25 @@ plot_data_power()
     if [[ -z ${REMORA_PLOT_RESULTS} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
     fi
+###
+    node=$REMORA_NODE
+    if [[ ! -f $REMORA_TMPDIR/power_${REMORA_NODE}.txt ]]; then
+
+       [[ ! -z $REMORA_VERB ]] && 
+          echo "  plot_data_power: $REMORA_TMPDIR/power_${REMORA_NODE}.txt not found ">>$REMORA_VERB
+
+          return
+    fi
+###
         #https://gist.github.com/magnetikonline/90d6fe30fc247ef110a1
 
-    local            FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.html  #short name for space
-    local  POWER_TXT_FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.txt
-    local ENERGY_TXT_FILE=$REMORA_TMPDIR/energy_${REMORA_NODE}.txt
+   #local            FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.html  #short name for space
+   #local  POWER_TXT_FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.txt
+   #local ENERGY_TXT_FILE=$REMORA_TMPDIR/energy_${REMORA_NODE}.txt
+
+    local            FILE=$REMORA_TMPDIR/power_${node}.html  #short name for space
+    local  POWER_TXT_FILE=$REMORA_TMPDIR/power_${node}.txt
+    local ENERGY_TXT_FILE=$REMORA_TMPDIR/energy_${node}.txt
 
     local sockets sockets_m1
 
@@ -256,6 +270,7 @@ plot_data_power()
        [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> File $POWER_TXT_FILE not found."
        return
     fi
+
     if [[ $REMORA_POWER_COLLECTOR == intel_rapl ]] && [[ ! -e $ENERGY_TXT_FILE ]]; then
        [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> File $ENERGY_TXT_FILE not found."
        return
@@ -425,6 +440,7 @@ finalize_module_power()
   fi
 
   #NODE PLOT
+
   plot_data_power $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 
   local NODES=( $( cat $REMORA_OUTDIR/remora_nodes.txt ) )
@@ -434,7 +450,7 @@ finalize_module_power()
 
      local REMORA_MASTER=${NODES[0]}
      local POWER_AGGREGATED_TXT_FILE=$REMORA_TMPDIR/power_aggregated.txt
-     local                     FILE=$REMORA_TMPDIR/power_aggregated.html
+     local                      FILE=$REMORA_TMPDIR/power_aggregated.html
    
      local n_socs n_socs_m1 
      local n_lines n_tm tm_values=() tm soc 
@@ -470,10 +486,7 @@ finalize_module_power()
             iter=0
             for word in $line; do
                [[ $iter == 0 ]] && iter=1 && soc=0 && continue
-                               #echo HEREB4 $node word:$word  tm_series: series[$tm,$soc]=${tm_series[$tm,$soc]}
                tm_series[$tm,$soc]=$( bc <<< "scale=2; ${tm_series[$tm,$soc]} + $word" )
-                               #echo HEREAF $node word:$word  tm_series: series[$tm,$soc]=${tm_series[$tm,$soc]}
-                               #echo ""
                soc=$(( $soc + 1 ))             
             done
             tm=$(( $tm + 1 ))
