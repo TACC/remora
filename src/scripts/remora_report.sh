@@ -129,7 +129,7 @@ FILE_REMOTE_VEBOSE=$REMORA_OUTDIR/remote_verbose.txt  # used for debugging
      sleep $sleep_time   #sleep time = REMORA_PERIOD - Collection Time  (see exception above)
 
   
-     if [[ ! -z $REMORA_VERBOSE ]]; then
+     if [[ "$REMORA_VERBOSE" == "1" ]]; then
          collect_tm=$( bc<<<"scale=4; $tm_1-$tm_0" )
          echo " Sleeping: $sleep_time = $REMORA_PERIOD-$collect_tm (REMORA_PERIOD-Collection Time $info)." >> $FILE_REMOTE_VEBOSE
      fi
