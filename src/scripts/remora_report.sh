@@ -13,7 +13,7 @@
 #% remora_report.sh NODE_NAME REMORA_BIN OUTDIR REMORA_PERIOD SYMMETRIC REMORA_MODE REMORA_CUDA
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 1.8.6
+#-      version     REMORA 2.0
 #-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
 #-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
