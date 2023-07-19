@@ -25,7 +25,8 @@ REMORA_NODE=$1
 REMORA_BIN=$2
 REMORA_OUTDIR=$3
 
-VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  # use for debugging
+FILE_ADVICE=$REMORA_OUTDIR/advisory.txt  # can be used for debugging
+FILE_REMOTE_VEBOSE=$REMORA_OUTDIR/remote_verbose.txt  # used for debugging
 
 #Source the script that has the modules' functionality
    source $REMORA_BIN/aux/extra
@@ -48,7 +49,7 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  # use for debugging
 
    for MODULE in ${REMORA_MODULES[@]}; do
 
-      [[ "$REMORA_VERBOSE" == "1" ]] && echo init_module_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+      [[ "$REMORA_VERBOSE" == "1" ]] && echo init_module_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR >> $FILE_REMOTE_VEBOSE
      
       source $REMORA_BIN/modules/$MODULE
       init_module_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
@@ -63,24 +64,37 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  # use for debugging
 
    reported_warn=no reported_crit=no period_cntr=1 info=""
 
+   # sleep_time correction reset
+   reset=1
+
+   # sleep_time correction factor
+   alpha=0.6
+
+
+
    while [[ 1 ]]; do
 
      tm_0=$( date +%s.%3N )
      for MODULE in ${REMORA_MODULES[@]}; do
        if [[ -e $REMORA_BIN/binary_data_collectors/data_collect_$MODULE ]] && [[ $REMORA_BINARIES == 1 ]]; then
   
-         [[ "$REMORA_VERBOSE" == "1" ]] && echo "Binary Module Data Collection: $MODULE $NODE $OUTDIR $TMPDIR"
+         [[ "$REMORA_VERBOSE" == "1" ]] && echo "Binary Module Data Collection: $MODULE $NODE $OUTDIR $TMPDIR" >> $FILE_REMOTE_VEBOSE
          eval $REMORA_BIN/binary_data_collectors/data_collect_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
   
        else
-         [[ "$REMORA_VERBOSE" == "1" ]] && echo "Script-only Module data Collection: $MODULE $NODE $OUTDIR $TMPDIR"
+         [[ "$REMORA_VERBOSE" == "1" ]] && echo "Script-only Module data Collection: $MODULE $NODE $OUTDIR $TMPDIR" >> $FILE_REMOTE_VEBOSE
          eval collect_data_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
        fi
      done
      tm_1=$(date +%s.%3N)
-  
-     sleep_time=$( bc<<<"scale=4; $REMORA_PERIOD - ($tm_1-$tm_0)" )
-  
+
+   if [[ $reset == 1 ]]; then
+     sleep_time=$( bc<<<"scale=4; $REMORA_PERIOD - ($tm_1-$tm_0)")
+     reset=0
+   else
+     sleep_time=$( bc<<<"scale=4; $sleep_time - $alpha*$tm_d" )
+   fi  
+
      ## Just checking here: make sure collection time is not exceeding REMORA_PERIOD.
      ##                     Will not worry about 2ms if test (8ms if warning/critical printed).
      if (( $(bc <<< "$sleep_time < $collect_limit") == 1 )) ; then
@@ -88,9 +102,9 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  # use for debugging
   
         if (( $(bc <<< "$sleep_time > 0.0") == 1 )); then
            if [[ $reported_warn != "yes" ]]; then
-              echo "  ***** WARNING  ******* Sleep time between collections is less than $collect_limit, period=$period_cntr." >>$VERB_FILE
-              echo "                         REMORA_PERIOD=$REMORA_PERIOD and Collection Time=$collect_tm." >>$VERB_FILE
-              echo "                         You should use a larger PERIOD for this system."               >>$VERB_FILE
+              echo "  ***** WARNING  ******* Sleep time between collections is less than $collect_limit, period=$period_cntr." >>$FILE_ADVICE
+              echo "                         REMORA_PERIOD=$REMORA_PERIOD and Collection Time=$collect_tm." >>$FILE_ADVICE
+              echo "                         You should use a larger PERIOD for this system."               >>$FILE_ADVICE
               reported_warn=yes
            fi  
         fi  
@@ -98,23 +112,31 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  # use for debugging
         if (( $(bc <<< "$sleep_time < 0.0") == 1 )); then  #Houston, we have a problem.
   
            if [[ $reported_crit != "yes" ]]; then
-              echo "  ***** CRITICAL ******* Sleep time between collections is less than $collect_limit, period=$period_cntr." >>$VERB_FILE
-              echo "  *****          ******* TIMING RESULTS MAY BE INACCURATE."                            >>$VERB_FILE
-              echo "                        REMORA_PERIOD=$REMORA_PERIOD and Collection Time=$collect_tm." >>$VERB_FILE
-              echo "                        Use a larger PERIOD for this system."                          >>$VERB_FILE
+              echo "  ***** CRITICAL ******* Sleep time between collections is less than $collect_limit, period=$period_cntr." >>$FILE_ADVICE
+              echo "  *****          ******* TIMING RESULTS MAY BE INACCURATE."                            >>$FILE_ADVICE
+              echo "                        REMORA_PERIOD=$REMORA_PERIOD and Collection Time=$collect_tm." >>$FILE_ADVICE
+              echo "                        Use a larger PERIOD for this system."                          >>$FILE_ADVICE
               reported_crit=yes
            fi  
-           info=" -- zero if negative"
+           info=" -- negative sleep adjusted to 0"
            sleep_time=0        #sleep cannot handle negative number.
+           reset=1
         fi  
   
   
      fi  
   
      sleep $sleep_time   #sleep time = REMORA_PERIOD - Collection Time  (see exception above)
-  
-     [[ ! -z $REMORA_VERBOSE ]] && collect_tm=$( bc<<<"scale=4; $tm_1-$tm_0" )
-  
-     period_cntr=$(( period_cntr+1 ))
 
-   done
+  
+     if [[ ! -z $REMORA_VERBOSE ]]; then
+         collect_tm=$( bc<<<"scale=4; $tm_1-$tm_0" )
+         echo " Sleeping: $sleep_time = $REMORA_PERIOD-$collect_tm (REMORA_PERIOD-Collection Time $info)." >> $FILE_REMOTE_VEBOSE
+     fi
+  
+     if [[ $reset == 0 ]]; then   #Normal run: find tm_d(time_delta) of  "background" consumed time  up to this point.
+       tm_2=$(date +%s.%3N)       #Will use in adjusting time in next iteration.
+       tm_d=$( bc<<<"$tm_2-$tm_0-$REMORA_PERIOD" )
+     fi
+
+done
