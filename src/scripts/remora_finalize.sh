@@ -39,9 +39,10 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  #for debugging
     fi
     END=$1
     START=$2
+    local NODES_LIST=( $(cat $REMORA_OUTDIR/remora_nodes.txt) )
+    local NODES="${NODES_LIST[@]}"
 
     local remora_timeout=120
-
     # Copy data from temporary location to output dir
     # This assumes OUTDIR is in a shared location
     if [[ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]]; then
@@ -102,8 +103,8 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  #for debugging
 
     #Wait until all remora_remote_post processes have finished
 
-    local NODES_TMP="$NODES"
-    local NODES_LIST=( $NODES ) #make array list
+  ##KFM local NODES_TMP="$NODES"
+  ##KFM local NODES_LIST=( $NODES ) #make array list
 
     for NODE in ${NODES_LIST[@]}; do
         cnt=0

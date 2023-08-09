@@ -60,6 +60,7 @@ function show_time() {
 
 
 check_running_parallel() {
+    # if any of the variables is set, then make sure one of the "other" variables (in my_rank line) is set
     if [[ -n "${PMI_ID+1}" ]] || [[ -n "${PMI_RANK+1}" ]] || [[ -n "${MPIRUN_RANK+1}" ]]; then
         my_rank=$(( ${PMI_RANK-0} + ${PMI_ID-0} + ${MPIRUN_RANK-0} + ${OMPI_COMM_WORLD_RANK-0} + ${OMPI_MCA_ns_nds_vpid-0}  + ${ibrun_o_option-0} ))
         if [[ "$my_rank" == "0" ]]; then
@@ -115,6 +116,8 @@ parse_environment() {
 	fi
 
    # Check if binary directory exists, then set  REMORA_BINARIES  to 1
+   # Priority is given to run the binaries if they exist. 
+   # No way to override this, but to remove binary collector file.
    if [[ -d $REMORA_BIN/binary_data_collectors ]] &&  [[ "x0" != "x$REMORA_BINARIES" ]]; then
       export REMORA_BINARIES=1
    else
@@ -122,6 +125,7 @@ parse_environment() {
    fi
 
    # Check if binary directory exists, then set  REMORA_BINARIES  to 1
+   # set_active_modules()  already used these to determine the modules, required here for remora_env.txt
    if [[ ! -z  "$REMORA_CONFIGPATH" ]]; then 
      CONFIGPATH=$REMORA_CONFIGPATH
    else
@@ -152,6 +156,8 @@ parse_environment() {
     echo "export REMORA_BINARIES=$REMORA_BINARIES" >> $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_CONFIGPATH=$CONFIGPATH"    >> $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_MODULEPATH=$MODULEPATH"    >> $REMORA_OUTDIR/remora_env.txt
+    [[ ! -z $REMORA_SNAPS ]] &&
+    echo "export REMORA_SNAPS=$REMORA_SNAPS"       >> $REMORA_OUTDIR/remora_env.txt
 
 }
 
@@ -187,6 +193,8 @@ check_plot() {
     if [[ -z "$REMORA_PLOT_RESULTS" ]]; then
         export REMORA_PLOT_RESULTS=1
     fi
+    [[ "$REMORA_PLOTS" == 0 ]] && export REMORA_PLOT_RESULTS=0  #Shorter is better.
+
     echo "export REMORA_PLOT_RESULTS=$REMORA_PLOT_RESULTS" >> $REMORA_OUTDIR/remora_env.txt
 }
 
@@ -215,15 +223,16 @@ check_gpu() {
     echo "export REMORA_CUDA=$REMORA_CUDA" >> $REMORA_OUTDIR/remora_env.txt
 }
 
-check_cpu() {
-    # Check if CPU module is active
-   #if [[ `grep cpu $REMORA_BIN/config/modules` ]]; then 
-   #    export REMORA_EFFECTIVE_PERIOD=$((REMORA_PERIOD-1))
-   #else
-        export REMORA_EFFECTIVE_PERIOD=$REMORA_PERIOD
-   #fi
-    echo "export REMORA_EFFECTIVE_PERIOD=$REMORA_EFFECTIVE_PERIOD" >> $REMORA_OUTDIR/remora_env.txt
-}
+## KFM  remove this code
+#check_cpu() {
+#    # Check if CPU module is active
+#   #if [[ `grep cpu $REMORA_BIN/config/modules` ]]; then 
+#   #    export REMORA_EFFECTIVE_PERIOD=$((REMORA_PERIOD-1))
+#   #else
+#        export REMORA_EFFECTIVE_PERIOD=$REMORA_PERIOD
+#   #fi
+#    echo "export REMORA_EFFECTIVE_PERIOD=$REMORA_EFFECTIVE_PERIOD" >> $REMORA_OUTDIR/remora_env.txt
+#}
 
 check_io() {
     # Check if lustre / dvs / other file systems are present
@@ -398,7 +407,6 @@ init_folders() {
     CWD=`pwd`
     # Determining current work directory
     REMORA_OUTDIR=$CWD/remora_$REMORA_JOB_ID
-VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out
 
     if [[ -d $REMORA_OUTDIR ]]; then
       n=1

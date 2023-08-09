@@ -28,6 +28,14 @@ REMORA_OUTDIR=$3
 FILE_ADVICE=$REMORA_OUTDIR/advisory.txt  # can be used for debugging
 FILE_REMOTE_VEBOSE=$REMORA_OUTDIR/remote_verbose.txt  # used for debugging
 
+#Function to cleanup /dev/shm when this script is terminated to stop collection.
+exit_clean() {
+  rm -f /dev/shm/remora_*
+}
+#Trap the SIGTERM and SIGINT signals and call exit_clean
+trap "exit_clean" EXIT
+
+
 #Source the script that has the modules' functionality
    source $REMORA_BIN/aux/extra
    source $REMORA_BIN/modules/modules_utils
@@ -40,7 +48,8 @@ FILE_REMOTE_VEBOSE=$REMORA_OUTDIR/remote_verbose.txt  # used for debugging
    mkdir -p $REMORA_TMPDIR     ##KFM ##KM isn't this done in create_folders routine?
 
 # Generate unique file for transfer completion check on distributed file systems
-   touch $REMORA_TMPDIR/zz.$REMORA_NODE
+   touch $REMORA_TMPDIR/zz.$REMORA_NODE           ##KFM deprecated
+   touch $REMORA_OUTDIR/.remora_out_$REMORA_NODE  ##KFM now remora looks for this.
    
 
    [[ $REMORA_BINARIES == 1 ]] && rm -f /dev/shm/remora_*     #things may be left behind from a previous run
@@ -71,7 +80,7 @@ FILE_REMOTE_VEBOSE=$REMORA_OUTDIR/remote_verbose.txt  # used for debugging
    alpha=0.6
 
 
-
+   period_no=1
    while [[ 1 ]]; do
 
      tm_0=$( date +%s.%3N )
@@ -125,18 +134,20 @@ FILE_REMOTE_VEBOSE=$REMORA_OUTDIR/remote_verbose.txt  # used for debugging
   
   
      fi  
-  
-     sleep $sleep_time   #sleep time = REMORA_PERIOD - Collection Time  (see exception above)
 
+     sleep $sleep_time   #sleep time = REMORA_PERIOD - Collection Time  (see exception above)
   
-     if [[ ! -z $REMORA_VERBOSE ]]; then
+     if [[ "$REMORA_VERBOSE" == "1" ]]; then
          collect_tm=$( bc<<<"scale=4; $tm_1-$tm_0" )
-         echo " Sleeping: $sleep_time = $REMORA_PERIOD-$collect_tm (REMORA_PERIOD-Collection Time $info)." >> $FILE_REMOTE_VEBOSE
+         echo " Sleeping: $sleep_time = $REMORA_PERIOD-$collect_tm (R_PERIOD-Collect. tm $info)." >> $FILE_REMOTE_VEBOSE
      fi
   
      if [[ $reset == 0 ]]; then   #Normal run: find tm_d(time_delta) of  "background" consumed time  up to this point.
        tm_2=$(date +%s.%3N)       #Will use in adjusting time in next iteration.
        tm_d=$( bc<<<"$tm_2-$tm_0-$REMORA_PERIOD" )
      fi
+     # vvv for snapshot to know when to stop collecting data -- /dev/shm/remora_* files are removed by trap
+     [[ ! -z  $REMORA_SNAPS ]] && [[ "$period_no" == "$REMORA_SNAPS" ]] && touch $REMORA_OUTDIR/.done_snaps_${REMORA_NODE} && exit 0
+     period_no=$(( period_no+1 ))
 
 done

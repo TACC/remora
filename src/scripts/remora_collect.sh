@@ -26,14 +26,15 @@ function remora_collect() {
 
     source $REMORA_OUTDIR/remora_env.txt
 
-    [[ "$REMORA_VERBOSE"   == "1" ]] && echo " REMORA: REPORT daemon processes (remora_report.sh) launching on nodes: ${NODES}."
+    [[ "$REMORA_VERBOSE"   == "1" ]] && echo " REMORA: REPORT background processes (remora_report.sh) launching on nodes: ${NODES}."
     [[ "$REMORA_MONITOR"   == "1" ]] && [[ "$REMORA_VERBOSE"   == "1" ]] && echo " REMORA: MONITOR daemon processes (remora_monitor.sh)."
     [[ "$REMORA_SYMMETRIC" == "1" ]] && [[ "$REMORA_VERBOSE"   == "1" ]] && echo " REMORA: REPORT MIC daemon processes (remora_report_mic.sh)."
 
 VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out    #for debugging
+echo "remora_colletct NODES=${NODES[@]}"
+    for NODE in ${NODES[@]} ; do
 
-    for NODE in $NODES
-    do
+echo " HHHHHHHHHHHHHHHHHHHHHHHHHhremora_collect node=$NODE of  NODES=${NODES[@]}"
         # This is the core of REMORA. It runs the remora_report.sh daemon on each node allocated to the job.
         # remora_report.sh will run an infinite loop. In each iteration, it sequentially calls each collection
         # specificied in the configuration file or specified in REMORA_MODULES env var.

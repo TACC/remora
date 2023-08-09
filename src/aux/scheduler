@@ -59,7 +59,8 @@ get_node_list()
     else
         REMORA_SCHEDULER=none
         REMORA_JOB_ID=`date +%s`
-        NODES=`hostname -a`
+       #NODES=`hostname -a`   #alias is deprecated, just get short name
+        NODES=`hostname -s`
         # Checking the output and return value (Macs don't work well with -a)
         if [[ -z "${NODES// }" ]] || [[ "$?" == "1" ]]; then
             NODES=`hostname`

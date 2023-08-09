@@ -138,15 +138,32 @@ SCRIPT_NAME="$(basename ${0})"
 source $REMORA_BIN/scripts/remora_init.sh
 remora_init "$@"                             #Call the initialization function (Verbose in script)
 
+export NODES=( $( cat $REMORA_OUTDIR/remora_nodes.txt ) )
+
 source $REMORA_BIN/scripts/remora_collect.sh #Source the remora_collect script
 remora_collect "$@"                          #Start data collection (Verbose is in script )
 
-# Need to wait for file system commit
+# Need to wait for file system commit  ##KFM this should wait on remora_out_$NODE from each node?
 lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
 while [[ "$lastline" != "#EOF" ]]; do
 [[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA: WAITING"
     lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
     sleep 0.5
+done
+
+##KRM  Better way to check for remora_report.sh running on the nodes:
+knt=${#NODES[@]}  nodes_2b_checked4="${NODES[@]}"
+while [[ $knt > 0 ]]; do
+   for_nodes=$nodes_2b_checked4
+   for i in $for_nodes; do
+#                  # remove node when found
+     if [[ -f $REMORA_OUTDIR/.remora_out_${i} ]]; then
+        nodes_2b_checked4=`echo $nodes_2b_checked4 | sed s/$i//`
+        knt=$((knt-1))
+     fi
+     sleep 0.5
+   done
+     [[ "$REMORA_VERBOSE" == "1" ]] && echo " Waiting for $knt remora_report.sh nodes to check in: $nodes_2b_checked4"
 done
 
 source $REMORA_OUTDIR/remora_env.txt
@@ -181,7 +198,7 @@ START=$(date +%s%N)     #Log the start time
 "$@"                    #Run the command !!!
 END=$(date +%s%N)       #Log the end time
 
-if [[ ! -z $REMORA_PRELOAD ]]; then       #Tear down LD_PRELOAD
+if [[ ! -z $REMORA_PRELOAD ]]; then       #Put back LD_PRELOAD, JIC
    if [[ "$LD_PRELOAD" == "$REMORA_PRELOAD" ]]; then
       unset  LD_PRELOAD
    else

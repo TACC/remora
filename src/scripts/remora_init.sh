@@ -25,7 +25,7 @@
 
 #Source the auxiliary scripts
 source $REMORA_BIN/aux/extra
-source $REMORA_BIN/aux/scheduler
+source $REMORA_BIN/aux/scheduler     #get_node_list
 source $REMORA_BIN/aux/sql_functions
 
 function remora_init() {
@@ -48,7 +48,7 @@ function remora_init() {
 
     # Initialize output directories
     [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Initializing folders"
-    init_folders   #also executes remora_set_active_modules
+    init_folders   #also executes remora_set_active_modules, mk zz.$node sync files
 
     # Check REMORA specific environmental variables
     [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Parsing environment"
@@ -74,11 +74,11 @@ function remora_init() {
     # Determine active modules from default configuration directory
     # or user specified (REMORA_CONFIG_PATH) directory.
     # User may specify subset of module in REMORA_MODULES env var)
-    [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Set active module in REMORA_ACTIVE_MODULES env var."
+    [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Set active modules in REMORA_ACTIVE_MODULES env var."
 
-    # If CPU module is running we reduce sleep by 1 second
-    [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Checking CPU module"
-    check_cpu
+    ## NOT ANY MORE!  If CPU module is running we reduce sleep by 1 second
+    ## [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Checking CPU module"
+    ## check_cpu
 
     # Check if we are plotting the results
     [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Checking if plotting is required"
