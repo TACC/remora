@@ -24,11 +24,11 @@
 #========================================================================
 
 
-usage() { printf '\033[0;33mREMORA Howto\n\033[0m'; head -${SCRIPT_HEADSIZE:-99} ${0} | grep -e "^#+" | sed -e "s/^#+[ ]*//g" -e "s/\${SCRIPT_NAME}/${SCRIPT_NAME}/g" ; }
+usage() { printf '\033[0;33m REMORA Howto\n\033[0m'; head -${SCRIPT_HEADSIZE:-99} ${0} | grep -e "^#+" | sed -e "s/^#+[ ]*//g" -e "s/\${SCRIPT_NAME}/${SCRIPT_NAME}/g" ; }
 usagefull() { head -${SCRIPT_HEADSIZE:-99} ${0} | grep -e "^#[%+-]" | sed -e "s/^#[%+-]//g" -e "s/\${SCRIPT_NAME}/${SCRIPT_NAME}/g" ; }
 scriptinfo() { head -${SCRIPT_HEADSIZE:-99} ${0} | grep -e "^#-" | sed -e "s/^#-//g" -e "s/\${SCRIPT_NAME}/${SCRIPT_NAME}/g"; }
-print_error() { printf '\033[0;31mREMORA Error: \033[0;34m '"$1"' \033[0m \n'; }
-print_info()  { printf '\033[0;34mREMORA Notification: \033[0;34m '"$1"' \033[0m \n'; }
+print_error() { printf '\033[0;31m REMORA Error: \033[0;34m '"$1"' \033[0m \n'; }
+print_info()  { printf '\033[0;34m REMORA Notification: \033[0;34m '"$1"' \033[0m \n'; }
 
 function show_time() {
   num=$1/1000000000

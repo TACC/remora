@@ -22,7 +22,7 @@
 # -- Collect required data in backgroud
 
 function remora_collect() {
-    [[ "$REMORA_VERBOSE" == "1" ]] && echo -e "\nREMORA: collection started\n"
+    [[ "$REMORA_VERBOSE" == "1" ]] && echo -e "\n REMORA: collection started (in remora_collect)\n"
 
     source $REMORA_OUTDIR/remora_env.txt
 
@@ -31,36 +31,33 @@ function remora_collect() {
     [[ "$REMORA_SYMMETRIC" == "1" ]] && [[ "$REMORA_VERBOSE"   == "1" ]] && echo " REMORA: REPORT MIC daemon processes (remora_report_mic.sh)."
 
 VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out    #for debugging
-echo "remora_colletct NODES=${NODES[@]}"
+[[ "$REMORA_VERBOSE" == "1" ]] && echo " -> DBG: Collection Nodes found in remora_collect:  NODES=${NODES[@]}"
     for NODE in ${NODES[@]} ; do
 
-echo " HHHHHHHHHHHHHHHHHHHHHHHHHhremora_collect node=$NODE of  NODES=${NODES[@]}"
+[[ "$REMORA_VERBOSE" == "1" ]] && echo " -> DBG: remora_collect launching collector on node=$NODE of  NODES=${NODES[@]}"
         # This is the core of REMORA. It runs the remora_report.sh daemon on each node allocated to the job.
         # remora_report.sh will run an infinite loop. In each iteration, it sequentially calls each collection
         # specificied in the configuration file or specified in REMORA_MODULES env var.
 
         COMMAND="$REMORA_BIN/scripts/remora_report.sh $NODE $REMORA_BIN $REMORA_OUTDIR >> $REMORA_OUTDIR/.remora_out_$NODE & "
 
-        if [[ "$REMORA_VERBOSE" == "1" ]]; then
-            echo "REMORA: LAUNCHING remora_report.sh background process (in remora_collect function) on $NODE."
-            echo "        ssh -f -n $NODE $COMMAND"
-        fi
+        [[ "$REMORA_VERBOSE" == "1" ]] && echo " REMORA: remora_collect: START LAUNCH of remora_report.sh background process on $NODE."
+        [[ "$REMORA_VERBOSE" == "1" ]] && echo "         ssh -f -n $NOE $COMMAND"
+
             ssh -f -n $NODE PATH=$PATH $COMMAND  # PATH is included to make so that tools are found (i.e. mpstat)
 
-        [[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA: FINISHED remora_report.sh LAUNCH  on $NODE."
+        [[ "$REMORA_VERBOSE" == "1" ]] && echo " REMORA: remora_collect: FINIS LAUNCH of remora_report.sh background process on $NODE."
 
         # Only do this if MONITOR mode is active  TODO: explain what monitor.sh does.
         if [[ "$REMORA_MODE" == "MONITOR" ]]; then
             COMMAND="$REMORA_BIN/scripts/remora_monitor.sh $NODE $REMORA_BIN $REMORA_OUTDIR >> $REMORA_OUTDIR/.remora_out_${NODE} & "
 
-            if [[ "$REMORA_VERBOSE" == "1" ]]; then
-                echo "REMORA: LAUNCHING remora daemon remora_monitor.sh process on $NODE"
-                echo "        ssh -f -n $NODE $COMMAND"
-            fi
+            [[ "$REMORA_VERBOSE" == "1" ]] && echo " REMORA: START LAUNCH remora_monitor.sh background process on $NODE."
+            [[ "$REMORA_VERBOSE" == "1" ]] && echo "         ssh -f -n $NODE $COMMAND"
 
             ssh -f -n $NODE $COMMAND
 
-            [[ "$REMORA_VERBOSE" == "1" ]] && echo " REMORA: FINISHED  remora daemon remora_monitor.sh launch on $Node."
+            [[ "$REMORA_VERBOSE" == "1" ]] && echo " REMORA: FINIS LAUNCH remora_monitor.sh background process on $NODE."
         fi
 
         # Repeat the same for the MIC
@@ -79,5 +76,5 @@ echo " HHHHHHHHHHHHHHHHHHHHHHHHHhremora_collect node=$NODE of  NODES=${NODES[@]}
 
     done
 
-    [[ "$REMORA_VERBOSE" == "1" ]] && echo -e "REMORA: all remote remora_report.sh collection processes launched.\n"
+    [[ "$REMORA_VERBOSE" == "1" ]] && echo -e " REMORA: All remote remora_report.sh collection processes launched.\n"
 }

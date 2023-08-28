@@ -42,19 +42,22 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  #for debugging
     local NODES_LIST=( $(cat $REMORA_OUTDIR/remora_nodes.txt) )
     local NODES="${NODES_LIST[@]}"
 
-    local remora_timeout=120
-    # Copy data from temporary location to output dir
-    # This assumes OUTDIR is in a shared location
-    if [[ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]]; then
-        for NODE in $NODES
-            do
-                if [[ "$REMORA_VERBOSE" == "1" ]]; then
-                    echo "REMORA: Copying files from temporary location to output folder"
-                    echo "scp $NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR"
-                fi  
-                scp $NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR 2> /dev/null 1> /dev/null
-            done
-    fi
+    local remora_timeout=10
+
+if [[ -z $REMORA_SNAPSHOT ]]; then        #TMPDIR must same as OUTDIR for snapshots
+      # Copy data from temporary location to output dir
+      # This assumes OUTDIR is in a shared location
+      if [[ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]]; then
+          for NODE in $NODES
+              do
+                  if [[ "$REMORA_VERBOSE" == "1" ]]; then
+                      echo "REMORA: Copying files from temporary location to output folder"
+                      echo "scp $NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR"
+                  fi  
+                  scp $NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR 2> /dev/null 1> /dev/null
+              done
+      fi
+fi
 
     # Ensure all data has been copied over or issue warning
     NodeCount=`wc -l $REMORA_OUTDIR/remora_nodes.txt | awk '{print $1}'`
@@ -66,7 +69,8 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  #for debugging
                 completed=$((completed+1))
             fi  
         done
-        sleep 1
+        [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> Remora_finalize: Checking for zz.<node> completion files."
+        sleep 2
     done
 
     if [[ "$waiting" -ge $remora_timeout ]]; then
@@ -74,25 +78,28 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  #for debugging
         printf "*** REMORA: WARNING - %s out of %s nodes successfully processed\n" "$completed" "$NodeCount"
     fi
 
-    # Kill remote remora processes running in the backgroud
+if [[ -z $REMORA_SNAPSHOTS ]]; then   #If not snapshots (a remora run) do this
+                                      #This is done at end of snapshot with .done_snaps_<node> files. 
+    # Kill reporters running in background
+    for SSH_NODE in $NODES; do
+        ssh -q -f $SSH_NODE "pkill -f remora_report.sh"
+    done
+fi
+echo "HHHHHHHEEEEERRRRRREEEEE & exit"; exit
 
     for NODE in $NODES; do
+        SSH_NODE=$NODE
 
-        ssh -q -f $NODE "pkill -f remora_report.sh"
-        if [[ "$REMORA_SYMMETRIC" == "1" ]]; then
-            ssh -q -f $NODE-mic0 "pkill -f remora_report_mic.sh"
-        fi  
-
-        COMMAND="$REMORA_BIN/scripts/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE >>$REMORA_OUTDIR/.remora_out_$NODE  & "
+        CMD="$REMORA_BIN/scripts/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE >>$REMORA_OUTDIR/.remora_out_$NODE  & "
 
         if [[ "$REMORA_VERBOSE" == "1" ]]; then
             echo "REMORA: launching remote postprocessing (plotting, etc)"
-            echo "        ssh -q -n $NODE $COMMAND"
+            echo "        ssh -q -n $SSH_NODE $CMD"
         fi  
         #Right now this is putting the command in the background and continuing 
         #(so the remora can finish, therefore epilog might  #kill everything! We need to fix it
 
-        ssh -q -n $NODE $COMMAND
+        ssh -q -n $SSH_NODE $CMD
 
     done
 
@@ -106,11 +113,14 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  #for debugging
   ##KFM local NODES_TMP="$NODES"
   ##KFM local NODES_LIST=( $NODES ) #make array list
 
+    [[ ! -z $SNAPSHOT_NODE     ]] && NODES_LIST=($SNAPSHOT_NODE)
+
     for NODE in ${NODES_LIST[@]}; do
+        SSH_NODE=$NODE
         cnt=0
         CMD="ps -ef | grep scripts/remora_remote_post.sh | grep -wv grep | wc -l"
 
-        while [[ `ssh $NODE $CMD` -gt 0 ]]; do
+        while [[ `ssh $SSH_NODE $CMD` -gt 0 ]]; do
             sleep 0.05
             if [ "$REMORA_VERBOSE" == "1" ]; then
                 [[ $cnt -eq 0 ]] && printf "Post processing waiting on Node: $NODE"

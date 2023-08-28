@@ -29,7 +29,7 @@ source $REMORA_BIN/aux/scheduler     #get_node_list
 source $REMORA_BIN/aux/sql_functions
 
 function remora_init() {
-    [[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA initialization started"
+    [[ "$REMORA_VERBOSE" == "1" ]] && echo " REMORA initialization started"
 
     # Make sure there are no multiple remora instances in each node
     [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Checking if parallel execution"
@@ -98,5 +98,5 @@ function remora_init() {
     #fi
     #check_date_precision
 
-    [[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA initialization finished"
+    [[ "$REMORA_VERBOSE" == "1" ]] && echo " REMORA initialization finished"
 }

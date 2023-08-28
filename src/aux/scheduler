@@ -35,6 +35,17 @@ get_job_id()
     elif [[ -n "$LSB_HOSTS" ]]; then
         REMORA_JOB_ID=$LSB_JOBID
     fi
+echo HERE REMORA_JOB_ID=$REMORA_JOB_ID 
+}
+
+get_submit_host()
+{
+   
+    REMORA_SUBMIT_HOST=-1
+    [[ ! -z $PBS_O_HOST ]]        && REMORA_SUBMIT_HOST=$PBS_O_HOST         #PBS
+    [[ ! -z $SLURM_SUBMIT_HOST ]] && REMORA_SUBMIT_HOST=$SLURM_SUBMIT_HOST  #SLURM
+    [[ ! -z $LSB_SUB_HOST ]]      && REMORA_SUBMIT_HOST=$LSB_SUB_HOST       #LSF
+    [[ ! -z $SGE_O_HOST ]]        && REMORA_SUBMIT_HOST=$SGE_O_HOST         #SGE
 }
 
 get_node_list()
