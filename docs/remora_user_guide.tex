@@ -44,7 +44,7 @@
 % Define header and footer
 \pagestyle{fancy}
 \fancyhf{}
-\lhead{C. Rosales, A. G\'{o}mez}
+\lhead{C. Rosales, A. G\'{o}mez, C.-Y. Lu, K. Milfeld}
 \rhead{REMORA User Guide}
 \lfoot{REMORA User Guide}
 \rfoot{\thepage}
@@ -385,8 +385,8 @@ for the number of snapshots, which must be first.
 \begin{verbatim}
 	snapshot num_snapshots [period] [space-separated list of modules]
   e.g.
-	snapshot 100  10 memory mpi   #100 snapshots 1_snapshot/10sec 
-                                      #collect only memory and mpi info
+	snapshot 100  10 memory numa   #100 snapshots 1_snapshot/10sec 
+                                  #collect only memory and numa info
 \end{verbatim}
 
 By default, data is collected for all nodes in a job.  Use the argument \verb+node+

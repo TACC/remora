@@ -85,7 +85,6 @@ if [[ -z $REMORA_SNAPSHOTS ]]; then   #If not snapshots (a remora run) do this
         ssh -q -f $SSH_NODE "pkill -f remora_report.sh"
     done
 fi
-echo "HHHHHHHEEEEERRRRRREEEEE & exit"; exit
 
     for NODE in $NODES; do
         SSH_NODE=$NODE
