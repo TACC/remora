@@ -59,12 +59,12 @@ plot_data_network()
   printf "%s \n" "<script type=\"text/javascript\">" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
   printf "%s \n" "google.charts.load('current', {packages:[\"orgchart\"]});" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
 
-  printf "%s \n" "google.charts.setOnLoadCallback(drawChart);" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
-  printf "%s \n" "function drawChart() {" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "google.charts.setOnLoadCallback(drawChart);"      >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "function drawChart() {"                           >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
   printf "%s \n" "var data = new google.visualization.DataTable();" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
-  printf "%s \n" "data.addColumn('string', 'Node');" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
-  printf "%s \n" "data.addColumn('string', 'Top');" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
-  printf "%s \n" "data.addRows([" >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "data.addColumn('string', 'Node');"                >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "data.addColumn('string', 'Top');"                 >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
+  printf "%s \n" "data.addRows(["                                   >> $REMORA_TMPDIR/network_trace_${REMORA_NODE}.html
 
   cat $REMORA_TMPDIR/network_trace.txt | awk -v RS="_____________" '{ print $0 > "trace" NR }'
   FILES=trace*
@@ -115,35 +115,59 @@ plot_data_network()
 
 finalize_module_network()
 {
+                         #This should be rewritten KFM
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
   #Extract the mlx interface. It was hardcoded to mlx4_0
   export PATH="/sbin:$PATH"
+                  #if snapshot plot, will get login interf-- OK.
   interf=`ibstat | head -n 1 | awk '{print $2}' | tr -d "'"`
   if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
-	if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
-    local idx=0
-    local LID=()
     local NODES=`cat $REMORA_OUTDIR/remora_nodes.txt`
-    for NODE in $NODES; do
-      LIDCOMMAND="cat /sys/class/infiniband/"$interf"/ports/1/lid"
-      LID[$idx]=`ssh -f $NODE $LIDCOMMAND`
-      idx=$((idx+1))
-    done
-    net_node_cnt=0; for NODE in $NODES; do net_node_cnt=$((net_node_cnt+1)); done
-    idx=1
-    if [[ $net_node_cnt -gt 1 ]]; then
-       while [[  $idx -lt $net_node_cnt ]]; do
-         ibtracert ${LID[0]} ${LID[$idx]} >> $REMORA_OUTDIR/network_trace.txt
-         echo "_____________"             >> $REMORA_OUTDIR/network_trace.txt
-         idx=$((idx+1))
-       done
-    else
-         echo "_____________"             >> $REMORA_OUTDIR/network_trace.txt
-    fi
+    net_node_cnt=$( wc -w <<<$NODES)
+    if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
+   
+       if [[ $net_node_cnt -gt 1 ]]; then 
 
-	fi
-  fi
+         # Check for "snapshot plot", and don't try accessing node infiniband 
+         # if snapshot plot is not running in same job (SNAPSHOT_JOBID)  that created data (REMORA_JOB_ID).
+
+         REMORA_JOBID=$(grep REMORA_JOB_ID $REMORA_OUTDIR/remora_env.txt | sed 's/^.*=//'; exit ${PIPESTATUS[0]} )
+         echo RJOBID=$REMORA_JOBID
+
+         SNAPSHOT_JOBID=$(grep SNAPSHOT_JOBID $REMORA_OUTDIR/remora_env.txt | sed 's/^.*=//'; exit ${PIPESTATUS[0]} )
+         if [[ $? == 0 ]] && [[ $SNAPSHOT_JOBID -ne $REMORA_JOBID ]]; then
+             echo "_____________"                  >> $REMORA_OUTDIR/network_trace.txt  # do nothing / no net trace
+
+         else # Do regular batch/interactive_batch processing
+           local idx=0
+           local LID=()
+           for NODE in $NODES; do
+             LIDCOMMAND="cat /sys/class/infiniband/"$interf"/ports/1/lid"
+             LID[$idx]=`ssh -f $NODE $LIDCOMMAND`
+             idx=$((idx+1))
+           done
+  
+           echo "ibtracert ${LID[0]} ${LID[1]}" >>$REMORA_OUTDIR/VERBOSE
+           ibtracert ${LID[0]} ${LID[1]}  >/dev/null 2>&1   #1 Permission may be restricted
+           if [[ $? == 0 ]]; then
+             idx=1
+             if [[ $net_node_cnt -gt 1 ]]; then
+                while [[  $idx -lt $net_node_cnt ]]; do
+                  ibtracert ${LID[0]} ${LID[$idx]} >> $REMORA_OUTDIR/network_trace.txt
+                  echo "_____________"             >> $REMORA_OUTDIR/network_trace.txt
+                  idx=$((idx+1))
+                done
+             else
+                  echo "_____________"             >> $REMORA_OUTDIR/network_trace.txt
+             fi
+           else
+             echo "_____________"                  >> $REMORA_OUTDIR/network_trace.txt  # nothing
+           fi
+         fi #snapshot plot job
+       fi #more than 1 node, do net trace--requires 2 or more nodes
+    fi #FULL
+  fi #MASTER
 
   plot_data_network $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 }

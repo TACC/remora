@@ -1,15 +1,15 @@
 #!/bin/bash
 ######## SNAPSHOT ###############
 ##KFM Note, cannot get MPI information from already running job. (No need for preload.)
-## if remora_env.txt is source REMORA_PLOT_RESULTS will not be considers; but what if changed
+## if remora_env.txt is sourced REMORA_PLOT_RESULTS should not be considers.
 
 APP=`basename $0`
 ARGS="$@"  # save command line
 
    if [[ -z "$REMORA_BIN" ]]; then
-      which remora >& /dev/null
+      which $APP >& /dev/null
       if [[ $? == 0 ]]; then
-        export REMORA_BIN=$( which remora | xargs  dirname )
+        export REMORA_BIN=$( which $APP | xargs  dirname )
         [[ $REMORA_VERBOSE == 1 ]] && echo " -> Using $REMORA_BIN for REMORA_BIN from PATH"
       else
         echo "ERROR: REMORA_BIN undefined (& not found in PATH)"
@@ -35,13 +35,29 @@ ARGS="$@"  # save command line
 
 #USAGE
    USAGE=" 
-   -> snapshot [-h|--help]
+   $APP [-h|--help]   # This help
 
-   -> snapshot #ofShots [Period_sec] [List_of_modules] [plot]    [login]
-   -> defaults:  none         10          all          no plots  comp nodes
+   -----------------------------------------------------------------------------
+   $APP  N            # 1 Take N snapshots (N>1; period = \$REMORA_PERIOD | 10s)
+   $APP plot          # 2 Create plots (use login if on a compute node)
 
-   -> snapshot plot   [login]     [directory]
-      defaults:      comp nodes  latest remora_*
+      1 -- take snapshots only \"when attached\" on compute nodes 
+      2 -- create plots anywhere/anytime
+   -----------------------------------------------------------------------------
+       
+   -----------------------------   ADVANCED  -----------------------------------
+   $APP   N  [Period_sec] [modules] [plot|PLOT]
+
+           N           integer: REQUIRED # of snapshots
+           Period_sec  integer: sets REMORA_PERIOD
+           modules     list of modules to run (e.g. cpu memory ...)
+           plot|PLOT   keyword: create plots after snapshots 
+                       (use login|compute_nodes to create plots)
+
+   $APP plot|PLOT  [directory]
+
+           plot|PLOT   keyword: REQUIRED create on login|comp node
+           directory   a remora_<jobid> directory (default is latest)
 "
 
 #ARGUMENTS
@@ -49,7 +65,7 @@ ARGS="$@"  # save command line
    if [[ $# == 0 ]] || [[ $1 =~ '-h' ]]; then
       echo "$USAGE" 
     # echo -e "    Module List: \n    ${MOD_LIST[@]}"
-      #TODO print list of known modules
+    #TODO print list of known modules
       exit 0
    fi
 
@@ -58,18 +74,20 @@ ARGS="$@"  # save command line
      REMORA_SNAPS=$1
      REMORA_SNAPSHOT=1
      REMORA_PLOT=0        #default for snapshots #, no plots
+     (( $REMORA_SNAPS < 2 ))  && echo "  ABORTED: Number of snapshots ($REMORA_SNAPS) must be greater than 1."  && exit 1
      shift
-     [[ $REMORA_VERBOSE == 1 ]] && echo " -> taking $REMORA_SNAPS snapshots"
-   elif [[ "$1" =~ plot ]]; then
+     [[ $REMORA_VERBOSE == 1 ]] && echo " -> Taking $REMORA_SNAPS snapshots (determine if plotting later). "
+   elif [[ "$1" =~ ^[pP][lL][oO][tT]$ ]]; then
      REMORA_SNAPSHOT=0
-     REMORA_PLOT="login"
+     REMORA_PLOT="$1"
      shift
-     [[ $REMORA_VERBOSE == 1 ]] && echo " -> Plot Only Mode"
+     [[ $REMORA_VERBOSE == 1 ]] && echo " -> Plot Only Mode ($REMORA_PLOT)"
    else
      echo "$USAGE"
      exit 1
    fi  
 
+  #SNAPSHOT
    if [[ $REMORA_SNAPSHOT == 1 ]]; then  #this is a snapshot
    
       if [[ "$1" =~ ^[0-9]+$ ]]; then
@@ -85,31 +103,30 @@ ARGS="$@"  # save command line
          fi
       fi
 
-       [[ $REMORA_VERBOSE == 1 ]] && echo " -> DBG: Number of arguments left: $# (plot|login|node|modules)"
+      [[ $REMORA_VERBOSE == 1 ]] && echo " -> DBG: Num args left= $# (look for plot|PLOT|node|modules)"
    
       while [[ $# -gt 0 ]]; do
-        [[ $1 =~ "plot"  ]] &&  REMORA_PLOT=${REMORA_PLOT/0/1}  && shift && continue
-        [[ $1 =~ "login" ]] &&  REMORA_PLOT=login               && shift && continue
-        [[ $1 =~ "node"  ]] &&  REMORA_SNAPSHOT=node            && shift && continue
-        mod_args+=($1)
-        echo FOUND mod_arg=$1
+        [[ $1 =~ ^[pP][lL][oO][tT]$ ]] &&  REMORA_PLOT=$1        && shift && continue
+        [[ $1 =~ "node"             ]] &&  REMORA_SNAPSHOT=node  && shift && continue
+        SS_mod_args+=($1)                                        #module list created here
+        [[ $REMORA_VERBOSE == 1 ]] && echo " -> FOUND SS_mod_arg=$1"
         shift
       done
       [[ $REMORA_VERBOSE == 1 ]] && echo " -> REMORA_PLOT=$REMORA_PLOT REMORA_SNAPSHOT=$REMORA_SNAPSHOT"
-      [[ $REMORA_VERBOSE == 1 ]] && [[ ${#mod_args[@]} -gt 0 ]] && echo " -> MODULES=${mod_args[@]}"
+      [[ $REMORA_VERBOSE == 1 ]] && [[ ${#SS_mod_args[@]} -gt 0 ]] && echo " -> MODULES=${SS_mod_args[@]}"
 
-      if [[ ! -z $TACC_SYSTEM ]]; then   #For TACC Systems--Don't use remora on a login node
+      if [[ ! -z $TACC_SYSTEM ]]; then #For TACC Systems--Don't use remora on a login node
          my_node=`hostname -f`                                        #vv backdoor for debugging
-         if [[ ! $my_node =~ ^c[0-9][0-9][0-9]-[0-9][0-9][0-9] ]] && [[ -z $REMORA_BYPASS ]]; then
+         if [[ ! $my_node =~ ^c[0-9][0-9][0-9]-[0-9][0-9][0-9] ]] && [[ -z $REMORA_SS_BYPASS ]]; then
             echo " Found $USER using $APP on a non-compute (login) node: $my_node."
-            echo " You must use remora on a compute node (in batch or interactive batch)"
+            echo " You can only use $APP for collection on a compute node (in batch or interactive batch)"
             exit 1
          fi
       fi
    
-#echo "HERE doing SNAPS"; exit
-   else      #this is just a plot
-   
+  #PLOTTING -- get REMORA_OUTDIR
+   else      
+
       if [[ $# -gt 0 ]]; then                         # if another arg, must be a directory
    
          if [[ -d $1 ]]; then                         # get REMORA_OUTDIR from argument
@@ -122,24 +139,35 @@ ARGS="$@"  # save command line
             echo "$USAGE"; exit 1
          fi  
       else                                            # Get REMORA_OUTDIR from remora_* in PWD
-#                                just dirs   | remove /    | form remora_<jobid>      | latest one
-         LOCAL_REMORA_OUTDIR=$( ls -1trd  */ | sed 's#/##' | grep -E 'remora_[0-9]+$' | tail -n 1 )
-         if [[ -z $LOCAL_REMORA_OUTDIR ]]; then
+         #                       just dirs   | remove /    | form remora_<jobid>      | latest one
+         REL_REMORA_OUTDIR=$( ls -1trd  */ | sed 's#/##' | grep -E 'remora_[0-9]+$' | tail -n 1 )
+         if [[ -z $REL_REMORA_OUTDIR ]]; then
             echo " ERROR: Could not find a directory of form remora_<job_#> in present directory."
             echo "$USAGE"; exit 1
          fi  
-         REMORA_OUTDIR=$PWD/$LOCAL_REMORA_OUTDIR
+
+         PWD_REMORA_OUTDIR=$PWD/$REL_REMORA_OUTDIR   #REMORA_OUTDIR from what we found
+         ENV_REMORA_OUTDIR=$( grep 'export REMORA_OUTDIR=' $PWD_REMORA_OUTDIR/remora_env.txt | \
+               sed 's/^ *export REMORA_OUTDIR=//' )  #REMORA_OUTDIR from remora_env.txt
+
+         if [[ $PWD_REMORA_OUTDIR != $ENV_REMORA_OUTDIR ]]; then
+            sed -i "s@${ENV_REMORA_OUTDIR}@${PWD_REMORA_OUTDIR}@"  $PWD_REMORA_OUTDIR/remora_env.txt
+            echo " -> NOTE:  $REL_REMORA_OUTDIR has been moved from original location. Change:"
+            echo " ->  from: $ENV_REMORA_OUTDIR"
+            echo " ->    to: $PWD_REMORA_OUTDIR"
+            echo " ->    in: remora_env.txt."
+         fi
+
+         REMORA_OUTDIR=$PWD_REMORA_OUTDIR
          [[ $REMORA_VERBOSE == 1 ]] && echo " -> pwd REMORA_OUTDIR=$REMORA_OUTDIR." 
       fi  
-   
-#echo "HERE doing PLOTS ONLY"; exit
+         #Needed for network module -- corner case not to ssh to nodes when "snapshot plot" from login..
+      [[ ! -z $REMORA_SSH_NODE ]] && echo "export REMORA_SSH_NODE=$REMORA_SSH_NODE" >>$REMORA_OUTDIR
    fi
 # end ARGUMENTS
 
 
-#####
-
-   [[ ${#mod_args[@]} -gt 0 ]] && export REMORA_MODULES="${mod_args[@]}"
+   [[ ${#SS_mod_args[@]} -gt 0 ]] && export REMORA_MODULES="${SS_mod_args[@]}"
 
    ##KFM Cannot do this here... let remora_init do this.
    #if [[ ! ${ALL_REMORA_MODULES[@]} =~ .*$MOD_NAME.* ]]; then
@@ -148,191 +176,190 @@ ARGS="$@"  # save command line
    #  exit 1
    #fi
 
-
-
-# TAKING SNAPSHOTS
-if [[ $REMORA_SNAPSHOT != 0 ]]; then
-  
-  #Function that tries to exit clean if REMORA is cancelled.
-  #It finalizes all processes. The main code might continue running though.
-  #Trap the SIGTERM and SIGINT signals and call exit_clean
-     exit_clean() { $REMORA_BIN/scripts/remora_finalize.sh 0 0; }
-     trap "exit_clean" TERM SIGINT
-  
-  #Save the PID of REMORA in case we need it
-     export SNAPSHOT_TOP_PID=$$
-     snapshot_pids=`pgrep -x snapshot`
-  
-  #Make sure no old remora background processes are running. (e.g. for interative development)
-     for pid in $snapshot_pids; do
-        if [[ $pid != $SNAPSHOT_TOP_PID ]]; then
-            echo "ERROR: there is another instance of snapshot already running, Exiting."
-            echo "       Command: $APP $ARGS"
-            exit 1
-         fi
-     done
-  
-  # Parse input and setup data collection
-  # Source the remora_init script (it defines the functions that initialize collectors)
-  
-     source $REMORA_BIN/scripts/remora_init.sh
-                                                  # arguments not used, but others could be used for debugging
-     [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> Starting remora_init function."
-     remora_init "snapshot"                       #Call the initialization function (Verbose in script)
-  #                                               # parse_arguments/is_mpi need (any) argument (usually $@). 
-     [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> Getting node list from remora_nodes.txt."
-     export NODES=( $( cat $REMORA_OUTDIR/remora_nodes.txt ) )
-  
-     [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> DBG: Sourcing remote_collect.sh."
-     source $REMORA_BIN/scripts/remora_collect.sh #Source the remora_collect script
-
-                                                  # arguments not used, but others could be used for debugging
-     [[ "$REMORA_VERBOSE" == "1" ]] && echo -e "\n -> vv Starting remora_collect -- will launch remote collectors."
-     remora_collect "$@"                          #Start data collection (Verbose is in script )
-     [[ "$REMORA_VERBOSE" == "1" ]] && echo -e   " -> ^^ Finished remora_collect launch of remote collectors.\n"
+ ### TAKING SNAPSHOTS
+   if [[ $REMORA_SNAPSHOT != 0 ]]; then
      
-   # # Need to wait for file system commit
-   # lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
-   # while [[ "$lastline" != "#EOF" ]]; do
-   # [[ "$REMORA_VERBOSE" == "1" ]] && echo "SNAPSHOT: WAITING"
-   #     lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
-   #     sleep 0.5
-   # done
-  
-  #WAIT 4 .remora_out_<NODE>'s, mean remora_report.sh started. ##KFM should make this a funtion
-
-     knt=${#NODES[@]}  nodes_2b_checked4="${NODES[@]}"
-     [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> DBG: node cnt=${#NODES[@]}  nodes_2b_checked4=${NODES[@]}"
-
-  iter_knt=0
-     while [[ $knt > 0 ]]; do
-        for_nodes=$nodes_2b_checked4
-        for i in $for_nodes; do
-     #                  # remove node when found
-          if [[ -f $REMORA_OUTDIR/.remora_out_${i} ]]; then
-             nodes_2b_checked4=`echo $nodes_2b_checked4 | sed s/$i//`
-             knt=$((knt-1))
-          fi
-          sleep 0.5
-        done
-          [[ "$REMORA_VERBOSE" == "1" ]] && echo " Waiting for $knt remora_report.sh nodes to check in: $nodes_2b_checked4"
-     iter_knt=$((iter_knt+1))
-     [[ $iter_knt > 20 ]] && exit
-     done
-  
-     START=$(date +%s%N)
-  
-     source $REMORA_OUTDIR/remora_env.txt  #Don't think this is needed.
-  
-  #SLEEP for $REMORA_SNAPS periods 
-     knt=1
-     while [[ ! $knt -gt $REMORA_SNAPS ]]; do
-       sleep $REMORA_PERIOD
-       [[ $REMORA_VERBOSE == 1 ]] && echo " Sleep PERIOD $knt of $REMORA_SNAPS beginning (PERIOD=${REMORA_PERIOD}s)."
-       knt=$((knt+1))
-     done
-  #SLEEP done
+     #Function that tries to exit clean if REMORA is cancelled.
+     #It finalizes all processes. The main code might continue running though.
+     #Trap the SIGTERM and SIGINT signals and call exit_clean
+        exit_clean() { $REMORA_BIN/scripts/remora_finalize.sh 0 0; }
+        trap "exit_clean" TERM SIGINT
      
-  #WAIT 4 sleep for $REMORA_SNAPS period.snapshot_done_<NODE>'s  ##KFM should just make this a funtion
-     knt=${#NODES[@]}  nodes_2b_checked4="${NODES[@]}"
-     while [[ $knt > 0 ]]; do
-        for_nodes=$nodes_2b_checked4
-        for i in $for_nodes; do
-     #                  # remove node when found
-           if [[ -f $REMORA_OUTDIR/.done_snaps_${i} ]]; then
-              nodes_2b_checked4=`echo $nodes_2b_checked4 | sed s/$i//`
-              knt=$((knt-1))
-           fi
-           sleep 0.5
+     #Save the PID of REMORA in case we need it
+        export SNAPSHOT_TOP_PID=$$
+        snapshot_pids=`pgrep -x snapshot`
+     
+     #Make sure no old remora background processes are running. (e.g. for interative development)
+        for pid in $snapshot_pids; do
+           if [[ $pid != $SNAPSHOT_TOP_PID ]]; then
+               echo "ERROR: there is another instance of snapshot already running, Exiting."
+               echo "       Command: $APP $ARGS"
+               exit 1
+            fi
         done
-        [[ "$REMORA_VERBOSE" == "1" ]] && echo " Waiting for $knt remora_report.sh nodes to check in: $nodes_2b_checked4"
-     done
-  ##WAIT done
 
-   [[ "$REMORA_VERBOSE" == "1" ]] && echo " SNAPSHOT: Finished waiting for remote remora_report.sh processes to begin"
-fi
-#end TAKING SNAPSHOTS
+     # Parse input and setup data collection
+     # Source the remora_init script (it defines the functions that initialize collectors)
+     
+        source $REMORA_BIN/scripts/remora_init.sh
+                                                     # arguments not used, but others could be used for debugging
+        [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> Starting remora_init function."
+        remora_init "snapshot"                       #Call the initialization function (Verbose in script)
+     #                                               # parse_arguments/is_mpi need (any) argument (usually $@). 
 
-
-# By default, don't create plots, since that might disrupt a running job. Exception: plot on cmd line or REMORA env var
-#         vv "plot" on cmd line      vv REMORA env. var.
-
-if [[ $REMORA_PLOT != 0 ]]; then
-######### MUST DETERMINE if submit host or compute node generates plots
-
-# PLOT GENERATION HOST (REMORA_SSH_NODE)
-   source $REMORA_BIN/aux/scheduler
-   get_job_id
-   JOBID=$REMORA_JOB_ID       # == -1 if not a job
-
-   [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> Job ID = $JOBID"
-
-#get captured data job id
-   if [[ $REMORA_OUTDIR =~ remora_[0-9]+-*[0-9]* ]]; then
-      jobid=$( echo $REMORA_OUTDIR | sed s/^remora_// | sed s/-.*// )
-  
-                                           [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> job id ($jobid) from REMORA_OUTDIR"
-   else # so: "snapshot plot" dir is where dir doesn't have default "remora_#" form
-      if   [[ -f $REMORA_OUTDIR/remora_env.txt ]]; then 
-           jobid=$(grep REMORA_JOB_ID $REMORA_OUTDIR/remora_env.txt |sed 's/.*=//')
-                                [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> DB: job id ($jobid) from remora_env.txt"
-      elif [[ -f $REMORA_OUTDIR/INFO/remora_env.txt ]]; then 
-           jobid=$(grep REMORA_JOB_ID $REMORA_OUTDIR/INFO/remora_env.txt |sed 's/.*=//')
-                                [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> DB: job id ($jobid) from INFO/remora_env.txt"
-      else
-           echo " -> ERROR NO remora_env.txt found in REMORA_OUTDIR ($REMORA_OUTDIR)" && exit 1
-      fi
-                                           [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> job id ($jobid) from remora_env.txt"
+        [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> Getting node list from remora_nodes.txt."
+        export NODES=( $( cat $REMORA_OUTDIR/remora_nodes.txt ) )
+     
+        [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> DBG: Sourcing remote_collect.sh."
+        source $REMORA_BIN/scripts/remora_collect.sh #Source the remora_collect script
+   
+                                                     # arguments not used, but others could be used for debugging
+        [[ "$REMORA_VERBOSE" == "1" ]] && echo -e "\n -> vv Starting remora_collect -- will launch remote collectors."
+        remora_collect "$@"                          #Start data collection (Verbose is in script )
+        [[ "$REMORA_VERBOSE" == "1" ]] && echo -e   " -> ^^ Finished remora_collect launch of remote collectors.\n"
+        
+      # # Need to wait for file system commit
+      # lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
+      # while [[ "$lastline" != "#EOF" ]]; do
+      # [[ "$REMORA_VERBOSE" == "1" ]] && echo "SNAPSHOT: WAITING"
+      #     lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
+      #     sleep 0.5
+      # done
+     
+     #WAIT 4 .remora_out_<NODE>'s, mean remora_report.sh started. ##KFM should make this a funtion
+   
+        knt=${#NODES[@]}  nodes_2b_checked4="${NODES[@]}"
+        [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> DBG: node cnt=${#NODES[@]}  nodes_2b_checked4=${NODES[@]}"
+   
+     iter_knt=0
+        while [[ $knt > 0 ]]; do
+           for_nodes=$nodes_2b_checked4                                    #list of not-found nodes
+           for i in $for_nodes; do                                         # check through it
+        #                  # remove node when found
+             if [[ -f $REMORA_OUTDIR/.remora_out_${i} ]]; then
+                nodes_2b_checked4=`echo $nodes_2b_checked4 | sed s/$i//`   #remove node from not-found list
+                knt=$((knt-1))                                             #
+             fi
+             sleep 0.5
+           done
+             [[ "$REMORA_VERBOSE" == "1" ]] && echo " Waiting for $knt remora_report.sh nodes to check in: $nodes_2b_checked4"
+        iter_knt=$((iter_knt+1))
+        [[ $iter_knt > 20 ]] && exit
+                             #if all node files have not been found (knt>0), then check again with (shorter) not-found list
+        done                 ##TODO: Maybe remove this files later? history may be important
+     
+        START=$(date +%s%N)
+     
+        source $REMORA_OUTDIR/remora_env.txt  #Don't think this is needed.
+     
+     #SLEEP for $REMORA_SNAPS periods 
+        knt=1
+        while [[ ! $knt -gt $REMORA_SNAPS ]]; do
+          sleep $REMORA_PERIOD
+          [[ $REMORA_VERBOSE == 1 ]] && echo " Sleep PERIOD $knt of $REMORA_SNAPS beginning (PERIOD=${REMORA_PERIOD}s)."
+          knt=$((knt+1))
+        done
+     #SLEEP done
+        
+     #WAIT 4 sleep for $REMORA_SNAPS period.snapshot_done_<NODE>'s  ##KFM should just make this a funtion
+        knt=${#NODES[@]}  nodes_2b_checked4="${NODES[@]}"
+        while [[ $knt > 0 ]]; do
+           for_nodes=$nodes_2b_checked4
+           for i in $for_nodes; do
+        #                  # remove node when found
+              if [[ -f $REMORA_OUTDIR/.done_snaps_${i} ]]; then
+                 nodes_2b_checked4=`echo $nodes_2b_checked4 | sed s/$i//`
+                 knt=$((knt-1))
+              fi
+              sleep 0.5
+           done
+           [[ "$REMORA_VERBOSE" == "1" ]] && echo " Waiting for $knt remora_report.sh nodes to check in: $nodes_2b_checked4"
+        done
+     ##WAIT done   ##TODO: Maybe remove this files later? history may be important
+   
+      [[ "$REMORA_VERBOSE" == "1" ]] && echo " SNAPSHOT: Finished waiting for remote remora_report.sh processes to begin"
    fi
+   #end TAKING SNAPSHOTS
 
-   # Now determine where to create the plots
-   get_submit_host    #Is this a batch job? Returns REMORA_JOB_ID, -1 if not a batch job
 
-   if [[ "$REMORA_JOB_ID" == "-1"   ]]; then #Must be interactive
-      REMORA_SSH_NODE=$(hostname -f)         #not batch, must be login
-                                   [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> PLOT INTERACTIVE  SNAPSHOT=$REMORA_SNAPSHOT"
-   else
+ ### CREATE PLOT (By default, don't create plots, since that might disrupt a running job.)
+   if [[ $REMORA_PLOT != 0 ]]; then    # either plot or PLOT, default is plot (on login)
 
-      if [[ $JOBID == $jobid ]]; then
-
-         unset REMORA_SSH_NODE         #if jobid of remora dir is same as this job
-                                #assume user wants to also plot (use batch nodes)
-                                #however, if instructed to plot on login nodes
-                                   [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> PLOT INTERACTIVE  SNAPSHOT=$REMORA_SNAPSHOT"
-         if [[ $REMORA_PLOT == "login" ]]; then
-            REMORA_SSH_NODE=$REMORA_SUBMIT_HOST
-                                   [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> PLOT: BATCH SSN_NODE=login SNAPSHOT=$REMORA_SNAPSHOT"
+      source $REMORA_BIN/aux/scheduler
+      get_job_id
+      SNAPSHOT_JOBID=$REMORA_JOB_ID       # == -1 if not a job
+   
+      [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> Job ID = $SNAPSHOT_JOBID"
+   
+      #get captured data job id
+      if [[ $REMORA_OUTDIR =~ remora_[0-9]+-*[0-9]* ]]; then
+         RO_jobid=$( echo $REMORA_OUTDIR | sed s/^.*remora_// | sed s/-.*// )
+     
+                                              [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> job id ($RO_jobid) from REMORA_OUTDIR"
+      else # So: "snapshot plot" dir is where dir doesn't have default "remora_#" form
+           #     or  supplied [directory] doesn't have remora_# form. 
+           #     Check in for remora_env.txt or INFO/remora_env.txt   
+         if   [[ -f $REMORA_OUTDIR/remora_env.txt ]]; then 
+              RO_jobid=$(grep REMORA_JOB_ID $REMORA_OUTDIR/remora_env.txt |sed 's/.*=//')
+                                   [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> DB: job id ($RO_jobid) from remora_env.txt"
+         elif [[ -f $REMORA_OUTDIR/INFO/remora_env.txt ]]; then 
+              RO_jobid=$(grep REMORA_JOB_ID $REMORA_OUTDIR/INFO/remora_env.txt |sed 's/.*=//')
+                                   [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> DB: job id ($RO_jobid) from INFO/remora_env.txt"
          else
-            [[ $REMORA_SNAPSHOT == node ]] && REMORA_PLOT="batch_node_only_after_snaps"
-
+              echo " -> ERROR NO remora_env.txt found in REMORA_OUTDIR ($REMORA_OUTDIR) to get job_id" && exit 1
          fi
+                                              [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> job id ($RO_jobid) from remora_env.txt"
+      fi
+   
+      # Now determine where to create the plots
+      get_submit_host    #Is this a batch job? Returns REMORA_JOB_ID, -1 if not a batch job
+   
+      if [[ "$REMORA_JOB_ID" == "-1"   ]]; then #Not Batch, Must be on login
+         REMORA_SSH_NODE=$(hostname -f) 
+                                      [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> PLOT INTERACTIVE NON-BATCH"
       else
-         if [[ $REMORA_PLOT == "login" ]]; then
-            REMORA_SSH_NODE=$REMORA_SUBMIT_HOST
-                [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> PLOT: BATCH SSH_NODE=login SNAPSHOT=$REMORA_SNAPSHOT"
-         else
-            REMORA_PLOT="batch_node_different_job"
-                [[ "$REMORA_VERBOSE" == "1" ]] && 
-                               echo " -> PLOT: BATCH SSN_NODE=batch_node_different_job SNAPSHOT=$REMORA_SNAPSHOT"
-            REMORA_SNAPSHOT=node
+                                      [[ "$REMORA_VERBOSE" == "1" ]] && 
+                                      echo " -> PLOTTING in BATCH  SNAPSHOT=$REMORA_SNAPSHOT"
+   
+         if [[ $SNAPSHOT_JOBID == $RO_jobid ]]; then  #NOTE: This can be an interactive job (or ssh with slurm env @TACC)
+                                   #if RO_jobid of remora dir is same as this job
+                                   #assume user has specified plot|PLOT 
+                                   #(use SUBMIT_HOST if plot | use batch nodes if PLOT)
+            if [[ $REMORA_PLOT == "plot" ]]; then
+               REMORA_SSH_NODE=$REMORA_SUBMIT_HOST
+                                      [[ "$REMORA_VERBOSE" == "1" ]] && 
+                                      echo " -> plot: BATCH SSH_NODE=$REMORA_SUBMIT_HOST"
+            else  #Must be PLOT then
+               unset REMORA_SSH_NODE   #Will use compute nodes for creating plots
+                                      [[ "$REMORA_VERBOSE" == "1" ]] && 
+                                      echo " -> PLOT: with BATCH nodes -- REMORA_SSH_NODE unset"
+            fi
+         else   #In interactive batch, but processing plot files of different job id.
+            if [[ $REMORA_PLOT == "plot" ]]; then
+               REMORA_SSH_NODE=$REMORA_SUBMIT_HOST
+                                      [[ "$REMORA_VERBOSE" == "1" ]] && 
+                                      echo " -> plot: JOB_ID/remora_jobid differ: SSH_NODE=$REMORA_SSH_NODE"
+            else
+               # Must have used PLOT.  Just use master node (too complicated to run in parallel)
+               REMORA_SSH_NODE=$( hostname -f )
+               REMORA_PLOT="batch_node_different_job"
+                                      [[ "$REMORA_VERBOSE" == "1" ]] && 
+                                      echo " -> PLOT: BATCH SSN_NODE=$REMOAR_SSH_NODE"
+               ##?##REMORA_SNAPSHOT=node
+            fi
          fi
       fi
-   fi
-    [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> Running remora_finalize with REMORA_SSH_NODE=$REMORA_SSH_NODE"
-
-# end PLOT GENERATION HOST (REMORA_SSH_NODE)
-#https://oit.ua.edu/wp-content/uploads/2020/12/scheduler_commands_cheatsheet-2020-ally.pdf
-## REMORA_SNAPSHOT=0/#  REMORA_PLOT=0/1/login  REMORA_SSH_NODE=login2??
-#plot              0                    login                  inter/batch
-#SNAPS
-
-######### end MUST DETERMINE if submit host or compute node generates plots
-  #Once the command has finished, source and execute finalize method
-
-     source $REMORA_BIN/scripts/remora_finalize.sh
-     END=$(date +%s%N)
-     remora_finalize $END $START    ##KFM don't forget to remove $REMORA_OUTDIR/.done_snaps_* in finalize
-                                    ##For snapshot just use snapshot period x #_snapshots
-                                    ##For plots only don't provide summary with job time
-
-fi #end PLOTS
+      [[ "$REMORA_VERBOSE" == "1" ]] && echo " -> Running remora_finalize with REMORA_SSH_NODE=$REMORA_SSH_NODE"
+      echo "export SNAPSHOT_JOBID=$SNAPSHOT_JOBID" >> $REMORA_OUTDIR/remora_env.txt
+   
+   # end PLOT GENERATION HOST (REMORA_SSH_NODE)
+   #https://oit.ua.edu/wp-content/uploads/2020/12/scheduler_commands_cheatsheet-2020-ally.pdf
+   
+   
+      source $REMORA_BIN/scripts/remora_finalize.sh
+      END=$(date +%s%N)
+      remora_finalize $END $START    ##KFM TODO: don't forget to remove $REMORA_OUTDIR/.done_snaps_* in finalize
+                                     ##For snapshot just use snapshot period x #_snapshots
+                                     ##For plots only don't provide summary with job time
+   
+   fi #end PLOTS

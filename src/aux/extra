@@ -124,7 +124,6 @@ parse_environment() {
       export REMORA_BINARIES=0
    fi
 
-   # Check if binary directory exists, then set  REMORA_BINARIES  to 1
    # set_active_modules()  already used these to determine the modules, required here for remora_env.txt
    if [[ ! -z  "$REMORA_CONFIGPATH" ]]; then 
      CONFIGPATH=$REMORA_CONFIGPATH
@@ -166,6 +165,9 @@ is_mpi_job() {
     # to make sure we are in a compute node
 # CRF 2016.01.27 - Why do we need this? We always get the hostlist from
 #                  the scheduler, even for serial jobs...
+#TODO: remove this call in remora_init.sh and code here KFM 10/25/23
+#remora designed for batch or interactive batch
+#TODO: remove SYMMETRIC option.
     if [[ "$REMORA_PARALLEL" == "0" ]]; then
         NODES=`hostname -s`
     fi
@@ -190,12 +192,14 @@ is_mpi_job() {
 }
 
 check_plot() {
-    if [[ -z "$REMORA_PLOT_RESULTS" ]]; then
-        export REMORA_PLOT_RESULTS=1
-    fi
-    [[ "$REMORA_PLOTS" == 0 ]] && export REMORA_PLOT_RESULTS=0  #Shorter is better.
+    [[ -z "$REMORA_PLOT_RESULTS" ]] && REMORA_PLOT_RESULTS=1
 
     echo "export REMORA_PLOT_RESULTS=$REMORA_PLOT_RESULTS" >> $REMORA_OUTDIR/remora_env.txt
+
+    [[ ! -z     $REMORA_SNAPSHOT ]] && 
+    echo "export REMORA_SNAPSHOT=$REMORA_SNAPSHOT"         >> $REMORA_OUTDIR/remora_env.txt
+    [[ ! -z     $REMORA_PLOT     ]] && 
+    echo "export REMORA_PLOT=$REMORA_PLOT"                 >> $REMORA_OUTDIR/remora_env.txt
 }
 
 check_gpu() {
@@ -275,15 +279,17 @@ remora_set_active_modules()
         MODULEPATH=$REMORA_MODULE_PATH
     fi  
 
-   config_modules=$( cat $CONFIGPATH/modules | cut -f1 -d "," | tr "\n" " " )
-   config_outdirs=$( cat $CONFIGPATH/modules | cut -f2 -d "," | tr "\n" " " )
+          config_modules=$( cat $CONFIGPATH/modules | cut -f1 -d "," | tr "\n" " " )
+          config_outdirs=$( cat $CONFIGPATH/modules | cut -f2 -d "," | tr "\n" " " )
    REMORA_CONFIG_MODULES=(         $config_modules )
    REMORA_CONFIG_MODULES_OUTDIRS=( $config_outdirs )
 
  remora_modules=( "${REMORA_CONFIG_MODULES[@]}" )
                                                       #### New vvv Jun4 9, 2023
     # If User specifies modules in REMORA_MODULES env var.
+
     if [[ ! -z $REMORA_MODULES ]]; then
+
        env_mods=( $REMORA_MODULES )
                                       # JIC: change characters to lower case   
        for i in ${env_mods[@]}; do mod_list+=( $(tr '[:upper:]' '[:lower:]' <<< $i) ); done
@@ -293,25 +299,34 @@ remora_set_active_modules()
           #Check for proper use
           negative_count=$( echo "${mod_list[@]}" | tr -cd -- '-' | wc -c | sed 's/ //g' )
           if [[ "${#mod_list[@]}" != "$negative_count" ]]; then
-             echo " -> *** WARNING *** Negative and non-negative items in REMORA_MODULES:"
-             echo " ->                 ($REMORA_MODULES). See remora -h for usage."
-             echo " ->                 Will use default modules in Configure directory."
-             mod_list=()
+             echo " -> ***  ERROR  *** Negative and non-negative items in REMORA_MODULES/snapshot module args:"
+             echo " ->                 (FOUND: $REMORA_MODULES). See remora -h for usage."
+            #echo " ->                 Will use default modules in Configure directory."
+            #mod_list=()
+             exit
           else
              # ALL OK
+             [[ "$REMORA_VERBOSE" == "1" ]] &&
              echo " -> Removing (negative-prefixed) modules found in REMORA_MODULES: $REMORA_MODULES."
           fi
        
           rm_modules=( $( echo "${mod_list[@]}" | sed 's/-//g' ) )  #remove all neg char
     
-          remora_modules=() 
-          remora_modules=( ${REMORA_CONFIG_MODULES[@]} )
+                                          [[ "$REMORA_VERBOSE" == "1" ]] && 
+                                          echo " -> Remove based on  modules specified in the $CONFIGPATH/modules file."
+          if [[ ! -z $REMORA_SNAPSHOT ]]; then
+                                          [[ "$REMORA_VERBOSE" == "1" ]] && 
+                                          echo " -> Snapshot runs automatically remove mpi-type module from module set."
+             remora_modules=( $( sed 's/[^ ]*mpi[^ ]*//' <<<$config_modules ) )
+          else 
+             remora_modules=($config_modules)
+          fi
     
           # Remove each value in rm_modules from remora_modules, loop over indices (note !).
           for rm_mod in "${rm_modules[@]}"; do
              found=no
              for j in "${!remora_modules[@]}"; do
-               if [[ ${remora_modules[$j]} == ${rm_mod} ]]; then
+               if [[  ${remora_modules[$j]} == ${rm_mod} ]]; then
                   unset remora_modules[$j] 
                   found=yes 
                fi
@@ -323,7 +338,7 @@ remora_set_active_modules()
           remora_modules=( ${remora_modules[@]} )  #re-index (removes gaps)
     
        else    #Just a list of modules to use
-          echo  "  -> Only using module(s) from \$REMORA_MODULES env var: ${mod_list[@]}"
+          echo  "  -> Only using module(s) from \$REMORA_MODULES or snapshot args: ${mod_list[@]}"
           remora_modules=( ${mod_list[@]} )
     
          # Check: Make sure user provided valid modules
@@ -334,19 +349,26 @@ remora_set_active_modules()
              done 
              if [[ $found != yes ]]; then
                 echo " *** ERROR *** Module \"${remora_modules[$i]}\" in env var REMORA_MODULES is not available."
-                exit    #Maybe this is too strick, but what alternative would be used?
+                exit    #Maybe this is too strict, but what alternative would be used?
              fi
           done
        fi
     
     else
-       echo " -> Using modules specified in the $CONFIGPATH/modules file."
-       fileItemString=$(cat $CONFIGPATH/modules | cut -f1 -d "," | tr "\n" " ")
-       remora_modules=($fileItemString)
+                                       [[ "$REMORA_VERBOSE" == "1" ]] && 
+                                       echo " -> Using modules specified in the $CONFIGPATH/modules file."
+       if [[ ! -z $REMORA_SNAPSHOT ]]; then
+                                       [[ "$REMORA_VERBOSE" == "1" ]] && 
+                                       echo " -> Snapshot runs automatically remove mpi-type module from module set."
+          remora_modules=( $( sed 's/[^ ]*mpi[^ ]*//' <<<$config_modules ) )
+       else 
+          remora_modules=($config_modules)
+       fi
     fi
 
-       #echo FINAL module list:  "${remora_modules[@]}"
-       REMORA_MODULES=( "${remora_modules[@]}" )
+                                       [[ "$REMORA_VERBOSE" == "1" ]] &&
+                                       echo FINAL module list:  "${remora_modules[@]}"
+    REMORA_MODULES=( "${remora_modules[@]}" )
                                                       #### New ^^^ June  9, 2023
                                                       #### New vvv July 11, 2023, ACTIVE_MODULES_OUTDIRS
     for rm_id in "${!REMORA_MODULES[@]}"; do
@@ -358,7 +380,8 @@ remora_set_active_modules()
     echo "export REMORA_ACTIVE_MODULES=\"${REMORA_MODULES[@]}\""                        >> $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_ACTIVE_MODULES_OUTDIRS=\"${REMORA_ACTIVE_MODULES_OUTDIRS[@]}\"" >> $REMORA_OUTDIR/remora_env.txt
 
-                                                      ##KM Is is necessary to source them here?
+                                                      ##KM Is it necessary to source them here?
+                                                      ##TODO:  see about removing this
     for MODULE in "${REMORA_MODULES[@]}"
     do  
       source $MODULEPATH/$MODULE
@@ -366,7 +389,6 @@ remora_set_active_modules()
         echo "      Module $MODULE is active"
       fi  
     done
-
 }
 
 
@@ -425,7 +447,7 @@ init_folders() {
     else
 		export REMORA_TMPDIR=$REMORA_TMPDIR/remora_$REMORA_JOB_ID
     fi
-#                                ##KFM is this done on nodes in remora_report.sh?k
+#                                ##KFM is this done ON non-master  NODES in remora_report.sh.
     mkdir -p $REMORA_TMPDIR
     rm   -rf $REMORA_TMPDIR/*
 

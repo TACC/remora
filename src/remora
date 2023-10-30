@@ -143,15 +143,16 @@ export NODES=( $( cat $REMORA_OUTDIR/remora_nodes.txt ) )
 source $REMORA_BIN/scripts/remora_collect.sh #Source the remora_collect script
 remora_collect "$@"                          #Start data collection (Verbose is in script )
 
-# Need to wait for file system commit  ##KFM this should wait on remora_out_$NODE from each node?
-lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
-while [[ "$lastline" != "#EOF" ]]; do
-[[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA: WAITING"
-    lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
-    sleep 0.5
-done
+##TODO: REMOVE
+## Need to wait for file system commit  ##KFM this should wait on remora_out_$NODE from each node?
+# lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
+# while [[ "$lastline" != "#EOF" ]]; do
+# [[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA: WAITING"
+#     lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
+#     sleep 0.5
+# done
 
-##KRM  Better way to check for remora_report.sh running on the nodes:
+##KFM  Better way to check for remora_report.sh (and finished module inits) running on the nodes:
 knt=${#NODES[@]}  nodes_2b_checked4="${NODES[@]}"
 while [[ $knt > 0 ]]; do
    for_nodes=$nodes_2b_checked4

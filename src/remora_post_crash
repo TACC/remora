@@ -89,7 +89,7 @@ for NODE in $NODES; do
   $REMORA_BIN/scripts/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE $REMORA_NODE_ID &>> $REMORA_OUTDIR/.remora_out_$NODE
 done
 
-show_final_report $END $START
+show_summary_report $END $START
 rm -f $REMORA_OUTDIR/*.tmp
 
 # Should write name-based loop

@@ -35,7 +35,6 @@ get_job_id()
     elif [[ -n "$LSB_HOSTS" ]]; then
         REMORA_JOB_ID=$LSB_JOBID
     fi
-echo HERE REMORA_JOB_ID=$REMORA_JOB_ID 
 }
 
 get_submit_host()
@@ -55,6 +54,7 @@ get_node_list()
         REMORA_SCHEDULER=slurm
         REMORA_JOB_ID=$SLURM_JOB_ID
         NODES=`scontrol show hostname $SLURM_NODELIST`
+        #NOTE: NODES string will have "\n" after each node.  echo "$NODES" shows this.
     elif [[ -n "$PE_HOSTFILE" ]]; then
         REMORA_SCHEDULER=sge
         REMORA_JOB_ID=$JOB_ID

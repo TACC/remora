@@ -26,12 +26,13 @@ source $REMORA_BIN/aux/extra
 source $REMORA_BIN/aux/report
 
 function remora_finalize() {
-VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  #for debugging
 
     source $REMORA_OUTDIR/remora_env.txt
     REMORA_MODULES=( $REMORA_ACTIVE_MODULES )
     REMORA_MODULES_OUTDIRS=( $REMORA_ACTIVE_MODULES_OUTDIRS )
     export REMORA_MODULES REMORA_MODULES_OUTDIRS
+VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  #for debugging
+##TODO: remove REMORA_VERBOSE.out
 
     if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo ""
@@ -44,7 +45,7 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  #for debugging
 
     local remora_timeout=10
 
-if [[ -z $REMORA_SNAPSHOT ]]; then        #TMPDIR must same as OUTDIR for snapshots
+if [[ -z $REMORA_SNAPSHOT ]]; then #No need to check if snapshots  run: TMPDIR MUST be same as OUTDIR for snapshots
       # Copy data from temporary location to output dir
       # This assumes OUTDIR is in a shared location
       if [[ "$REMORA_TMPDIR" != "$REMORA_OUTDIR" ]]; then
@@ -57,9 +58,11 @@ if [[ -z $REMORA_SNAPSHOT ]]; then        #TMPDIR must same as OUTDIR for snapsh
                   scp $NODE:$REMORA_TMPDIR/* $REMORA_OUTDIR 2> /dev/null 1> /dev/null
               done
       fi
-fi
 
+ #vvvv  The master zz.<node>  touched in the init_folders, an other nodes in remora_report.sh immediately.
+ #      I don't think this is necessary, KFM.
     # Ensure all data has been copied over or issue warning
+  if [[ 0 == 1 ]]; then
     NodeCount=`wc -l $REMORA_OUTDIR/remora_nodes.txt | awk '{print $1}'`
     waiting=1; completed=0
     while [[ "$waiting" -lt $remora_timeout ]] && [[ "$completed" -lt "$NodeCount" ]]; do
@@ -77,9 +80,12 @@ fi
         printf "\n*** REMORA: WARNING - Slow file system response. Post-processing may be incomplete\n\n"
         printf "*** REMORA: WARNING - %s out of %s nodes successfully processed\n" "$completed" "$NodeCount"
     fi
+  fi
+ #^^^^
+fi
 
-if [[ -z $REMORA_SNAPSHOTS ]]; then   #If not snapshots (a remora run) do this
-                                      #This is done at end of snapshot with .done_snaps_<node> files. 
+if [[ -z $REMORA_SNAPSHOT ]]; then   #If not snapshots (a remora run) do this
+                                      #This is done at end of snapshots with .done_snaps_<node> files. 
     # Kill reporters running in background
     for SSH_NODE in $NODES; do
         ssh -q -f $SSH_NODE "pkill -f remora_report.sh"
@@ -88,11 +94,12 @@ fi
 
     for NODE in $NODES; do
         SSH_NODE=$NODE
+        [[ ! -z $REMORA_SSH_NODE     ]] && SSH_NODE=$REMORA_SSH_NODE
 
         CMD="$REMORA_BIN/scripts/remora_remote_post.sh $NODE $REMORA_OUTDIR $REMORA_BIN $REMORA_VERBOSE >>$REMORA_OUTDIR/.remora_out_$NODE  & "
 
         if [[ "$REMORA_VERBOSE" == "1" ]]; then
-            echo "REMORA: launching remote postprocessing (plotting, etc)"
+            echo "REMORA: launching remote postprocessing (plotting, etc) on $SSH_NODE for node $NODE"
             echo "        ssh -q -n $SSH_NODE $CMD"
         fi  
         #Right now this is putting the command in the background and continuing 
@@ -112,14 +119,17 @@ fi
   ##KFM local NODES_TMP="$NODES"
   ##KFM local NODES_LIST=( $NODES ) #make array list
 
-    [[ ! -z $SNAPSHOT_NODE     ]] && NODES_LIST=($SNAPSHOT_NODE)
+    nodes_list=( ${NODES_LIST[@]} )
+    [[ ! -z $REMORA_SSH_NODE     ]] && nodes_list=( $REMORA_SSH_NODE )
+   #for NODE in ${NODES_LIST[@]}; do
 
-    for NODE in ${NODES_LIST[@]}; do
+    for NODE in ${nodes_list[@]}; do
         SSH_NODE=$NODE
         cnt=0
-        CMD="ps -ef | grep scripts/remora_remote_post.sh | grep -wv grep | wc -l"
+       #CMD="ps -ef |              grep scripts/remora_remote_post.sh | grep -wv grep | wc -l"
+        CMD="ps -ef | grep $USER | grep scripts/remora_remote_post.sh | grep -wv grep | wc -l"
 
-        while [[ `ssh $SSH_NODE $CMD` -gt 0 ]]; do
+        while [[ `ssh -q $SSH_NODE $CMD` -gt 0 ]]; do
             sleep 0.05
             if [ "$REMORA_VERBOSE" == "1" ]; then
                 [[ $cnt -eq 0 ]] && printf "Post processing waiting on Node: $NODE"
@@ -142,7 +152,12 @@ fi
         done
     fi
 
-    show_final_report $END $START
+    if [[ ! -z $REMORA_SNAPS ]]; then  #if snapshot run, just use period*no_of_snapshots in date +%s%N format
+      START=1000000000
+      TM=$((REMORA_SNAPS*REMORA_PERIOD*1000000000)) 
+      END=$((1000000000 + $TM))
+    fi
+    show_summary_report $END $START
 
     if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo "REMORA: Cleaning. Moving everything to the correct place"
@@ -225,6 +240,7 @@ fi
                 fi
             done
         done
+
         #Add the summary at the end
         printf "<h2>Summary for job %s</h2>\n" "$REMORA_JOB_ID" >> $REMORA_OUTDIR/remora_summary.html 
         input="$REMORA_OUTDIR/INFO/remora_summary.txt"

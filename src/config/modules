@@ -2,7 +2,6 @@ cpu,CPU
 memory,MEMORY
 impi_mpip,MPI
 numa,NUMA
-dvs,IO
 ib,NETWORK
 gpu,MEMORY
 network,NETWORK

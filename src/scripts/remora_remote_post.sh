@@ -32,11 +32,6 @@
    VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out    #Write to this file for Debugging.
    
    #Source the script that has the modules' functionality  ##KFM Don't think this is needed anymore
-   if [[ "$REMORA_VERBOSE" == "1" ]]; then
-     echo "source $REMORA_BIN/aux/extra"
-     echo "source $REMORA_BIN/modules/modules_utils"
-   fi
-   
    source $REMORA_BIN/aux/extra
    source $REMORA_BIN/modules/modules_utils
    
@@ -44,9 +39,13 @@
    REMORA_MODULES=( $REMORA_ACTIVE_MODULES )
    export REMORA_MODULES
 
+   [[ "$REMORA_VERBOSE" == "1" ]] && 
+      echo "remora_remote_post: MODULES: ${REMORA_MODULES[@]} on $REMORA_NODE" >>$VERB_FILE
+
    for MODULE in ${REMORA_MODULES[@]}; do
       source $REMORA_BIN/modules/$MODULE
-      [[ "$REMORA_VERBOSE" == "1" ]] && echo finalize_module_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+      [[ "$REMORA_VERBOSE" == "1" ]] && 
+         echo " cmd: finalize_module_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR" >>$VERB_FILE
 
       finalize_module_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 

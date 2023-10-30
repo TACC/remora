@@ -48,9 +48,10 @@ function remora_init() {
 
     # Initialize output directories
     [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Initializing folders"
-    init_folders   #also executes remora_set_active_modules, mk zz.$node sync files
+    init_folders   #ALSO EXECUTES REMORA_SET_ACTIVE_MODULES, mk zz.$node sync files
 
     # Check REMORA specific environmental variables
+    # This is where $REMORA_OUTDIR/remora_env.txt gets populated:
     [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Parsing environment"
     parse_environment
 

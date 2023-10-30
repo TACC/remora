@@ -46,7 +46,7 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out    #for debugging
 
             ssh -f -n $NODE PATH=$PATH $COMMAND  # PATH is included to make so that tools are found (i.e. mpstat)
 
-        [[ "$REMORA_VERBOSE" == "1" ]] && echo " REMORA: remora_collect: FINIS LAUNCH of remora_report.sh background process on $NODE."
+        [[ "$REMORA_VERBOSE" == "1" ]] && echo " REMORA: remora_collect: FINISHED LAUNCH of remora_report.sh background process on $NODE."
 
         # Only do this if MONITOR mode is active  TODO: explain what monitor.sh does.
         if [[ "$REMORA_MODE" == "MONITOR" ]]; then
@@ -57,7 +57,7 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out    #for debugging
 
             ssh -f -n $NODE $COMMAND
 
-            [[ "$REMORA_VERBOSE" == "1" ]] && echo " REMORA: FINIS LAUNCH remora_monitor.sh background process on $NODE."
+            [[ "$REMORA_VERBOSE" == "1" ]] && echo " REMORA: FINISHED LAUNCH remora_monitor.sh background process on $NODE."
         fi
 
         # Repeat the same for the MIC
