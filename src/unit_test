@@ -1,112 +1,136 @@
 #!/bin/bash
+
 ######## UNIT TEST ###############
-export REMORA_MODE=FULL
+#  Runs the init_module_<M>, collect_data_<M>, plot_data_<M> and finalize_module_<M> for module <M>
+#  with the command "unit_test <M>".
+#
+#  Code is re-entrant: For multi-node test, run "unit_test <M>" (1 arg)  on master node.
+#  It will ssh execution of "unit_test" on remote nodes with 8 arguments.
+#   
+#  Written by Kent Milfeld   2023
+
+export REMORA_MODE=FULL      ## TODO: remove symmetric (knl) and FULL modes
 export REMORA_SYMMETRIC=0
+export REMORA_PLOT_RESULTS=1
+
+    REMORA_VERBOSE=${REMORA_VERBOSE:=0}
 
                   #If binary directory exists, and REMORA_BINARIES != 0
-if [[ -d $REMORA_BIN/binary_data_collectors ]] &&  [[ "x0" != "x$REMORA_BINARIES" ]]; then
-   export REMORA_BINARIES=1  collect_type=binary
-else
-   export REMORA_BINARIES=0  collect_type=script
-fi 
+    if [[ -d $REMORA_BIN/binary_data_collectors ]] &&  [[ "x0" != "x$REMORA_BINARIES" ]]; then
+       export REMORA_BINARIES=1  collect_type=binary
+    else
+       export REMORA_BINARIES=0  collect_type=script
+    fi 
 
-#v      USAGE
-USAGE=" 
- unit_test [-h|--help]  #command syntax + list of module names
- unit_test remora_module_name
-"
-              #TODO get from configuration file
-    MOD_LIST=(cpu dvs eth gpu ib impi impi_mpip lnet lustre memory network numa opa power temperature)
-    
+#                1st arg: module name  If remote, args 2-8 provide environment
+    MOD_NAME=$1
+    [[ $# == 8 ]] &&
+    export REMORA_BIN=$2 NODE=$3 REMORA_VERBOSE=$4 REMORA_OUTDIR=$5 REMORA_TMPDIR=$6 REMORA_PERIOD=$7 REMORA_BINARIES=$8
+
+#v  USAGE
+
+    USAGE=" 
+    unit_test <remora_module_name>
+
+        Options:     [-h|--help]       #syntax + module names"
+
     if [[ $# == 0 ]] || [[ $1 =~ '-h' ]]; then
+       module_files=( $( find $REMORA_BIN/modules -maxdepth 1 -type f -printf '%f ') )
        echo "$USAGE" 
-       echo -e "    Module List: \n    ${MOD_LIST[@]}"
-       #TODO print list of known modules
+       echo "    Module List:"
+       printf " %15s %15s %15s\n"  ${module_files[@]} 
        exit 0
     fi
     MOD_NAME=$1
-    
-    if [[ ! ${MOD_LIST[@]} =~ .*$MOD_NAME.* ]]; then
-      echo " -> ERROR:$MOD_NAME not found in module list:"
-      echo " ->       ${MOD_LIST[@]}"
-      exit 1
+
+    if [[ ! -f $REMORA_BIN/modules/$MOD_NAME ]]; then
+       module_files=( $( find $REMORA_BIN/modules -maxdepth 1 -type f -printf '%f ') )
+       echo " -> ERROR: Module $MOD_NAME could not be found in"
+       echo " ->        $REMORA_BIN/modules"
+       echo " ->        Found these module files:"
+       printf " %15s %15s %15s\n"  ${module_files[@]} 
+       exit 1
     fi
 #^  end USAGE
 
-
-    REMORA_TMPDIR=`pwd`
-    REMORA_OUTDIR=`pwd`
-    rm -f $REMORA_OUTDIR/remora*.tmp
-    rm -f $REMORA_OUTDIR/*.txt
-    rm -f $REMORA_OUTDIR/*.html
-
 #v  Job Info
+    node_alias=$(hostname -a)
     source $REMORA_BIN/aux/scheduler
-    get_job_id
-    if [[ $REMORA_JOB_ID != -1 ]]; then
-      get_node_list
+    if [[ $# == 1 ]]; then
+       get_job_id
+       if [[ $REMORA_JOB_ID != -1 ]]; then
+          get_node_list
+       else                  # Not in batch or interactive batch
+          NODES=$node_alias
+          echo " -> This is not an interactive batch job, will use the node name $node_alias."
+       fi
+       REMORA_NODES=( $NODES )
     else
-       NODES="c000-000"   # NOT job (possibly front-end; just make up a node name
-       echo " -> This is not an interactive job, will use the pseudo node name c000-000."
+       sleep 0.5  #give a little time for master (launch) node to create remora_nodes.txt
+       REMORA_NODES=( $( cat $REMORA_OUTDIR/remora_nodes.txt ) )    
     fi
-    REMORA_NODES=( $NODES )
-    rm -f $REMORA_OUTDIR/remora_nodes.txt
-    for node in ${REMORA_NODES[@]}; do
-       echo  $node >>$REMORA_OUTDIR/remora_nodes.txt
-    done
+
+#   Launch any remote nodes from launch node
+    if [[ $node_alias == ${REMORA_NODES[0]} ]]; then    #1st node in list is the launch node
+       export REMORA_TMPDIR=`pwd` REMORA_OUTDIR=`pwd`
+       rm -f $REMORA_OUTDIR/remora*.tmp   $REMORA_OUTDIR/*.txt  $REMORA_OUTDIR/*.html  REMORA_OUTDIR/OUT_*
+       printf "%s\n" ${REMORA_NODES[@]} >>$REMORA_OUTDIR/remora_nodes.txt
+      
+       REMOTE_NODES=( "${REMORA_NODES[@]:1}" )
+       for node in ${REMOTE_NODES[@]}; do
+          ARGS="$MOD_NAME $REMORA_BIN $node $REMORA_VERBOSE $REMORA_OUTDIR $REMORA_TMPDIR $REMORA_PERIOD $REMORA_BINARIES"
+          CMD="nohup $REMORA_BIN/unit_test $ARGS >$REMORA_OUTDIR/OUT_$node 2>&1 &"
+          ssh -f $node "$CMD"
+       done
+       NODE=${REMORA_NODES[0]}
+    fi
 #end Job Info
 
-#   Precision
-    REMORA_PLOT_RESULTS=1
-   #source $REMORA_BIN/aux/extra
-   #check_date_precision
+#v Run Modules
 
     V=0; [[ $REMORA_VERBOSE == 1 ]] && V=1 
 
-               [[ $V == 1 ]] && printf "%s\n" " -> file: $0"
+               [[ $V == 1 ]] && printf "%s\n" " -> file: $0" 
 
-               [[ $V == 1 ]] && printf "%s"   " -> running init_module_${MOD_NAME}..."
-    source                  $REMORA_BIN/modules/$MOD_NAME
-    rm -r /dev/shm/remora_*
-    for node in ${REMORA_NODES[@]}; do
-      eval init_module_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
-    done
+               [[ $V == 1 ]] && printf "%s"   " -> running init_module_${MOD_NAME}..." 
+
+    source $REMORA_BIN/modules/$MOD_NAME
+
+    rm -rf /dev/shm/remora_*
+    eval init_module_${MOD_NAME} $NODE $REMORA_OUTDIR $REMORA_TMPDIR
 
     sleep $REMORA_PERIOD
-               [[ $V == 1 ]] && printf "%s\n" " finished."
+               [[ $V == 1 ]] && printf "%s\n" " finished." 
 
     STEPS=${REMORA_UT_STEPS:-20}
-               [[ $V == 1 ]] && printf "%s"   " -> running collect on $collect_type $MOD_NAME, ${STEPS} steps: "
-    for node in ${REMORA_NODES[@]}; do
-      for step in `seq 1 $STEPS`; do
+               [[ $V == 1 ]] && printf "%s"   " -> running collect on $collect_type $MOD_NAME, ${STEPS} steps: " 
 
-        if [[ $REMORA_BINARIES == 1 ]]; then
-     
-             tm_0=$( date +%s%N )
-             $REMORA_BIN/binary_data_collectors/data_collect_$MOD_NAME $node $REMORA_OUTDIR $REMORA_TMPDIR
-             tm_1=$(date +%s%N)
-     
-        else
-             tm_0=$( date +%s%N )
-             eval collect_data_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
-             tm_1=$(date +%s%N)
-        fi  
+    for step in `seq 1 $STEPS`; do
 
-        collect_tm=$( bc<<<"scale=4; ($tm_1-$tm_0)/1000000000" )
-        printf " -> %s  %5d Time: %3.6f\n" $node $step $collect_tm 
+       if [[ $REMORA_BINARIES == 1 ]]; then
+           tm_0=$( date +%s%N )
+              $REMORA_BIN/binary_data_collectors/data_collect_$MOD_NAME $NODE $REMORA_OUTDIR $REMORA_TMPDIR
+           tm_1=$( date +%s%N )
+       else
+           tm_0=$( date +%s%N )
+              eval collect_data_${MOD_NAME} $NODE $REMORA_OUTDIR $REMORA_TMPDIR
+           tm_1=$( date +%s%N )
+       fi  
 
-      sleep $REMORA_PERIOD
-      done
+       collect_tm=$( bc<<<"scale=4; ($tm_1-$tm_0)/1000000000" )
+               printf " -> %s  %5d Time: %3.6f\n" $NODE $step $collect_tm  
+
+       sleep $REMORA_PERIOD
     done
-               [[ $V == 1 ]] && printf "%s\n" " ->    finished."
 
-               [[ $V == 1 ]] && printf "%s"   " -> running plot_data_${MOD_NAME}..."
-    for node in ${REMORA_NODES[@]}; do
-      eval plot_data_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
-    done
-               [[ $V == 1 ]] && printf "%s\n" " finished."
+               [[ $V == 1 ]] && printf "%s\n" " ->    finished." 
 
-    for node in ${REMORA_NODES[@]}; do
-      eval finalize_module_${MOD_NAME} $node $REMORA_OUTDIR $REMORA_TMPDIR
-    done
-               [[ $V == 1 ]] && printf "%s\n" " finished $NAME unit test."
+               [[ $V == 1 ]] && printf "%s"   " -> running plot_data_${MOD_NAME}..." 
+
+    eval plot_data_${MOD_NAME} $NODE $REMORA_OUTDIR $REMORA_TMPDIR
+
+               [[ $V == 1 ]] && printf "%s\n" " finished." 
+
+    eval finalize_module_${MOD_NAME} $NODE $REMORA_OUTDIR $REMORA_TMPDIR
+
+               [[ $V == 1 ]] && printf "%s\n" " finished $NAME unit test." 

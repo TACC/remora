@@ -27,34 +27,38 @@ init_module_ib()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     if [[ "$REMORA_SYMMETRIC" == "0" ]]; then
         if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
-            cntr_64b="/sys/class/infiniband/mlx4_0/ports/1/counters_ext/"
-            cntr_32b="/sys/class/infiniband/mlx4_0/ports/1/counters/"
+                 # 1700337391.962          172980          160929       168943228       154180317
+            echo " TIMESTAMP (sec)   Packets sent   Packets recvd      Bytes Sent     Bytes recvd" \
+                 > $REMORA_TMPDIR/ib_packets-${REMORA_NODE}.txt              
+
+              cntr_64b="/sys/class/infiniband/mlx4_0/ports/1/counters_ext/"
+              cntr_32b="/sys/class/infiniband/mlx4_0/ports/1/counters/"
             dev_hfi1_0="/sys/class/infiniband/hfi1_0/ports/1/counters/"
             dev_mlx5_0="/sys/class/infiniband/mlx5_0/ports/1/counters/"
             if [[ -d $cntr_64b ]]; then
-                ib_xmit_pack_cntr="${cntr_64b}port_xmit_packets_64"
-                 ib_rcv_pack_cntr="${cntr_64b}port_rcv_packets_64"
-                ib_xmit_byte_cntr="${cntr_64b}port_xmit_data_64"
-                 ib_rcv_byte_cntr="${cntr_64b}port_rcv_data_64"
+                ib_snd_pack_cntr="${cntr_64b}port_xmit_packets_64"
+                ib_rcv_pack_cntr="${cntr_64b}port_rcv_packets_64"
+                ib_snd_byte_cntr="${cntr_64b}port_xmit_data_64"
+                ib_rcv_byte_cntr="${cntr_64b}port_rcv_data_64"
             elif [[ -d $dev_hfi1_0 ]]; then
-                ib_xmit_pack_cntr="${dev_hfi1_0}port_xmit_packets"
-                 ib_rcv_pack_cntr="${dev_hfi1_0}port_rcv_packets"
-                ib_xmit_byte_cntr="${dev_hfi1_0}port_xmit_data"
-                 ib_rcv_byte_cntr="${dev_hfi1_0}port_rcv_data"
+                ib_snd_pack_cntr="${dev_hfi1_0}port_xmit_packets"
+                ib_rcv_pack_cntr="${dev_hfi1_0}port_rcv_packets"
+                ib_snd_byte_cntr="${dev_hfi1_0}port_xmit_data"
+                ib_rcv_byte_cntr="${dev_hfi1_0}port_rcv_data"
             elif [[ -d $dev_mlx5_0 ]]; then
-                ib_xmit_pack_cntr="${dev_mlx5_0}port_xmit_packets"
-                 ib_rcv_pack_cntr="${dev_mlx5_0}port_rcv_packets"
-                ib_xmit_byte_cntr="${dev_mlx5_0}port_xmit_data"
-                 ib_rcv_byte_cntr="${dev_mlx5_0}port_rcv_data"
+                ib_snd_pack_cntr="${dev_mlx5_0}port_xmit_packets"
+                ib_rcv_pack_cntr="${dev_mlx5_0}port_rcv_packets"
+                ib_snd_byte_cntr="${dev_mlx5_0}port_xmit_data"
+                ib_rcv_byte_cntr="${dev_mlx5_0}port_rcv_data"
             else
-                ib_xmit_pack_cntr="${cntr_32b}port_xmit_packets"
-                 ib_rcv_pack_cntr="${cntr_32b}port_rcv_packets"
-                ib_xmit_byte_cntr="${cntr_32b}port_xmit_data"
-                 ib_rcv_byte_cntr="${cntr_32b}port_rcv_data"
+                ib_snd_pack_cntr="${cntr_32b}port_xmit_packets"
+                ib_rcv_pack_cntr="${cntr_32b}port_rcv_packets"
+                ib_snd_byte_cntr="${cntr_32b}port_xmit_data"
+                ib_rcv_byte_cntr="${cntr_32b}port_rcv_data"
             fi
-            ib_xmit_packs=`cat $ib_xmit_pack_cntr`
+            ib_snd_packs=`cat $ib_snd_pack_cntr`
             ib_rcv_packs=`cat $ib_rcv_pack_cntr`
-            ib_xmit_bytes=`cat $ib_xmit_byte_cntr`
+            ib_snd_bytes=`cat $ib_snd_byte_cntr`
             ib_rcv_bytes=`cat $ib_rcv_byte_cntr`
         fi
     fi
@@ -66,20 +70,31 @@ collect_data_ib()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     if [[ "$REMORA_SYMMETRIC" == "0" ]]; then
         if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
-            local TIMESTAMP=`date +%s`
-            local new_ib_xmit_packs=`cat $ib_xmit_pack_cntr`
-            local new_ib_rcv_packs=`cat $ib_rcv_pack_cntr`
-            local new_ib_xmit_bytes=`cat $ib_xmit_byte_cntr`
-            local new_ib_rcv_bytes=`cat $ib_rcv_byte_cntr`
-            printf "%d %10d %10d %10d %10d\n" $TIMESTAMP \
-                $((new_ib_xmit_packs-ib_xmit_packs)) \
-                $((new_ib_rcv_packs-ib_rcv_packs)) \
-                $((new_ib_xmit_bytes-ib_xmit_bytes)) \
-                $((new_ib_rcv_bytes-ib_rcv_bytes)) \
+
+            local TIMESTAMP=`date +%s.%3N`
+#                                           vvv value can be 15 digits long, ~1ms per read
+            local new_ib_snd_packs; read -r new_ib_snd_packs < $ib_snd_pack_cntr
+            local new_ib_rcv_packs; read -r new_ib_rcv_packs < $ib_rcv_pack_cntr
+            local new_ib_snd_bytes; read -r new_ib_snd_bytes < $ib_snd_byte_cntr
+            local new_ib_rcv_bytes; read -r new_ib_rcv_bytes < $ib_rcv_byte_cntr
+
+            printf "%15.3f %15d %15d %15d %15d\n" $TIMESTAMP \
+                $((new_ib_snd_packs - ib_snd_packs)) \
+                $((new_ib_rcv_packs - ib_rcv_packs)) \
+                $((new_ib_snd_bytes - ib_snd_bytes)) \
+                $((new_ib_rcv_bytes - ib_rcv_bytes)) \
                 >> $REMORA_TMPDIR/ib_packets-${REMORA_NODE}.txt
-            ib_xmit_packs=$new_ib_xmit_packs
+
+           #printf "%15.3f %15d-%d15=%10d    %15d-%15d=%10d    %15d-%15d=%10d    %15d-%15d=%10d   \n" $TIMESTAMP \
+           #    $new_ib_snd_packs   $ib_snd_packs $((new_ib_snd_packs - ib_snd_packs)) \
+           #    $new_ib_rcv_packs   $ib_rcv_packs $((new_ib_rcv_packs - ib_rcv_packs)) \
+           #    $new_ib_snd_bytes   $ib_snd_bytes $((new_ib_snd_bytes - ib_snd_bytes)) \
+           #    $new_ib_rcv_bytes   $ib_rcv_bytes $((new_ib_rcv_bytes - ib_rcv_bytes)) \
+           #    >> $HOME/long_ib_packets-${REMORA_NODE}.txt
+
+            ib_snd_packs=$new_ib_snd_packs
             ib_rcv_packs=$new_ib_rcv_packs
-            ib_xmit_bytes=$new_ib_xmit_bytes
+            ib_snd_bytes=$new_ib_snd_bytes
             ib_rcv_bytes=$new_ib_rcv_bytes
         fi
     fi
@@ -92,6 +107,8 @@ process_data_ib()
 
 plot_data_ib()
 {
+#KFM Make this dual Y, or simple two different plots (like temperature)  11/18/2023
+#https://developers.google.com/chart/interactive/docs/gallery/linechart#dual-y-charts
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
