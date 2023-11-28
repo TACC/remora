@@ -30,9 +30,9 @@ init_module_eth()
         if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
            #$REMORA_TMPDIR/network_eth_traffic-${REMORA_NODE}.txt
             #write header to file
-            printf "%15s %10s %10s %15s %15s %10s %10s %12s %10s\n" \
+            printf "%10s %10s %10s %15s %15s %10s %10s %10s %10s\n" \
             "time" "tx_packets" "rx_packets" "tx_bytes" "rx_bytes" \
-            "tx_err" "tx_dropped" "rx_frame_err" "rx_crc_err" \
+            "tx_errors" "tx_dropped" "rx_frame_errors" "rx_crc_errors" \
             >> $REMORA_TMPDIR/network_eth_traffic-${REMORA_NODE}.txt
             
             #find the default interface		    
@@ -87,18 +87,18 @@ collect_data_eth()
             #determine the number of packets/bytes that have been transmitted during the period.
             #subtract the number of bytes/packets in the current period (new{pack, byte}_{tx,rx})
             #from the number of bytes/packets in the previous period (remora_eth_{tx, rx}_{packets, bytes}) 
-            local TIMESTAMP=`date +%s.%3N`
-            local newpack_tx;         read -r newpack_tx    < $remora_eth_tx_packet_cntr
-            local newpack_rx;         read -r newpack_rx    < $remora_eth_rx_packet_cntr
-            local newbyte_tx;         read -r newbyte_tx    < $remora_eth_tx_bytes_cntr
-            local newbyte_rx;         read -r newbyte_rx    < $remora_eth_rx_bytes_cntr
-            local newtx_errors;       read -r newtx_errors  < $remora_eth_tx_errors_cntr
-            local newtx_dropped;      read -r newtx_dropped < $remora_eth_tx_dropped_cntr
-            local newrx_frame_errors; read -r newrx_frame_errors < $remora_eth_rx_frame_errors_cntr
-            local newrx_crc_errors;   read -r newrx_crc_errors   < $remora_eth_rx_crc_errors_cntr
+            local TIMESTAMP=`date +%s`
+            local newpack_tx=`cat $remora_eth_tx_packet_cntr`
+            local newpack_rx=`cat $remora_eth_rx_packet_cntr`
+            local newbyte_tx=`cat $remora_eth_tx_bytes_cntr`
+            local newbyte_rx=`cat $remora_eth_rx_bytes_cntr`
+            local newtx_errors=`cat $remora_eth_tx_errors_cntr`
+            local newtx_dropped=`cat $remora_eth_tx_dropped_cntr`
+            local newrx_frame_errors=`cat $remora_eth_rx_frame_errors_cntr`
+            local newrx_crc_errors=`cat $remora_eth_rx_crc_errors_cntr`
 
             #write results to file
-            printf "%15.3f %10d %10d %15d %15d %10d %10d %12d %10d\n" \
+            printf "%d %10d %10d %15d %15d %10d %10d %10d %10d\n" \
             $TIMESTAMP $((newpack_tx-remora_eth_tx_packets)) \
             $((newpack_rx-remora_eth_rx_packets)) \
             $((newbyte_tx-remora_eth_tx_bytes)) \

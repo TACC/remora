@@ -24,48 +24,58 @@
 
 init_module_numa()
 {
+#      TIME(sec)   nodes  
+# 
+#     FilePg_n0  FilePg_n1 ... nX   FilePg_tot  
+#     AnonPg_n0  AnonPg_n1 ... nX   AnonPg_tot  
+#     HugePg_n0  HugePg_n1 ... nX   HugePg_tot          
+# 
+#     Hits_n0    Hits_n1   ... nX   Hits_tot         
+#     Miss_n0    Miss_n1   ... nX   Miss_tot        
+#     Frgn_n0    Frgn_n1   ... nX   Frgn_tot    
+# 
+#     Free_n0    Free_n1   ... nX   Free_tot    
+#     Used_n0    Used_n1   ... nX   Used_tot 
+
   if [[ "$REMORA_MODE" == "FULL" ]]; then
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
  
-   #source $REMORA_OUTDIR/remora_env.txt
 
     local numNodes=$(numastat | egrep  'node[0-9]' |wc -w)
 
-    local id SZ=18
-    local header active_pg_header huge_pg_header add_2_header
-
-    header=$(printf "%-${SZ}s" "TIME(sec)")
-
-    active_pg_header=$(printf "%-${SZ}s" "anon_Pg(KiB)")
-    huge_pg_header=$(  printf "%-${SZ}s" "anon_HugePg(KiB)")
-    header="$header $active_pg_header $huge_pg_header"
-
-    for id in `seq 0 $(( numNodes - 1 ))`; do
-        add_2_header=$( printf "%-${SZ}s" "Node${id}_Foreign(KiB)" )
-        header="$header $add_2_header"
+    local FILE=$REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
+    
+    titles_10_1=(FilePg AnonPg HugePg)  #10 width
+    titles_15_1=(Hits Miss Frgn)        #15 width
+    titles_10_2=(Free Used )            #10 width
+    
+    printf " %-11s " "TIME(sec)"  >$FILE
+    printf "%5s "    "Nodes"     >>$FILE
+    
+    for t_base in "${titles_10_1[@]}"; do
+    for num    in `seq 0 $numNodes`; do
+      [[ $num -lt $numNodes ]] && title=${t_base}_n${num}
+      [[ $num  == $numNodes ]] && title=${t_base}_tot
+      printf "%10s " ${title}   >>$FILE
     done
-
-    for id in `seq 0 $(( numNodes - 1 ))`; do
-        add_2_header=$( printf "%-${SZ}s" "Node${id}_Local(KiB)" )
-        header="$header $add_2_header"
     done
-
-    for id in `seq 0 $(( numNodes - 1 ))`; do
-        add_2_header=$( printf "%-${SZ}s" "Node${id}_Other(KiB)" )
-        header="$header $add_2_header"
+    
+    for t_base in "${titles_15_1[@]}"; do
+    for num    in `seq 0 $numNodes`; do
+      [[ $num -lt $numNodes ]] && title=${t_base}_n${num}
+      [[ $num  == $numNodes ]] && title=${t_base}_tot
+      printf "%15s " ${title}   >>$FILE
     done
-
-    for id in `seq 0 $(( numNodes - 1 ))`; do
-        add_2_header=$( printf "%-${SZ}s" "Node${id}_Free(KiB)" )
-        header="$header $add_2_header"
     done
-
-    for id in `seq 0 $(( numNodes - 1 ))`; do
-        add_2_header=$( printf "%-${SZ}s" "Node${id}_Used(KiB)" )
-        header="$header $add_2_header"
+    
+    for t_base in "${titles_10_2[@]}"; do
+    for num    in `seq 0 $numNodes`; do
+      [[ $num -lt $numNodes ]] && title=${t_base}_n${num}
+      [[ $num  == $numNodes ]] && title=${t_base}_tot
+      printf "%10s " ${title}   >>$FILE
     done
-
-    echo "$header"  > $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
+    done
+    printf "\n" >>$FILE
   fi
 }
 
@@ -76,84 +86,48 @@ collect_data_numa(){
 
    #source $REMORA_OUTDIR/remora_env.txt
 
-    local timestamp numStat numNodes nodesless1 name
-    local stats=()
-    local idx i j
-    local data=() out val
+   # OUTPUT to numa_stats_${REMORA_NODE}.txt
+   #  0, 1    TIME Num_nodes
+   #  2  4    FilePages (file cache)
+   #  5- 7    Node0_anon_pgs_mb      Node1_anon_pgs_mb      Total_anon_pgs_mb  
+   #  8-10    Node0_anon_huge_pgs_mb Node1_anon_huge_pgs_mb Total_anon_huge_pgs_mb 
+   # 11-13    Node0_Hit     Node1_Hit     Total_Hit
+   # 14-16    Node0_Miss    Node1_Miss    Total_Miss
+   # 17-19    Node0_Foreign Node1_Foreign Total_Foreign
+   # 20-22    Node0_Free    Node1_Free    Total_Free
+   # 23 25    Node0_Used    Node1_Used    Total_Used
+   #
+   # Re-written to optimize performance by Kent Milfeld 11/20/2023
+   # TODO Check Anonymous Pages on Rocky system.
+   #      May require using /proc/meminfo values.
 
-    # numa should always use ms or ns percisions
+   local timestamp   numStatC numaStatM
+   local  numNodes nodesless1 out timestamp
 
    timestamp=`date +%s.%3N`
 
-                                               # NUMA statistics
-    numStat=`numastat -c`
-    numNodes=`echo $numStat | grep -o ' Node' | wc -l`
+   #   all numastat lines have an identifier (keyword) followed by numbers, one for each node,
+   #   and a Total(sum).   Keywords are removed, and only necessary line are acquired.
 
-    for i in $numStat; do
-        data+=($i)
-    done
+   mapfile -t numaStatC < <( numastat -c | sed -n '5,7p'  | sed 's/^[^0-9]*//' )
+   mapfile -t numaStatM < <( numastat -m | sed -n '3,30p' | sed 's/^[^0-9]*//' )
 
-    nodesless1=$[ numNodes - 1]
+   # Count # of "Node"s in first line:
+   #                   1st line "Node 0  Node 1  Total" appears as "0 Node 1 Total"
+   #                   after generic keyword removal above. Must Add 1 for Actual count.
 
-    for j in `seq 0 $nodesless1`; do
-       sys_numstats=$(cat /sys/devices/system/node/node$j/numastat | sed 's/[^0-9]//g')
-       idx=0
-       for i in ${sys_numstats[@]}; do
-          stats[$idx]+="$i "
-          idx=$[ idx + 1 ]
-       done
-    done
+   nodesless1=$(echo "${numaStatM[0]}" | grep -o ' Node' | wc -l)
+     numNodes=$(( nodesless1 + 1 ))
 
-    #FYI: Committed_AS does not include IO buffers.
-    #FYI: Active_anon were not being recorded on Rocky Lonestar6, switched to "AnonPages".
-    #Active_anon_kb=$(grep 'Active(anon)'  /proc/meminfo | sed 's/.*: *\([0-9]*\) *kB/\1/')
-          anonPg_kb=$(grep 'AnonPages'     /proc/meminfo | sed 's/.*: *\([0-9]*\) *kB/\1/')
-      anonHugePg_kb=$(grep 'AnonHugePages' /proc/meminfo | sed 's/.*: *\([0-9]*\) *kB/\1/')
+#                 Each NumaStatM|C has 3 values for dual sockec (node0, node1, total)
+   out="$timestamp $numNodes"
+   out="$out ${numaStatM[15]}"                  #FilePages (file buffer)
+   out="$out ${numaStatM[17]} ${numaStatM[27]}" #Anon, and AnonHuge      
+   out="$out ${numaStatC[@]}"                   #Numa_Hit, Numa_Miss, Numa_Foreign
+   out="$out ${numaStatM[3]} ${numaStatM[4]}"   #MemFree MemUse
 
-    out=""
+   echo  $out  >> $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
 
-    out="$out $anonPg_kb $anonHugePg_kb"
-    out="$out ${stats[2]}"  # idx=2 numa_foreign-- has Nnode values
-
-    idx=0
-    for i in "${data[@]}"; do
-        if [[ $i == 'Local_Node' ]]; then
-            for j in `seq $numNodes`; do
-                val=${data[$idx+$j]}
-                out="$out $val"
-            done
-            break
-        fi
-        idx=$[ idx + 1 ]
-    done
-    idx=0
-    for i in "${data[@]}"; do
-        if [[ $i == 'Other_Node' ]]; then
-            for j in `seq $numNodes`; do
-                val=${data[$idx+$j]}
-                out="$out $val"
-            done
-            break
-        fi
-        idx=$[ idx + 1 ]
-    done
-    numMem=`numastat -m | grep MemFree`
-    for i in `seq $numNodes`;
-    do
-        idx=$[i+1]
-        val=`echo $numMem | cut -f $idx -d ' '`
-        out="$out $val"
-    done
-
-    numMem=`numastat -m | grep MemUsed`
-    for i in `seq $numNodes`;
-    do
-        idx=$[i+1]
-        val=`echo $numMem | cut -f $idx -d ' '`
-        out="$out $val"
-    done
-
-    echo  $timestamp $out  >> $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
   fi
 }
 
@@ -175,170 +149,119 @@ plot_data_numa()
     if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
     fi
-    local numNodes=$(numastat | egrep  'node[0-9]' |wc -w)
-    local numStat=`numastat -c`
 
-    local timestamp firsttimestamp ctime
-    local first previous=()
-    local active hugepg
-    local fgn_sums=() header_plus_sum
-    local idx val
+    local numNodes=$(numastat | egrep  'node[0-9]' |wc -w)
+    local nodesLess1=$(( numNodes - 1 ))
+
+#####
+    local collect_time first time_base miss_base_node0 miss_base_total out_line
+    local out_file=()
+    local out_anon=()
+    local out_used=()
+    local out_miss=()
+
+    first=1
+    {   
+      read
+      while read line; do
+        ln=( $line )
+        if [[ $first == 1 ]]; then
+          first=2 
+                time_base=${ln[ 0]}
+          miss_base_node0=${ln[17]}
+          miss_base_total=${ln[16]}
+        fi  
+
+        collect_time=$(bc <<< "${ln[ 0]} - $time_base")
+        miss_node0=$(  bc <<< "${ln[17]} - $miss_base_node0")
+        miss_total=$(  bc <<< "${ln[16]} - $miss_base_total")
+
+        out_miss+=("[${collect_time},$miss_total,$miss_node0,],") #total misses,  Foreign to node0 (node 1 misses)
+        out_file+=("[${collect_time},${ln[ 2]},${ln[ 3]},],")     #File Cache node0&1
+        out_anon+=("[${collect_time},${ln[ 5]},${ln[ 8]},${ln[ 6]},${ln[ 9]},],") #Anon Pages/Huge node0&1
+        out_used+=("[${collect_time},${ln[23]},${ln[24]},],")     #used node0&1
+
+       done
+     }< $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
+
+## --------------------------------------------HTML Setup
 
     printf "%s \n" "<html>"  > $FILE
     printf "%s \n" "<head>" >> $FILE
     printf "%s \n" ""       >> $FILE
 
-    printf "%s \n" "NUMA Remote Assigned Mem: These are pages(MB) that overflow to another node when local memory is full.<br/>"            >> $FILE
-    printf "%s \n" "Memory in Use: Anon Pages (blue; non io cache/buffer, non Shared Mem); Anon HugePgs (red; Mem in 2MB pages). <br/>"     >> $FILE
-    printf "%s \n" "&nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp Usually best if all assigned memory is with 2MB pages<br/>"                   >> $FILE
-    printf "%s \n" "&nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp (a ~5% variation may exist, due to non instantaneous kernel updates).<br/>"   >> $FILE
-    printf "%s \n" "NUMA Free: Total Free memory on all nodes (color areas show node portions).<br/>"  >> $FILE
-    printf "%s \n" "NUMA Used: Total Used memory on all nodes (color areas show node portions).<br/>"  >> $FILE
-    printf "%s \n" ""                                                                                  >> $FILE
+    printf "%s \n" "NUMA Used: Memory presently Used by each NUMA node. <br/>"                                 >> $FILE
+    printf "%s \n" "NUMA Alloc Misses: Total page misses (MB) and Missed on node0.<br/>"                       >> $FILE
+    printf "%s \n" "NUMA Anonymous Pages: (MB) Excludes file cache/buffer. Total (AllPgs) & HugePgs. <br/>"    >> $FILE
+    printf "%s \n" "&nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp Often good if most of memory is Huge pages<br/>" >> $FILE
+    printf "%s \n" "NUMA File Cache: Memory consumed by IO File caching, by node (MB).<br/>"  >> $FILE
+    printf "%s \n" ""                                                                         >> $FILE
+## https://docs.kernel.org/admin-guide/numastat.html  -- use foreign on node0 for 
+#        "A process wanted to allocate on this node, but ended up with memory from another node."
 
     printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $FILE
     printf "%s \n" "<script type=\"text/javascript\">"                          >> $FILE
     printf "%s \n" "google.charts.load('current', {'packages':['corechart']});" >> $FILE
 
-    printf "%s \n" "google.charts.setOnLoadCallback(drawHits);" >> $FILE
-    printf "%s \n" "google.charts.setOnLoadCallback(drawMiss);" >> $FILE
-    printf "%s \n" "google.charts.setOnLoadCallback(drawFree);" >> $FILE
-    printf "%s \n" "google.charts.setOnLoadCallback(drawUsed);" >> $FILE
+    printf "%s \n" "google.charts.setOnLoadCallback(drawMisses);" >> $FILE
+    printf "%s \n" "google.charts.setOnLoadCallback(drawUsed);"   >> $FILE
+    printf "%s \n" "google.charts.setOnLoadCallback(drawAnon);"   >> $FILE
+    printf "%s \n" "google.charts.setOnLoadCallback(drawFile);"   >> $FILE
  
-##### Mem in Use
-    printf "%s \n" "function drawHits() {"                              >> $FILE
+## --------------------------------------------Misses
+    printf "%s \n" "function drawMisses() {"                            >> $FILE
     printf "%s \n" "var data = new google.visualization.DataTable();"   >> $FILE
     printf "%s \n" "data.addColumn('number', 'Execution Time (sec)');"  >> $FILE
-    printf "%s %s %s \n" "data.addColumn('number', 'Anon Pages');"      >> $FILE
-    printf "%s %s %s \n" "data.addColumn('number', 'Anon HugePgs');"    >> $FILE
 
-    firsttimestamp=0
-    ctime=0
-    first=0
-    previous=()
+    printf "%s %s %s \n" "data.addColumn('number', 'Total');"           >> $FILE
+    printf "%s %s %s \n" "data.addColumn('number', 'Missed_on_Node0');" >> $FILE
+    printf "%s\n" "data.addRows(["                                      >> $FILE
 
-    printf "%s\n" "data.addRows(["                              >> $FILE
-    while read line; do
+    for out_line in ${out_miss[@]}; do echo $out_line >>$FILE; done
 
-        if [[ $first -eq 0 ]]; then
-            first=1
-            continue
-        fi
-
-        if [[ $first -eq 1 ]]; then
-            first=2
-            firsttimestamp=`echo $line | awk '{print $1;}'`
-        fi
-
-        ln_vals=( $line )
-        timestamp=${ln_vals[0]}
-       #ctime=$[timestamp -  firsttimestamp]
-        ctime=$(bc <<< "$timestamp - $firsttimestamp")
-
-        printf "["                 >> $FILE
-        printf "%s," $ctime        >> $FILE
-
-        active=$( echo "${ln_vals[1]}/1024" | bc )  #change to MiB
-        hugepg=$( echo "${ln_vals[2]}/1024" | bc )  #change to MiB
-        printf "%s," $active >> $FILE
-        printf "%s," $hugepg >> $FILE
-
-        printf "%s\n" "],"         >> $FILE
-    done < $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
-
-    printf "%s \n" "]);"           >> $FILE
+    printf "%s \n" "]);" >> $FILE
 
     printf "%s \n" "var options = { "                              >> $FILE
-    printf "%s \n" "title : 'Memory in Use (MiB)',"                >> $FILE
-    printf "%s \n" "vAxis: {title: 'Active Anonymous Mem (MiB)'}," >> $FILE
+    printf "%s \n" "title : 'Numa Allocation Misses',"             >> $FILE
+    printf "%s \n" "vAxis: {title: 'Numa Misses (MiB)'},"          >> $FILE
     printf "%s \n" "hAxis: {title: 'Time (sec)'},"                 >> $FILE
 
-#   printf "%s \n" "//legend: {position: 'none'},"    >> $FILE
-#   printf "%s \n" "//curveType: 'function',"         >> $FILE
-#   printf "%s \n" "//colors: ['green'],"             >> $FILE
     printf "%s \n" "pointSize: 10,"                   >> $FILE
     printf "%s \n" "dataOpacity: 0.3,"                >> $FILE
     printf "%s \n" "width:  1024,"                    >> $FILE
     printf "%s \n" "height:  800"                     >> $FILE
     printf "%s \n" " }; "                             >> $FILE
 
-    printf "%s \n" " var chart = new google.visualization.ComboChart(document.getElementById('chart_miss'));" >> $FILE
+    printf "%s \n" " var chart = new google.visualization.ComboChart(document.getElementById('chart_misses'));" >> $FILE
     printf "%s \n" "chart.draw(data, options); "      >> $FILE
     printf "%s \n" "} "                               >> $FILE
 
-##### Remote Assigned (Foreign)
+## --------------------------------------------Used
 
-    printf "%s \n" "function drawMiss() {"                                    >> $FILE
+    printf "%s \n" "function drawUsed() {"                                    >> $FILE
     printf "%s \n" "var data = new google.visualization.DataTable();"         >> $FILE
-    printf "%s \n" "data.addColumn('number', 'Execution Time (sec)');"        >> $FILE
-    for i in `seq 0 $(( numNodes - 1 ))`; do
-        printf "%s %s %s \n" "data.addColumn('number', 'Node"$i"');"          >> $FILE
+    printf "%s \n" "var data = google.visualization.arrayToDataTable(["       >> $FILE
+
+    printf "%s \n" "['Execution Time (sec)'"                             >> $FILE
+    for i in `seq 0 $nodesLess1`; do
+       printf "%s %s %s \n" ", 'Node"$i"'"         >> $FILE
     done
+    printf "%s \n" "],"                            >> $FILE
 
-    firsttimestamp=0
-    ctime=0
-    first=0
-    previous=()
-    fgn_sums=()
+#   printf "%s\n" "data.addRows([" >> $FILE
 
-    printf "%s\n" "data.addRows([" >> $FILE
-
-    for i in `seq $numNodes`; do fgn_sum[$i]=0; done  #zero out sums for header (1,..num_nodes)
-
-    while read line; do
-        if [[ $first -eq 0 ]]; then
-            first=1
-            continue
-        fi
-
-        ln_vals=( $line )
-
-        if [[ $first -eq 1 ]]; then
-            first=2
-            firsttimestamp=${ln_vals[0]}
-            for i in `seq $numNodes`; do
-               idx=$[ i + 2 ]            # Get index of Node0_Foreign, Node1_Foreign, etc.
-               previous[$i]=${ln_vals[$idx]}
-            done
-        fi
-
-        timestamp=${ln_vals[0]} 
-       #ctime=$[timestamp - firsttimestamp]
-        ctime=$(bc <<< "$timestamp - $firsttimestamp")
-        printf "["          >> $FILE
-        printf "%s," $ctime >> $FILE
-
-        for i in `seq $numNodes`; do
-            idx=$[ i + 2 ]            # Get index of Node0_Foreign, Node1_Foreign, etc.
-            val=$( echo " (${ln_vals[$idx]}-${previous[$i]})/256.0" | bc )  #Assume units are 4K pages (4/1024->MiB)
-            previous[$i]=${ln_vals[$idx]}
-            printf "%s," $val >> $FILE
-
-            fgn_sum[$i]=$( echo " $val+${fgn_sum[$i]}" | bc )               #For sums in header
-        done
-        printf "%s\n" "],"    >> $FILE
-
-    done < $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
-
-        header_plus_sum="NUMA Remote Assigned Memory - "
-        for i in `seq $numNodes`; do
-        idx=$[ i - 1 ]
-        header_plus_sum="$header_plus_sum  Node${idx}_tot(${fgn_sum[$i]})"
-        done
+    for out_line in ${out_used[@]}; do echo $out_line >>$FILE; done
 
     printf "%s \n" "]);" >> $FILE
 
-    printf "%s \n" "var options = { "                                 >> $FILE
-   #printf "%s \n" "title : 'NUMA Remote Assigned Memory (foreign)'," >> $FILE
-    printf "%s \n" "title : '$header_plus_sum',"                      >> $FILE
-    printf "%s \n" "vAxis: {title: 'Remote Allocated (MiB)'},"        >> $FILE
-    printf "%s \n" "hAxis: {title: 'Time (sec)'},"                    >> $FILE
-    printf "%s \n" "seriesType: 'bars',"                              >> $FILE
-    printf "%s \n" "bar: { groupWidth: '95%' },"                      >> $FILE
-    printf "%s \n" "isStacked: true,"                                 >> $FILE
+    printf "%s \n" "var options = { "              >> $FILE
+    printf "%s \n" "title: 'NUMA Memory Used',"    >> $FILE
+    printf "%s \n" "vAxis: {title: 'MiBs'},"       >> $FILE
+    printf "%s \n" "hAxis: {title: 'Time (sec)'}," >> $FILE
+    printf "%s \n" "isStacked: true,"              >> $FILE
 
-    printf "%s \n" "width: 800, "      >> $FILE
-    printf "%s \n" "height: 600, "     >> $FILE
+    printf "%s \n" "width: 1024, "     >> $FILE
+    printf "%s \n" "height: 800, "     >> $FILE
     printf "%s \n" "axes: { "          >> $FILE
     printf "%s \n" "x: { "             >> $FILE
     printf "%s \n" "0: {side: 'top'} " >> $FILE
@@ -346,144 +269,88 @@ plot_data_numa()
     printf "%s \n" "}, "               >> $FILE
     printf "%s \n" " }; "              >> $FILE
 
-    printf "%s \n" " var chart = new google.visualization.ComboChart(document.getElementById('chart_hits'));" >> $FILE
-    printf "%s \n" "chart.draw(data, options); " >> $FILE
-    printf "%s \n" "} "                          >> $FILE
-
-
-#####  NUMA Free
-
-    printf "%s \n" "function drawFree() {"                               >> $FILE
-    printf "%s \n" "var data = google.visualization.arrayToDataTable([ " >> $FILE
-    #printf "%s \n" "var data = new google.visualization.DataTable();"   >> $FILE
-    printf "%s \n" "['Execution Time (sec)'"                             >> $FILE
-    for i in `seq 0 $(( numNodes - 1 ))`; do
-        printf "%s %s %s \n" ", 'Node"$i"'"         >> $FILE
-    done
-    printf "%s \n" "],"                     >> $FILE
-
-    ctime=0
-    firsttimestamp=0
-    local first=0
-    while read line; do
-        ln_vals=( $line ) 
-
-        if [[ $first -eq 0 ]]; then
-            first=1
-            continue
-        fi
-
-        if [[ $first -eq 1 ]]; then
-            first=2
-            firsttimestamp=${ln_vals[0]}
-        fi
-        
-        timestamp=${ln_vals[0]}
-       #ctime=$[timestamp - firsttimestamp]
-        ctime=$( bc <<< "$timestamp - $firsttimestamp")
-        printf "["                          >> $FILE
-        printf "%s," $ctime                 >> $FILE
-        for i in `seq $numNodes`; do
-            idx=$[i + 2 + $numNodes*3]
-            printf "%s," ${ln_vals[$idx]}   >> $FILE
-        done
-        printf "%s\n" "],"                  >> $FILE
-
-    done < $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
-
-    printf "%s \n" "]);"                    >> $FILE
-
-    printf "%s \n" "var options = { "       >> $FILE
-    printf "%s \n" "title : 'NUMA Free',"   >> $FILE
-    printf "%s \n" "vAxis: {title: 'MBs'}," >> $FILE
-    printf "%s \n" "hAxis: {title: 'Time (sec)'}," >> $FILE
-    printf "%s \n" "isStacked: true,"       >> $FILE
-    printf "%s \n" "width: 800, "           >> $FILE
-    printf "%s \n" "height: 600, "          >> $FILE
-    printf "%s \n" "axes: { "               >> $FILE
-    printf "%s \n" "x: { "                  >> $FILE
-    printf "%s \n" "0: {side: 'top'} "      >> $FILE
-    printf "%s \n" "} "                     >> $FILE
-    printf "%s \n" "}, "                    >> $FILE
-    printf "%s \n" " }; "                   >> $FILE
-    printf "%s \n" " var chart = new google.visualization.AreaChart(document.getElementById('chart_free'));" >> $FILE
-    printf "%s \n" "chart.draw(data, options); " >> $FILE
-    printf "%s \n" "} "                     >> $FILE
-
-
-##### NUMA Used
-
-    printf "%s \n" "function drawUsed() {"              >> $FILE
-    printf "%s \n" "var data = google.visualization.arrayToDataTable([ " >> $FILE
-    printf "%s \n" "['Execution Time (sec)'"            >> $FILE
-    for i in `seq 0 $(( numNodes - 1 ))`; do
-        printf "%s %s %s \n" ", 'Node"$i"'"             >> $FILE
-    done
-    printf "%s \n" "],"                                 >> $FILE 
-
-    local firsttimestamp=0
-    local ctime=0
-    local first=0
-    local previous=()
-#    printf "%s\n" "[" >> $FILE
-    while read line; do
-        ln_vals=( $line )                  #put line values in an array
-
-        if [[ $first -eq 0 ]]; then
-            first=1
-            continue
-        fi
-
-        if [[ $first -eq 1 ]]; then
-            first=2
-            firsttimestamp=${ln_vals[0]}
-        fi
-
-        local timestamp=`echo $line | awk '{print $1;}'`
-       #ctime=$[timestamp - firsttimestamp]
-        ctime=$(bc <<< "$timestamp - $firsttimestamp")
-        printf "["                               >> $FILE
-        printf "%s," $ctime                      >> $FILE
-        
-        for i in `seq $numNodes`; do
-            idx=$[ i + 2 + $numNodes*4 ]            # Get index of Node0_Used, Nodes1_Used, etc.
-            printf "%s," ${ln_vals[$idx]}        >> $FILE
-        done
-        printf "%s\n" "],"                       >> $FILE
-
-    done < $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
-
-    printf "%s \n" "]);"                         >> $FILE
-
-    printf "%s \n" "var options = { "            >> $FILE
-    printf "%s \n" "title : 'NUMA Used',"        >> $FILE
-    printf "%s \n" "vAxis: {title: 'MBs'},"      >> $FILE
-    printf "%s \n" "hAxis: {title: 'Time (sec)'}," >> $FILE
-    printf "%s \n" "isStacked: true,"            >> $FILE
-    printf "%s \n" "width: 800, "                >> $FILE
-    printf "%s \n" "height: 600, "               >> $FILE
-    printf "%s \n" "axes: { "                    >> $FILE
-    printf "%s \n" "x: { "                       >> $FILE
-    printf "%s \n" "0: {side: 'top'} "           >> $FILE
-    printf "%s \n" "} "                          >> $FILE
-    printf "%s \n" "}, "                         >> $FILE
-    printf "%s \n" " }; "                        >> $FILE
     printf "%s \n" " var chart = new google.visualization.AreaChart(document.getElementById('chart_used'));" >> $FILE
     printf "%s \n" "chart.draw(data, options); " >> $FILE
     printf "%s \n" "} "                          >> $FILE
 
-####
+
+## --------------------------------------------Anon 3
+
+    printf "%s \n" "function drawAnon() {"                               >> $FILE
+    printf "%s \n" "var data = new google.visualization.DataTable();"    >> $FILE
+    printf "%s \n" "data.addColumn('number', 'Execution Time (sec)');"   >> $FILE
+
+    for i in `seq 0 $nodesLess1`; do
+       printf "%s %s %s\n" "data.addColumn('number', 'ALLPgs  node"$i"');"   >> $FILE
+       printf "%s %s %s\n" "data.addColumn('number', 'HugePgs node"$i"');"   >> $FILE
+    done
+
+    printf "%s\n" "data.addRows([" >> $FILE
+
+    for out_line in ${out_anon[@]}; do echo $out_line >>$FILE; done
+
+    printf "%s \n" "]);"          >> $FILE
+
+    printf "%s \n" "var options = { "       >> $FILE
+    printf "%s \n" "title : 'NUMA Total Anonymous Pages and Anonymous HugePages',"   >> $FILE
+    printf "%s \n" "vAxis: {title: 'User/Anonymous Allocated Memory (MiBs)'}," >> $FILE
+    printf "%s \n" "hAxis: {title: 'Time (sec)'}," >> $FILE
+
+    printf "%s \n" "pointSize: 10,"                   >> $FILE
+    printf "%s \n" "dataOpacity: 0.3,"                >> $FILE
+    printf "%s \n" "width:  1024,"                    >> $FILE
+    printf "%s \n" "height:  800"                     >> $FILE
+    printf "%s \n" " }; "                             >> $FILE
+
+    printf "%s \n" " var chart = new google.visualization.ComboChart(document.getElementById('chart_anon'));" >> $FILE
+    printf "%s \n" "chart.draw(data, options); "      >> $FILE
+    printf "%s \n" "} "                               >> $FILE
+
+
+## --------------------------------------------File 4
+
+    printf "%s \n" "function drawFile() {"              >> $FILE
+    printf "%s \n" "var data = google.visualization.arrayToDataTable([ " >> $FILE
+    printf "%s \n" "['Execution Time (sec)'"            >> $FILE
+
+    for i in `seq 0 $nodesLess1`; do
+        printf "%s %s %s \n" ", 'Node"$i"'"             >> $FILE
+    done
+    printf "%s \n" "],"                                 >> $FILE 
+
+    for out_line in ${out_file[@]}; do echo $out_line >>$FILE; done
+
+    printf "%s \n" "]);"                           >> $FILE
+
+    printf "%s \n" "var options = { "              >> $FILE
+    printf "%s \n" "title : 'NUMA File Cache Memory'," >> $FILE
+    printf "%s \n" "vAxis: {title: 'MiBs'},"       >> $FILE
+    printf "%s \n" "hAxis: {title: 'Time (sec)'}," >> $FILE
+    printf "%s \n" "isStacked: true,"              >> $FILE
+    printf "%s \n" "width: 1024, "                 >> $FILE
+    printf "%s \n" "height: 800, "                 >> $FILE
+    printf "%s \n" "axes: { "                      >> $FILE
+    printf "%s \n" "x: { "                         >> $FILE
+    printf "%s \n" "0: {side: 'top'} "             >> $FILE
+    printf "%s \n" "} "                            >> $FILE
+    printf "%s \n" "}, "                           >> $FILE
+    printf "%s \n" " }; "                          >> $FILE
+    printf "%s \n" " var chart = new google.visualization.AreaChart(document.getElementById('chart_file'));" >> $FILE
+    printf "%s \n" "chart.draw(data, options); "   >> $FILE
+    printf "%s \n" "} "                            >> $FILE
+
+#### Now lay it out
     
     printf "%s \n" "</script> "               >> $FILE
     printf "%s \n" "</head> "                 >> $FILE
     printf "%s \n" "<body> "                  >> $FILE 
     printf "%s \n" "<table class='columns'> " >> $FILE
     printf "%s \n" "<tr> "                    >> $FILE
-    printf "%s \n" "<td width='800' height='600'><div id='chart_hits' style='border: 1px solid; color: LightGray'></div></td> " >> $FILE
-    printf "%s \n" "<td width='800' height='600'><div id='chart_miss' style='border: 1px solid; color: LightGray'></div></td> " >> $FILE
-    printf "%s \n %s \n" "</tr>" "<tr>"                                                                                         >> $FILE
-    printf "%s \n" "<td width='800' height='600'><div id='chart_free' style='border: 1px solid; color: LightGray'></div></td> " >> $FILE
-    printf "%s \n" "<td width='800' height='600'><div id='chart_used' style='border: 1px solid; color: LightGray'></div></td> " >> $FILE
+    printf "%s \n" "<td width='800' height='600'><div id='chart_used'   style='border: 1px solid; color: LightGray'></div></td> " >> $FILE
+    printf "%s \n" "<td width='800' height='600'><div id='chart_misses' style='border: 1px solid; color: LightGray'></div></td> " >> $FILE
+    printf "%s \n %s \n" "</tr>" "<tr>"                                                                                           >> $FILE
+    printf "%s \n" "<td width='800' height='600'><div id='chart_anon'   style='border: 1px solid; color: LightGray'></div></td> " >> $FILE
+    printf "%s \n" "<td width='800' height='600'><div id='chart_file'   style='border: 1px solid; color: LightGray'></div></td> " >> $FILE
     printf "%s \n" "</tr> "    >> $FILE
     printf "%s \n" "</table>"  >> $FILE
     printf "%s \n" "</body> "  >> $FILE 

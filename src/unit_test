@@ -69,14 +69,15 @@ export REMORA_PLOT_RESULTS=1
        sleep 0.5  #give a little time for master (launch) node to create remora_nodes.txt
        REMORA_NODES=( $( cat $REMORA_OUTDIR/remora_nodes.txt ) )    
     fi
-
 #   Launch any remote nodes from launch node
     if [[ $node_alias == ${REMORA_NODES[0]} ]]; then    #1st node in list is the launch node
+
        export REMORA_TMPDIR=`pwd` REMORA_OUTDIR=`pwd`
        rm -f $REMORA_OUTDIR/remora*.tmp   $REMORA_OUTDIR/*.txt  $REMORA_OUTDIR/*.html  REMORA_OUTDIR/OUT_*
        printf "%s\n" ${REMORA_NODES[@]} >>$REMORA_OUTDIR/remora_nodes.txt
       
        REMOTE_NODES=( "${REMORA_NODES[@]:1}" )
+
        for node in ${REMOTE_NODES[@]}; do
           ARGS="$MOD_NAME $REMORA_BIN $node $REMORA_VERBOSE $REMORA_OUTDIR $REMORA_TMPDIR $REMORA_PERIOD $REMORA_BINARIES"
           CMD="nohup $REMORA_BIN/unit_test $ARGS >$REMORA_OUTDIR/OUT_$node 2>&1 &"

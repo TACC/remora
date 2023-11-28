@@ -1,230 +1,111 @@
-/*
-  File: collect_numa.c
-*/
-
-#include <dirent.h>
-#include <malloc.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include  <stdio.h>
 #include <string.h>
-#include <time.h>
+#include <stdlib.h>
+#include  <stdio.h>
+#include   <time.h>
 
-#define MAX_LINE 1000
-#define PATH_BUFFER_SIZE 360
 
-struct NUMA_STATS
-{
-    int node_idx;
-    unsigned long long int numa_foreign;
-    unsigned long long int local_node;
-    unsigned long long int other_node;
-    unsigned long long int mem_free;
-    unsigned long long int mem_used;
-};
+# define N 1024
+# define PATH_BUFFER_SIZE 360
+
+# define M(i,j) numaStatM[i][j]
+# define C(i,j) numaStatC[i][j]
 
 int main(int argc, char *argv[])
 {
+
+
+  FILE *file;                 // file handle
+  char line[N], str[N];       // input line & line wo return (more than ample size)
+  int row, i;                 // data array row and column (i for index) values
+  int lineno, node_count;     // input line number, number of numa nodes
+  long long numaStatC[ 3][8]; // Data for numastat -c
+  float     numaStatM[26][8]; // Data for numastat -m
+
   if (argc != 4) {
     fprintf(stderr, "Usage: %s %s %s %s\n", argv[0], "node", "outdir", "tmpdir");
     return EXIT_FAILURE;
   }
-
   const char *node;
   char path[PATH_BUFFER_SIZE];
-  char line[MAX_LINE];
 
   struct timespec now;
-
   clock_gettime(CLOCK_REALTIME, &now);
-
   double time_new = ((double)now.tv_sec*1e9 + now.tv_nsec) / 1000000000;
 
-  // n_nodes
 
-  DIR *dir = NULL;
-  const char *dir_path = "/sys/devices/system/node";
+//  Extract numasat -m data
 
-  dir = opendir(dir_path);
-  if (dir == NULL) {
-    fprintf(stderr, "Cannot open %s\n", dir_path);
-    return EXIT_FAILURE;
-  }
+  if (!(file = popen("numastat -c", "r"))) { exit(1); }
 
-  int n_nodes = 0;
-  struct dirent *ent;
+  lineno=0; row=0;
+  while ( fgets ( line, sizeof line, file ) != NULL ){
+    if(lineno>3 && lineno<7){                            //printf("read: %s\n",line);
+      sscanf(line, "%[^\n]s",str);
 
-  while ((ent = readdir(dir)) != NULL) {
+      char * token = strtok(line, " "); // tokenize
+      token = strtok(NULL, " ");        // skip 1st token, identifier keyword
+      i=0;
 
-    if (strncmp(ent->d_name, "node", 4) != 0)
-      continue;
+      while( token != NULL ) { 
+        sscanf(token,"%ld",  &numaStatC[row][i]);
+        token = strtok(NULL, " ");
+        i++;
+      }   
+      if(row == 0) node_count=i-1;  // #nodes=#values less 1, last value  is a total).
+      row++; 
 
-    n_nodes++;
-  }
+    } // end selecting line 4-6
+    lineno++;
 
-  if (dir != NULL)
-    closedir(dir);
+  } // end while getting line   
 
-  struct NUMA_STATS **stats;
+  pclose(file);
 
-  stats = malloc(sizeof(struct NUMA_STATS*)*n_nodes);
 
-  for (int i = 0; i < n_nodes; i++)  {
-    stats[i] = malloc(sizeof(struct NUMA_STATS));
-  }
+//  Extract numasat -m data
 
-  FILE *file;
+  if (!(file = popen("numastat -m", "r"))) { exit(1); }
 
-  for (int node = 0; node < n_nodes; node++)  {
+  lineno=0; row=0;
+  while ( fgets ( line, sizeof line, file ) != NULL ){
+    if(lineno>3 && lineno<30){                          //printf("read: %d %s",lineno,line);
+      sscanf(line, "%[^\n]s",str);
 
-    // numa_foreign/local_node/other_node : /NODE/NUMASTAT
+      char * token = strtok(line, " "); // tokenize
+      token = strtok(NULL, " ");        // skip 1st token, identifier keyword
+      i=0;
 
-    snprintf(path, sizeof(path), "%s/node%d/numastat", dir_path, node);
+      while( token != NULL ) { 
+        sscanf(token,"%f",  &numaStatM[row][i]);
+        token = strtok(NULL, " ");
+        i++;
+      }   
+      row++; 
 
-    file = NULL;
-  
-    file = fopen(path, "r");
-    if (file == NULL) {
-      fprintf(stderr, "Cannot open %s\n", path);
-      return EXIT_FAILURE;
-    }
+    } // end selecting line 4-29
+    lineno++;
 
-    unsigned long long int numa_foreign;
-    unsigned long long int local_node;
-    unsigned long long int other_node;
+  } // end while getting line  
 
-    bool match_numa_foreign = false;
-    bool match_local_node = false;
-    bool match_other_node = false;
+  pclose(file);
 
-    while (!match_numa_foreign || !match_local_node || !match_other_node) {
-      if (fgets(line, MAX_LINE, file) == NULL)
-        break;
 
-      if (strncmp(line, "numa_foreign", 12) == 0) {
-        numa_foreign = strtol(line + 12, NULL, 10);
-        match_numa_foreign = true;
-        stats[node]->numa_foreign = numa_foreign;
-      }
-      if (strncmp(line, "local_node", 10) == 0) {
-        local_node = strtol(line + 10, NULL, 10);
-        match_local_node = true;
-        stats[node]->local_node = local_node;
-      }
-      if (strncmp(line, "other_node", 10) == 0) {
-        other_node = strtol(line + 10, NULL, 10);
-        match_other_node = true;
-        stats[node]->other_node = other_node;
-      }
-    }
-    if (file != NULL)
-      fclose(file);
-
-    // MemFree/MemUsed: /NODE/MEMINFO
-
-    snprintf(path, sizeof(path), "%s/node%d/meminfo", dir_path, node);
-
-    file = NULL;
-
-    file = fopen(path, "r");
-    if (file == NULL) {
-      fprintf(stderr, "Cannot open %s\n", path);
-      return EXIT_FAILURE;
-    }
-
-    unsigned long long int mem_free;
-    unsigned long long int mem_used;
-
-    bool match_mem_free = false;
-    bool match_mem_used = false;
-
-    char mem_free_str[100];
-    char mem_used_str[100];
-
-    snprintf(mem_free_str, sizeof(mem_free_str), "Node %d MemFree:", node);
-    snprintf(mem_used_str, sizeof(mem_used_str), "Node %d MemUsed:", node);
-
-    while (!match_mem_free || !match_mem_used) {
-      if (fgets(line, MAX_LINE, file) == NULL)
-        break;
-
-      if (strncmp(line, mem_free_str, strlen(mem_free_str)) == 0) {
-        mem_free = strtol(line + strlen(mem_free_str), NULL, 10);
-        match_mem_free = true;
-        stats[node]->mem_free = mem_free;
-      }
-      if (strncmp(line, mem_used_str, strlen(mem_used_str)) == 0) {
-        mem_used = strtol(line + strlen(mem_used_str), NULL, 10);
-        match_mem_used = true;
-        stats[node]->mem_used = mem_used;
-      }
-    }
-    if (file != NULL)
-      fclose(file);
-  }
-
-  // AnonPages/AnonHugePages: /PROC/MEMINFO
-
-  file = NULL;
-  file = fopen("/proc/meminfo", "r");
-  if (file == NULL) {
-    fprintf(stderr, "Failed opening /proc/meminfo\n");
-    return EXIT_FAILURE;
-  }
-
-  unsigned long long int anon_pages;
-  unsigned long long int anon_huge_pages;
-
-  bool match_anon_pages = false;
-  bool match_anon_huge_pages = false;
-
-  while (!match_anon_pages || !match_anon_huge_pages) {
-    if (fgets(line, MAX_LINE, file) == NULL)
-      break;
-
-    if (strncmp(line, "AnonPages:", 10) == 0) {
-      anon_pages = strtol(line + 10, NULL, 10);
-      match_anon_pages = true;
-    }
-    if (strncmp(line, "AnonHugePages:", 14) == 0) {
-      anon_huge_pages = strtol(line + 14, NULL, 10);
-      match_anon_huge_pages = true;
-    }
-  }
-
-  // Write data
+// Write Data to file
 
   char output_path[PATH_BUFFER_SIZE];
   snprintf(output_path, sizeof(output_path), "%s/numa_stats_%s.txt", argv[3], argv[1]);
   file = fopen(output_path, "a+");
-
-  fprintf(file, "%.3f ", time_new);
-
-  fprintf(file, "%llu %llu ", anon_pages, anon_huge_pages);
-
-  for (int i = 0 ; i < n_nodes; i++)
-    fprintf(file, "%llu ", stats[i]->numa_foreign);
-
-  for (int i = 0 ; i < n_nodes; i++)
-    fprintf(file, "%.4lf ", stats[i]->local_node/256.0);
-
-  for (int i = 0 ; i < n_nodes; i++)
-    fprintf(file, "%.4lf ", stats[i]->other_node/256.0);
-
-  for (int i = 0 ; i < n_nodes; i++)
-    fprintf(file, "%.4lf ", stats[i]->mem_free/1024.0);
-
-  for (int i = 0 ; i < n_nodes; i++)
-    fprintf(file, "%.4lf ", stats[i]->mem_used/1024.0);
-
-  fprintf(file, "\n");
-
-  fclose(file);
-
-  for (int i = 0 ; i < n_nodes; i++)
-    free(stats[i]);
-  free(stats);
+  
+  fprintf(file, " \
+%10.3f %2d \
+%10.2f %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f \
+%15ld %15ld %15ld %15ld %15ld %15ld %15ld %15ld %15ld \
+%10.2f %10.2f %10.2f %10.2f %10.2f %10.2f \n", \
+    time_new,node_count, \
+    M(13,0),M(13,1),M(13,2), M(15,0),M(15,1),M(15,2), M(25,0),M(25,1),M(25,2), \
+    C(0,0),C(0,1),C(0,2), C(1,0),C(1,1),C(1,2), C(2,0),C(2,1),C(2,2), \
+    M(1,0),M(1,1),M(1,2), M(2,0),M(2,1),M(2,2) );
 
   return EXIT_SUCCESS;
 }
-
