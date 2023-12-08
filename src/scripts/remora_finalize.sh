@@ -198,8 +198,8 @@ fi
         printf "%s \n" "<a href=\"https://github.com/TACC/remora\" target=\"_blank\"><img src=\"https://raw.githubusercontent.com/TACC/remora/master/docs/logos/Remora-logo-300px.png\" alt=\"REMORA Logo\" style=\"max-width:100%;\"></a>" >> $REMORA_OUTDIR/remora_summary.html
         printf "<h1>REMORA REPORT - JOB %s </h1>\n" "$REMORA_JOB_ID" >> $REMORA_OUTDIR/remora_summary.html
 	printf "<pre>\n"   >> $REMORA_OUTDIR/remora_summary.html
-	printf "  ** NOTICE: IO Modules are not available on ls6. For security,\n"   >> $REMORA_OUTDIR/remora_summary.html
-	printf "  **         root access is now required to extract IO data.     "   >> $REMORA_OUTDIR/remora_summary.html
+	printf "  ** NOTICE: IO Module (lustre) is not available on most TACC systems.\n"     >> $REMORA_OUTDIR/remora_summary.html
+	printf "  **         For security, root access is now required to extract IO data."   >> $REMORA_OUTDIR/remora_summary.html
 	printf "</pre>\n"  >> $REMORA_OUTDIR/remora_summary.html
         for i in ${!REMORA_MODULES[@]}; do
 
