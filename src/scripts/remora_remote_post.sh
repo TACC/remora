@@ -39,13 +39,13 @@
    REMORA_MODULES=( $REMORA_ACTIVE_MODULES )
    export REMORA_MODULES
 
-   [[ "$REMORA_VERBOSE" == "1" ]] && 
+   [[ "$REMORA_VERBOSE" == "1" ]] &&
       echo "remora_remote_post: MODULES: ${REMORA_MODULES[@]} on $REMORA_NODE" >>$VERB_FILE
 
    for MODULE in ${REMORA_MODULES[@]}; do
       source $REMORA_BIN/modules/$MODULE
-      [[ "$REMORA_VERBOSE" == "1" ]] && 
-         echo " cmd: finalize_module_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR" >>$VERB_FILE
+      [[ "$REMORA_VERBOSE" == "1" ]] &&
+         echo " cmdx: finalize_module_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR" >>$VERB_FILE
 
       finalize_module_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 

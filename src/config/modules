@@ -1,7 +1,7 @@
 cpu,CPU
 memory,MEMORY
-impi_mpip,MPI
 numa,NUMA
+impi_mpip,MPI
 ib,NETWORK
 gpu,MEMORY
 network,NETWORK

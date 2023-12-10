@@ -160,21 +160,28 @@ finalize_module_impi_mpip()
 {
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   source $REMORA_OUTDIR/remora_env.txt
+  VERB_FILE=$REMORA_OUTDIR/MODULES_impi_mpip_final-${REMORA_NODE}.out
 
   REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
   if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
     if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
+                                [[ "$REMORA_VERBOSE" == "1" ]] &&  echo " Inside finalize on Master " >$VERB_FILE
       if [[ -e "$REMORA_BIN/../lib/libmpiP.so" ]] ; then
+                                [[ "$REMORA_VERBOSE" == "1" ]] &&  echo " Found $REMORA_BIN/../lib/libmpiP.so" >>$VERB_FILE
           cd $REMORA_OUTDIR/..
           # Why go to the directory, why not bring the file into REMORA_OUTDIR ##KM
           # Check for mpiP output in case code was not MPI based 
           #fileNum=$( ls -ltr *.mpiP ) 
 
-          mpip_file=$(ls -1 *.mpiP)
-          if [[ ! -n "$mpip_file" ]]; then
-             # otherwise maybe in $REMORA_OUTDIR (for remora_post_crash)
-             mpip_file=$(ls -1 $REMORA_OUTDIR/*.mpiP)
+          mpip_file=$(ls -1trd *.mpiP |tail -n 1 )    #get latest mpiP file (could be others from failed runs)
+          if [[ ${PIPESTATUS[0]} != 0 ]] || [[ ! -n "$mpip_file" ]]; then
+                                                      # could be in $REMORA_OUTDIR (for remora_post_crash)
+             mpip_file=$(ls -1trd *.mpiP |tail -n 1 )
+             if [[ ${PIPESTATUS[0]} != 0 ]] || [[ ! -n "$mpip_file" ]]; then
+                                [[ "$REMORA_VERBOSE" == "1" ]] &&  echo " ERROR: mpiP file NOT FOUND" >>$VERB_FILE
+             fi
           fi
+                                [[ "$REMORA_VERBOSE" == "1" ]] &&  echo " Found mpiP file: $mpip_file" >>$VERB_FILE
 
           if [[ -n "$mpip_file" ]]; then
 
@@ -197,8 +204,11 @@ finalize_module_impi_mpip()
             echo "MPI Execution Time   : $mpiTime (s)" >> $REMORA_OUTDIR/impi_mpip_info.txt
             echo "MPI Fraction of Time : $mpiFrac (%)" >> $REMORA_OUTDIR/impi_mpip_info.txt
             mv $outfile $REMORA_OUTDIR/impi_mpip_data.txt	
+                                [[ "$REMORA_VERBOSE" == "1" ]] &&  echo " Moved mpiP file to impi_mpip_data.txt" &&
+                                                                   echo " created            impi_mpip_info.txt" >>$VERB_FILE
 
             plot_data_impi_mpip $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+                                [[ "$REMORA_VERBOSE" == "1" ]] &&  echo " Finished impi_mpi plot." >>$VERB_FILE
 
           fi
       fi

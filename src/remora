@@ -99,31 +99,6 @@
 # END_OF_HEADER
 #========================================================================
 
-#USAGE
-APP=`basename $0`
-USAGE=" 
-   USAGE:
-
-   $APP -h            # This help
-   $APP <executable>  # e.g. $APP ibrun -np 8 ./a.out
-
-     Use these environment variables for control:
-     REMORA_PERIOD  :  Integer, time (seconds) between collections. 
-     REMORA_MODULES :  list of modules (collectors) to use (space separated)
-                       list of modules to exclude (each/every item has - prefix).
-                         e.g. use:     cpu memory numa
-                         e.g. exclude: -power -temperature
-     REMORA_VERBOSE :  1 to see details of remora progress.
-
-     REMORA_SHOW_MODULES: 1 shows modules (collectors)
-     REMORA_PLOT_RESULTS: 1(default)/0 Create/don't create plots
-
-     REMORA_BIN     :  Remora top-level directory. Must be set in PATH variable.
-
-"
-[[ $1 =~ -h ]] && echo "$USAGE" && exit 0
-
-
 # Abort because we will not find any of the functions
 # if REMORA_BIN is not defined
 if [[ -z "$REMORA_BIN" ]]; then

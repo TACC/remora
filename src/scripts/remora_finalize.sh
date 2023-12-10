@@ -31,8 +31,7 @@ function remora_finalize() {
     REMORA_MODULES=( $REMORA_ACTIVE_MODULES )
     REMORA_MODULES_OUTDIRS=( $REMORA_ACTIVE_MODULES_OUTDIRS )
     export REMORA_MODULES REMORA_MODULES_OUTDIRS
-VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  #for debugging
-##TODO: remove REMORA_VERBOSE.out
+    VERB_FILE=$REMORA_OUTDIR/REMORA_FINAL.out  #for debugging
 
     if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo ""
@@ -42,6 +41,7 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out  #for debugging
     START=$2
     local NODES_LIST=( $(cat $REMORA_OUTDIR/remora_nodes.txt) )
     local NODES="${NODES_LIST[@]}"
+    local node_cnt=$( wc -w <<<$NODES)
 
     local remora_timeout=10
 
@@ -202,8 +202,11 @@ fi
 	printf "  **         For security, root access is now required to extract IO data."   >> $REMORA_OUTDIR/remora_summary.html
 	printf "</pre>\n"  >> $REMORA_OUTDIR/remora_summary.html
         for i in ${!REMORA_MODULES[@]}; do
-
-            R_module="${REMORA_MODULES[$i]}"
+          R_module="${REMORA_MODULES[$i]}"
+          if [[ "$R_module" == "network" ]] && [[  $node_cnt -lt 2  ]]; then
+               [[ "$REMORA_VERBOSE" == "1" ]] && echo " NETWORK Pt-2-Pt OUTPUT NOT INCLUDED, only 1 node." >> $VERB_FILE
+          else
+               [[ "$REMORA_VERBOSE" == "1" ]] && echo " Working on $R_module." >> $VERB_FILE
 
             if [[ "$R_module" == "gpu" ]] &&  [[ "$REMORA_CUDA" == "0" ]]; then
                [[ "$REMORA_VERBOSE" == 1 ]] && echo "  GPU summary not reported, REMORA_CUDA=0 or nvidia-smi not detected."
@@ -239,6 +242,7 @@ fi
                     printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/${R_module}_${node}.html" ${node} >> $REMORA_OUTDIR/remora_summary.html
                 fi
             done
+          fi
         done
 
         #Add the summary at the end
@@ -274,4 +278,3 @@ fi
 
     [[ "$REMORA_VERBOSE" == "1" ]] && echo -e "\nREMORA finalize finished"
 }
-

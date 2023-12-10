@@ -80,11 +80,9 @@ parse_arguments() {
 
     # Check that we have at least some arguments
     if [[ "x$1" == "x" ]]; then
-      if [[ -z REMORA_SHOW_MODULES ]]; then   #when set, don't exit until later after showing modules.
         print_error " Incorrect syntax: insufficient arguments. "
         usage
         exit
-      fi
     fi
 }
 
@@ -301,7 +299,7 @@ remora_set_active_modules()
           #Check for proper use
           negative_count=$( echo "${mod_list[@]}" | tr -cd -- '-' | wc -c | sed 's/ //g' )
           if [[ "${#mod_list[@]}" != "$negative_count" ]]; then
-             echo " -> ***  ERROR  *** Negative & non-negative items in REMORA_MODULES or snapshot args."
+             echo " -> ***  ERROR  *** Negative and non-negative items in REMORA_MODULES/snapshot module args:"
              echo " ->                 (FOUND: $REMORA_MODULES). See remora -h for usage."
             #echo " ->                 Will use default modules in Configure directory."
             #mod_list=()
@@ -325,7 +323,6 @@ remora_set_active_modules()
           fi
     
           # Remove each value in rm_modules from remora_modules, loop over indices (note !).
-          echo  "  -> Collectors to be elided through \$REMORA_MODULES or snapshot args: ${rm_modules[@]}"
           for rm_mod in "${rm_modules[@]}"; do
              found=no
              for j in "${!remora_modules[@]}"; do
@@ -341,7 +338,7 @@ remora_set_active_modules()
           remora_modules=( ${remora_modules[@]} )  #re-index (removes gaps)
     
        else    #Just a list of modules to use
-          echo  "  -> Collectors specified for use by \$REMORA_MODULES or snapshot args: ${mod_list[@]}"
+          echo  "  -> Only using module(s) from \$REMORA_MODULES or snapshot args: ${mod_list[@]}"
           remora_modules=( ${mod_list[@]} )
     
          # Check: Make sure user provided valid modules
@@ -379,7 +376,6 @@ remora_set_active_modules()
           [[ ${REMORA_MODULES[$rm_id]} == ${REMORA_CONFIG_MODULES[$cm_id]} ]] && REMORA_ACTIVE_MODULES_OUTDIRS[$rm_id]=${REMORA_CONFIG_MODULES_OUTDIRS[$cm_id]}
         done
     done
-    [[ $REMORA_SHOW_MODULES == 1 ]] && echo "Modules (collectors): ${REMORA_MODULES[@]}" && exit 0
 
     echo "export REMORA_ACTIVE_MODULES=\"${REMORA_MODULES[@]}\""                        >> $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_ACTIVE_MODULES_OUTDIRS=\"${REMORA_ACTIVE_MODULES_OUTDIRS[@]}\"" >> $REMORA_OUTDIR/remora_env.txt
