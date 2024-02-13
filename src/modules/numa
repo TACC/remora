@@ -108,9 +108,11 @@ collect_data_numa(){
 
    #   all numastat lines have an identifier (keyword) followed by numbers, one for each node,
    #   and a Total(sum).   Keywords are removed, and only necessary line are acquired.
+   #   On Lonestar6 multiple "Token Node not in hash table." appear. grep -v removes them. Uh!
 
    mapfile -t numaStatC < <( numastat -c | sed -n '5,7p'  | sed 's/^[^0-9]*//' )
-   mapfile -t numaStatM < <( numastat -m | sed -n '3,30p' | sed 's/^[^0-9]*//' )
+   mapfile -t numaStatM < <( numastat -m | grep -v "not in hash" | grep -v Shmem | sed -n '3,30p' | sed 's/^[^0-9]*//' )
+  #mapfile -t numaStatM < <( numastat -m | sed -n '3,30p' | sed 's/^[^0-9]*//' )
 
    # Count # of "Node"s in first line:
    #                   1st line "Node 0  Node 1  Total" appears as "0 Node 1 Total"

@@ -121,7 +121,8 @@ finalize_module_network()
   #Extract the mlx interface. It was hardcoded to mlx4_0
   export PATH="/sbin:$PATH"
                   #if snapshot plot, will get login interf-- OK.
-  interf=`ibstat | head -n 1 | awk '{print $2}' | tr -d "'"`
+ #interf=`ibstat | head -n 1 | awk '{print $2}' | tr -d "'"`
+  interf=`ibstat | head -n 1 | awk '{print $2}' | sed "s/'//g" `
   if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
     local NODES=`cat $REMORA_OUTDIR/remora_nodes.txt`
     net_node_cnt=$( wc -w <<<$NODES)
@@ -169,5 +170,6 @@ finalize_module_network()
     fi #FULL
   fi #MASTER
 
-  plot_data_network $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+  # plot_data_network $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+   [[ $net_node_cnt -gt 1 ]] && plot_data_network $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 }

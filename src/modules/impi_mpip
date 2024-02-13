@@ -173,6 +173,8 @@ finalize_module_impi_mpip()
           # Check for mpiP output in case code was not MPI based 
           #fileNum=$( ls -ltr *.mpiP ) 
 
+ls -1trd *.mpiP >& /dev/null
+if [[ $? -eq 0 ]]; then
           mpip_file=$(ls -1trd *.mpiP |tail -n 1 )    #get latest mpiP file (could be others from failed runs)
           if [[ ${PIPESTATUS[0]} != 0 ]] || [[ ! -n "$mpip_file" ]]; then
                                                       # could be in $REMORA_OUTDIR (for remora_post_crash)
@@ -182,6 +184,9 @@ finalize_module_impi_mpip()
              fi
           fi
                                 [[ "$REMORA_VERBOSE" == "1" ]] &&  echo " Found mpiP file: $mpip_file" >>$VERB_FILE
+else
+   mpip_file=""
+fi
 
           if [[ -n "$mpip_file" ]]; then
 
