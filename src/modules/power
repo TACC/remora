@@ -77,7 +77,16 @@ init_module_power()
   fi
  
   if [[ $REMORA_POWER_IGNORE == 1 ]]; then # test for intel_rapl
-     if [[ -f /sys/devices/virtual/powercap/intel-rapl/intel-rapl:0/energy_uj ]]; then 
+
+  if [[ $REMORA_POWER_IGNORE == 1 ]]; then # test for intel_rapl
+
+     energy_readable=TRUE                                 # Make sure all energy file are readable
+     for ((soc_num=0; soc_num<$sockets; soc_num++)); do
+        [[ ! -r /sys/devices/virtual/powercap/intel-rapl/intel-rapl:$soc_num/energy_uj ]] && energy_readable=FALSE
+     energy_readable=FALSE
+    
+     done
+     if [[ $energy_readable == TRUE ]]; then
         REMORA_POWER_IGNORE=0
         REMORA_POWER_COLLECTOR=intel_rapl
        # base_values[0]=`date +%s`
@@ -438,6 +447,8 @@ finalize_module_power()
   if [[ -z ${REMORA_PLOT_RESULTS} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
       return
   fi
+
+  [[ $REMORA_POWER_IGNORE -ne 0 ]] && return
 
   #NODE PLOT
 

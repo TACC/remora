@@ -100,6 +100,10 @@ export REMORA_PLOT_RESULTS=1
     rm -rf /dev/shm/remora_*
     eval init_module_${MOD_NAME} $NODE $REMORA_OUTDIR $REMORA_TMPDIR
 
+#   Exceptions:
+    [[ -f $REMORA_OUTDIR/remora_env.txt ]] && source  $REMORA_OUTDIR/remora_env.txt
+    [[ $REMORA_POWER_IGNORE == 1 ]] && echo " ERROR: sensors cmd or rapl files not accessible. See init_module_power function." && exit 1
+
     sleep $REMORA_PERIOD
                [[ $V == 1 ]] && printf "%s\n" " finished." 
 
