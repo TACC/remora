@@ -83,6 +83,11 @@ trap "exit_clean" EXIT
   alpha=0.6
 
 
+  # Remove any collectors that were rejected during remora_init
+  if [[ $REMORA_POWER_IGNORE -ne 0 ]]; then
+    REMORA_MODULES=( "${REMORA_MODULES[@]/power}" )
+  fi
+
   period_no=1
   while [[ 1 ]]; do
 

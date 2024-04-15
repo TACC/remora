@@ -93,6 +93,10 @@ function remora_init() {
     [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Checking if parallel file system analysis is required/available."
     check_io
 
+    # Check if Energy/Power files are accessible
+    [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Checking if $nergy/Power files are accessible."
+    check_energy_counter_accessibility
+
     ## Check TIMER precision (date precision) and if REMORA_DATE_PRECISION is set
     #if [[ "$REMORA_VERBOSE" == "1" ]]; then
     #    echo "  Checking date precision (timer) & if REMORA_DATE_PRECISION is set"
