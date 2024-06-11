@@ -93,6 +93,10 @@ function remora_init() {
     [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Checking if parallel file system analysis is required/available."
     check_io
 
+    # Check taccstats support
+    [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Checking if taccstats support is required."
+    check_taccstats
+
     ## Check TIMER precision (date precision) and if REMORA_DATE_PRECISION is set
     #if [[ "$REMORA_VERBOSE" == "1" ]]; then
     #    echo "  Checking date precision (timer) & if REMORA_DATE_PRECISION is set"

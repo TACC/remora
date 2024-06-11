@@ -125,14 +125,14 @@ parse_environment() {
    fi
 
    # set_active_modules()  already used these to determine the modules, required here for remora_env.txt
-   if [[ ! -z  "$REMORA_CONFIGPATH" ]]; then 
-     CONFIGPATH=$REMORA_CONFIGPATH
+   if [[ ! -z  "$REMORA_CONFIG_PATH" ]]; then 
+     CONFIGPATH=$REMORA_CONFIG_PATH
    else
      CONFIGPATH=$REMORA_BIN/config
    fi
 
-   if [[ ! -z  "$REMORA_MODULEPATH" ]]; then 
-     MODULEPATH=$REMORA_MODULEPATH
+   if [[ ! -z  "$REMORA_MODULE_PATH" ]]; then 
+     MODULEPATH=$REMORA_MODULE_PATH
    else
      MODULEPATH=$REMORA_BIN/modules
    fi
@@ -153,10 +153,11 @@ parse_environment() {
     echo "export REMORA_VERBOSE=$REMORA_VERBOSE"   >> $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_MONITOR_PERIOD=$REMORA_MONITOR_PERIOD" >> $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_BINARIES=$REMORA_BINARIES" >> $REMORA_OUTDIR/remora_env.txt
-    echo "export REMORA_CONFIGPATH=$CONFIGPATH"    >> $REMORA_OUTDIR/remora_env.txt
-    echo "export REMORA_MODULEPATH=$MODULEPATH"    >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_CONFIG_PATH=$CONFIGPATH"    >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_MODULE_PATH=$MODULEPATH"    >> $REMORA_OUTDIR/remora_env.txt
     [[ ! -z $REMORA_SNAPS ]] &&
     echo "export REMORA_SNAPS=$REMORA_SNAPS"       >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_TOP_PID=$REMORA_TOP_PID"   >> $REMORA_OUTDIR/remora_env.txt
 
 }
 
@@ -237,6 +238,11 @@ check_gpu() {
 #   #fi
 #    echo "export REMORA_EFFECTIVE_PERIOD=$REMORA_EFFECTIVE_PERIOD" >> $REMORA_OUTDIR/remora_env.txt
 #}
+
+## AL add taccstats support
+check_taccstats() {
+    echo "export REMORA_TS_METRICS=\"$REMORA_TS_METRICS\"" >> $REMORA_OUTDIR/remora_env.txt
+}
 
 check_io() {
     # Check if lustre / dvs / other file systems are present

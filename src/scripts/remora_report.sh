@@ -60,7 +60,7 @@ trap "exit_clean" EXIT
 
      [[ "$REMORA_VERBOSE" == "1" ]] && echo init_module_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR >> $FILE_REMOTE_VEBOSE
     
-     source $REMORA_BIN/modules/$MODULE
+     source $REMORA_MODULE_PATH/$MODULE
      init_module_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 
   done
