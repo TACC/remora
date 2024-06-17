@@ -56,13 +56,13 @@ plot_data_nv_temperature()
 
     node=$REMORA_NODE
 
-    if [[ ! -f $REMORA_TMPDIR/nv_temperature_${REMORA_NODE}.txt ]]; then
+    if [[ ! -f $REMORA_TMPDIR/nv_temperature_cpu_${REMORA_NODE}.txt ]]; then
         return
     fi
 
     FILE=$REMORA_TMPDIR/nv_temperature_${node}.html
 
-    TEMP_TXT_FILE=${REMORA_TMPDIR}/nv_temperature_${REMORA_NODE}.txt 
+    TEMP_TXT_FILE=${REMORA_TMPDIR}/nv_temperature_cpu_${REMORA_NODE}.txt 
 
     n_columns=`head -n1 ${TEMP_TXT_FILE} | wc -w`
     n_zones=$(( n_columns - 1 ))
