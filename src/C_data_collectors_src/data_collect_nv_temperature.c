@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
   }
 
   char output_path[PATH_BUFFER_SIZE];
-  snprintf(output_path, sizeof(output_path), "%s/nv_temperature_cpu_%s.txt", argv[3], argv[1]);
+  snprintf(output_path, sizeof(output_path), "%s/temperature_cpu_%s.txt", argv[3], argv[1]);
   file = fopen(output_path, "a+");
 
   fprintf(file, "%.3f ", time_now);
