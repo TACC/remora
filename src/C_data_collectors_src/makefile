@@ -62,7 +62,7 @@ data_collect_gpu: data_collect_gpu.o
 	$(info [CC] Building data_collect_gpu)
 
 data_collect_gpu.o: data_collect_gpu.c
-	@$(CC) $(CCFLAGS) $(DEPFLAGS) -L/lib64 -I${TACC_CUDA_INC} -lnvidia-ml -c $<
+	@$(CC) $(CCFLAGS) $(DEPFLAGS) -L/lib64 -I${NVHPC_ROOT}/cuda/include -lnvidia-ml -c $<
 
 %.o: %.c
 	@$(CC) $(CCFLAGS) $(DEPFLAGS) -c $<
