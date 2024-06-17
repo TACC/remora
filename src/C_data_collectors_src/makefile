@@ -2,9 +2,9 @@
 CC = gcc
 CXXFLAGS=-O3
 
-OBJECTS += data_collect_cpu.o data_collect_eth.o data_collect_ib.o data_collect_memory.o data_collect_numa.o data_collect_opa.o data_collect_power.o data_collect_temperature.o
+OBJECTS += data_collect_cpu.o data_collect_eth.o data_collect_ib.o data_collect_memory.o data_collect_numa.o data_collect_opa.o data_collect_nv_power.o data_collect_nv_temperature.o
 
-BINARIES += data_collect_cpu data_collect_eth data_collect_ib data_collect_memory data_collect_numa data_collect_opa data_collect_power data_collect_temperature
+BINARIES += data_collect_cpu data_collect_eth data_collect_ib data_collect_memory data_collect_numa data_collect_opa data_collect_nv_power data_collect_nv_temperature
 
 ifeq ($(shell ldconfig -p | grep libnvidia-ml >& /dev/null && echo 1 || echo 0), 1)
 OBJECTS  += data_collect_gpu.o
@@ -46,15 +46,15 @@ data_collect_opa: data_collect_opa.o
 	@$(CC) data_collect_opa.o -o $(BUILD_DIR)/data_collect_opa
 	$(info [CC] Building data_collect_opa)
 
-data_collect_power: data_collect_power.o
+data_collect_nv_power: data_collect_nv_power.o
 	$(shell mkdir -p $(BUILD_DIR))
-	@$(CC) data_collect_power.o -o $(BUILD_DIR)/data_collect_power
-	$(info [CC] Building data_collect_power)
+	@$(CC) data_collect_nv_power.o -o $(BUILD_DIR)/data_collect_nv_power
+	$(info [CC] Building data_collect_nv_power)
 
-data_collect_temperature: data_collect_temperature.o
+data_collect_nv_temperature: data_collect_nv_temperature.o
 	$(shell mkdir -p $(BUILD_DIR))
-	@$(CC) data_collect_temperature.o -o $(BUILD_DIR)/data_collect_temperature
-	$(info [CC] Building data_collect_temperature)
+	@$(CC) data_collect_nv_temperature.o -o $(BUILD_DIR)/data_collect_nv_temperature
+	$(info [CC] Building data_collect_nv_temperature)
 
 data_collect_gpu: data_collect_gpu.o
 	$(shell mkdir -p $(BUILD_DIR))

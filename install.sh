@@ -72,6 +72,8 @@ sysfile=`ls sysstat*.tar.gz`
 sysdir=`echo  ${sysfile%%.tar.gz}`
 tar xzvf ${sysfile}
 cd ${sysdir}
+sed -i 's/-pipe //g' Makefile
+sed -i 's/-pipe //g' Makefile.in
 ./configure | tee -a $BUILD_LOG
 make mpstat |  tee -a $BUILD_LOG
 echo "Installing mpstat ..." | tee -a $INSTALL_LOG
@@ -103,6 +105,9 @@ if [[ $haveMPICC == 1 ]] && [[ $haveMPIFC == 1 ]]; then
    mpicc -v 2>/dev/null | grep 'MVAPICH2'     > /dev/null 2>&1 
    haveMV2=$((1-${PIPESTATUS[1]}))            #1=has MVAPICH2, 0=does not have MV2
 
+   mpicc -v 2>&1 >/dev/null | grep 'NVCOMPILER' > /dev/null 2>&1
+   haveNVHPC=$((1-${PIPESTATUS[1]}))            #1=has NVHPC, 0=does not have NVHPC
+
    if [[ $haveIMPI == 1 ]]; then
       IMPI_year=$( mpicc -v 2>/dev/null | grep 'Library 20' | sed 's/.*Library 20\([0-9][0-9]\).*/\1/' )
       if [[ $IMPI_year > 18 ]]; then
@@ -124,18 +129,19 @@ fi
 
 if [[ "$haveMPICC" == "1" ]] && [[ "$haveMPIFC"  == "1" ]]; then
 
-   if [[ "$haveMV2"    == "1" || "$IMPI_stats" == "impi_mpip" ]] ; then
+   if [[ "$haveMV2"    == "1" || "$haveNVHPC" == "1" || "$IMPI_stats" == "impi_mpip" ]] ; then
 
       [[ "$haveMV2"    == "1" ]]         && echo " REMORA built with mpiP statistics for Mvapich2"  | tee -a $BUILD_LOG
+      [[ "$haveNVHPC"  == "1" ]]         && echo " REMORA built with mpiP statistics for NVHPC"  | tee -a $BUILD_LOG
       [[ "$IMPI_stats" == "impi_mpip" ]] && echo " REMORA built with mpiP statistics for IMPI 20$IMPI_year" | tee -a $BUILD_LOG
 
       echo "Building mpiP ..." | tee -a $BUILD_LOG
       cd $REMORA_BUILD_DIR/extra
-     #mpipfile=`ls -ld mpiP*.tar.gz | awk '{print $9}' | head -n 1`
       mpipfile=`ls  mpiP*.tar.gz`
       mpipdir=`echo  ${mpipfile%%.tar.gz}`
       tar xzvf ${mpipfile}
       [[ -f ./extra/mpiP-3.4.1/make-wrappers.py ]] && sed -i 's@#!/usr/local/bin/python@#!/usr/bin/python2@' ./extra/mpiP-3.4.1/make-wrappers.py
+      [[ -f ./extra/mpiP-3.5/make-wrappers.py ]] && sed -i 's@#!/usr/local/bin/python@#!/usr/bin/python@' ./extra/mpiP-3.5/make-wrappers.py
 
       [[ $(hostname -f) =~ ".ls6.tacc" ]] && 
          sed -i 's/PYTHON  = python$/PYTHON  = python2/'         ./mpiP-3.4.1/Defs.mak.in &&
@@ -157,9 +163,9 @@ if [[ "$haveMPICC" == "1" ]] && [[ "$haveMPIFC"  == "1" ]]; then
       echo ""
    fi
 
-   if [[ "$haveMV2" == "0" ]] && [[ "$haveIMPI" == "0" ]]; then
+   if [[ "$haveMV2" == "0" ]] && [[ "$haveNVHPC" == "0" ]] && [[ "$haveIMPI" == "0" ]]; then
       echo "" 
-      echo " REMORA only supports statistics for IMPI and MVAPICH2"          | tee -a $BUILD_LOG
+      echo " REMORA only supports statistics for IMPI, NVHPC, and MVAPICH2"  | tee -a $BUILD_LOG
       echo " WARNING : REMORA will be built with NO MPI statistics support " | tee -a $BUILD_LOG
       echo ""
    fi
@@ -191,15 +197,23 @@ if [[ "$haveMPICC" == "0" ]] || [[ "$haveMPIFC" == "0" ]]; then
     sed -i '/impi,MPI/d'      $REMORA_DIR/bin/config/modules
     sed -i '/impi_mpip,MPI/d' $REMORA_DIR/bin/config/modules
     sed -i '/mv2,MPI/d'       $REMORA_DIR/bin/config/modules
+    sed -i '/nv_mpip,MPI/d'   $REMORA_DIR/bin/config/modules
 else
     if [[ "$haveIMPI" == "1" ]]; then
                                            sed -i '/mv2,MPI/d'       $REMORA_DIR/bin/config/modules
+                                           sed -i '/nv_mpip,MPI/d'   $REMORA_DIR/bin/config/modules
        [[ $IMPI_stats == "impi_mpip" ]] && sed -i '/impi,MPI/d'      $REMORA_DIR/bin/config/modules
        [[ $IMPI_stats == "impi"      ]] && sed -i '/impi_mpip,MPI/d' $REMORA_DIR/bin/config/modules
     fi
     if [[ "$haveMV2" == "1" ]]; then
        sed -i '/impi,MPI/d'      $REMORA_DIR/bin/config/modules
        sed -i '/impi_mpip,MPI/d' $REMORA_DIR/bin/config/modules
+       sed -i '/nv_mpip,MPI/d'   $REMORA_DIR/bin/config/modules
+    fi
+    if [[ "$haveNVHPC" == "1" ]]; then
+       sed -i '/impi,MPI/d'      $REMORA_DIR/bin/config/modules
+       sed -i '/impi_mpip,MPI/d' $REMORA_DIR/bin/config/modules
+       sed -i '/mv2,MPI/d'       $REMORA_DIR/bin/config/modules
     fi
 fi
 
