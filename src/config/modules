@@ -1,10 +1,13 @@
 cpu,CPU
 memory,MEMORY
 numa,NUMA
+nv_mpip,MPI
+impi,MPI
 impi_mpip,MPI
+mv2,MPI
 ib,NETWORK
 gpu,MEMORY
 network,NETWORK
-power,POWER
-temperature,TEMPERATURE
+nv_power,POWER
+nv_temperature,TEMPERATURE
 eth,NETWORK
