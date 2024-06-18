@@ -372,8 +372,10 @@ remora_set_active_modules()
             remora_modules=($config_modules)
         fi
 
+        gputest=$(nvidia-smi > /dev/null 2> /dev/null || echo "0")
+
         for j in "${!remora_modules[@]}"; do
-            if [[ ${remora_modules[$j]} == "gpu" && "$REMORA_CUDA" == "0" ]]; then
+            if [[ ${remora_modules[$j]} == "gpu" && "$gputest" == "0" ]]; then
                 unset remora_modules[$j] 
             fi
         done
