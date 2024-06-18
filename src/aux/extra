@@ -373,7 +373,7 @@ remora_set_active_modules()
         fi
 
         for j in "${!remora_modules[@]}"; do
-            if [[ ${remora_modules[$j]} == "gpu" && "$REMORA_CUDA" == "1" ]]; then
+            if [[ ${remora_modules[$j]} == "gpu" && "$REMORA_CUDA" == "0" ]]; then
                 unset remora_modules[$j] 
             fi
         done
