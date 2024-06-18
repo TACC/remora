@@ -56,7 +56,7 @@ plot_data_nv_temperature()
 
     node=$REMORA_NODE
 
-    if [[ ! -f $REMORA_TMPDIR/nv_temperature_cpu_${REMORA_NODE}.txt ]]; then
+    if [[ ! -f $REMORA_TMPDIR/nv_temperature_${REMORA_NODE}.txt ]]; then
         return
     fi
 

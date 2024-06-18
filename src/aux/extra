@@ -460,7 +460,7 @@ init_folders() {
     if [[ -z "$REMORA_TMPDIR" ]]; then
         export REMORA_TMPDIR=$REMORA_OUTDIR
     else
-		export REMORA_TMPDIR=$REMORA_TMPDIR/remora_$REMORA_JOB_ID
+        export REMORA_TMPDIR=$REMORA_TMPDIR/remora_$REMORA_JOB_ID
     fi
 #                                ##KFM is this done ON non-master  NODES in remora_report.sh.
     mkdir -p $REMORA_TMPDIR
