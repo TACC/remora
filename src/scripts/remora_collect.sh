@@ -42,7 +42,7 @@ VERB_FILE=$REMORA_OUTDIR/REMORA_VERBOSE.out    #for debugging
         COMMAND="$REMORA_BIN/scripts/remora_report.sh $NODE $REMORA_BIN $REMORA_OUTDIR >> $REMORA_OUTDIR/.remora_out_$NODE & "
 
         [[ "$REMORA_VERBOSE" == "1" ]] && echo " REMORA: remora_collect: START LAUNCH of remora_report.sh background process on $NODE."
-        [[ "$REMORA_VERBOSE" == "1" ]] && echo "         ssh -f -n $NOE $COMMAND"
+        [[ "$REMORA_VERBOSE" == "1" ]] && echo "         ssh -f -n $NODE $COMMAND"
 
             ssh -f -n $NODE PATH=$PATH $COMMAND  # PATH is included to make so that tools are found (i.e. mpstat)
 

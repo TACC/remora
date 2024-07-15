@@ -60,7 +60,12 @@ if [[ "$REMORA_VERBOSE" == "1" ]]; then
 fi
 
 #Read the configuration
+
 CONFIGPATH=$REMORA_BIN/config
+
+if [[ -n "$REMORA_CONFIG_PATH" ]]; then
+    CONFIGPATH=$REMORA_CONFIG_PATH
+fi
 
 #Get the active modules
 fileItemString=$(cat $CONFIGPATH/modules | cut -f1 -d "," | tr "\n" " ")
