@@ -39,7 +39,7 @@ init_module_power()
 
   # Updated 2023-03-28 by Kent
   # Can now use intel RAPL to get Energy, Watts=Energy_uj_now - Energy_uj_prev/delta_time
- #  source $REMORA_OUTDIR/remora_env.txt
+  # source $REMORA_OUTDIR/remora_env.txt
 
   local remora_date_precision="ms"
   local remora_date_format='+%s.%3N'
@@ -47,7 +47,7 @@ init_module_power()
   local REMORA_POWER_IGNORE    # 0 == don't ignore     1 == ignore  
   local REMORA_POWER_COLLECTOR # sensors or intel_rapl
 
-  local sockets sockets_m1
+  local sockets
   local has_sensors sensors base_values=()
   local soc_num
 
@@ -57,47 +57,22 @@ init_module_power()
   sockets=1  #default
   hash lscpu 2>/dev/null
   [[ $? == 0 ]] && sockets=$(lscpu | grep 'Socket(s):' | awk '{print $2}')
-  sockets_m1=$(($sockets-1))
 
-  #Check if sensors exists. Use hash for this and the result of the command
-  hash sensors 2>/dev/null
-  has_sensors=$?                               # 0/1 yes/no 
-  if [[ has_sensors == 0 ]]; then              # test whether sensors provides "power1:"
-     sensors | grep power1 2>/dev/null
-     REMORA_POWER_IGNORE=${PIPESTATUS[1]}      #if power1 found status=0,set don't ignore
-     if [[ $REMORA_POWER_IGNORE == 0 ]]; then  # sensors have power
-        REMORA_POWER_COLLECTOR=sensors         # assuming KNL & only one socket
-
-       #base_values[0]=`date +%s`              # W are no longer putting in a base for Power sensors
-       #base_values[1]=`sensors | grep power1 | awk '{print $2;}'` #TODO: multiple sockets with sensors cmd
-     fi
-  else
-     REMORA_POWER_IGNORE=1       # specify no power utility so far
-     REMORA_POWER_COLLECTOR=none
+  if [[ REMORA_POWER_COLLECTOR == sensors ]]; then
+     base_values[0]=`date +%s`                                  # No longer in use (was for KNL)
+     base_values[1]=`sensors | grep power1 | awk '{print $2;}'` #TODO: if revised, get power 4 all sockets
   fi
- 
-  if [[ $REMORA_POWER_IGNORE == 1 ]]; then # test for intel_rapl
-     if [[ -f /sys/devices/virtual/powercap/intel-rapl/intel-rapl:0/energy_uj ]]; then 
-        REMORA_POWER_IGNORE=0
-        REMORA_POWER_COLLECTOR=intel_rapl
-       # base_values[0]=`date +%s`
-         base_values[0]=`date $remora_date_format`
-        for i in $(seq 1 $sockets); do     # get base values
-          soc_num=$(( $i - 1 ))
-          base_values[$i]=$(</sys/devices/virtual/powercap/intel-rapl/intel-rapl:$soc_num/energy_uj)
-        done
-     fi
-  fi 
 
-  REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-
-  if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
-      echo "export REMORA_POWER_IGNORE=$REMORA_POWER_IGNORE"       >> $REMORA_OUTDIR/remora_env.txt
-      echo "export REMORA_POWER_COLLECTOR=$REMORA_POWER_COLLECTOR" >> $REMORA_OUTDIR/remora_env.txt
+  if [[ REMORA_POWER_COLLECTOR == intel_rapl ]]; then 
+     base_values[0]=`date $remora_date_format`
+     for i in $(seq 1 $sockets); do
+        soc_num=$(( $i - 1 ))
+       base_values[$i]=$(</sys/devices/virtual/powercap/intel-rapl/intel-rapl:$soc_num/energy_uj)
+     done
   fi
 
   if [[ "$REMORA_POWER_IGNORE" == 1 ]]; then
-     [[ "$REMORA_VERBOSE"    == 1   ]] && echo " -> power not initialized, sensors not found."
+     [[ "$REMORA_VERBOSE"      == 1 ]] && echo " -> power not initialized, sensors not found."
     return 1
   fi
 
@@ -128,6 +103,7 @@ init_module_power()
                                         #either from sensors or energy differences.
 
   #sleep 1 && echo remove sleep in $0 #used for testing, assure at least 1s before data collection
+
 }
 
 collect_data_power()
@@ -143,9 +119,10 @@ collect_data_power()
   local  POWER_FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.txt
   local ENERGY_FILE=$REMORA_TMPDIR/energy_${REMORA_NODE}.txt
 
+echo "HERE collect_data_power $REMORA_POWER_IGNORE" >> /home1/00770/milfeld/R
   [[ $REMORA_POWER_IGNORE -ne 0 ]] && return 1
 
-  local sockets sockets_m1
+  local sockets
   local time_stamp time_base time_seq power
 
   local prev_line
@@ -158,7 +135,6 @@ collect_data_power()
   sockets=1  #default
   hash lscpu 2>/dev/null
   [[ $? == 0 ]] && sockets=$(lscpu | grep 'Socket(s):' | awk '{print $2}')
-  sockets_m1=$(($sockets-1))
 
   if [[ $REMORA_POWER_COLLECTOR == sensors ]]; then  #for KNL, single socket
      time_stamp=`date $remora_date_format`
@@ -175,7 +151,7 @@ collect_data_power()
      time_stamp=`date $remora_date_format`
      time_str=$(printf "%-17s" "$time_stamp" )
      line=$time_str
-     for soc_num in $(seq 0 $sockets_m1); do
+     for ((soc_num=0; soc_num<$sockets; soc_num++)); do
         energy_uj=$(</sys/devices/virtual/powercap/intel-rapl/intel-rapl:$soc_num/energy_uj) 
         addon=$(printf "%-17s" "$energy_uj" )
         line+=$addon
@@ -191,7 +167,7 @@ collect_data_power()
      line=$time_str
 
      prev_line=( "${prev_line[@]:1}" )                   #<- acts like the shift used for args.
-     for soc_num in $(seq 0 $sockets_m1); do
+     for ((soc_num=0; soc_num<$sockets; soc_num++)); do
 
          delta=$( bc <<< "scale=2; ${energy[$soc_num]} - ${prev_line[$soc_num]}" )
 #                               #If delta is negative, counter wrapped
@@ -257,7 +233,7 @@ plot_data_power()
     local  POWER_TXT_FILE=$REMORA_TMPDIR/power_${node}.txt
     local ENERGY_TXT_FILE=$REMORA_TMPDIR/energy_${node}.txt
 
-    local sockets sockets_m1
+    local sockets
 
     local ln_num iter row word   #common to power and energy_uj blocks.
     local using_power_data=no
@@ -279,7 +255,6 @@ plot_data_power()
     sockets=1  #default
     hash lscpu 2>/dev/null
     [[ $? == 0 ]] && sockets=$(lscpu | grep 'Socket(s):' | awk '{print $2}')
-    sockets_m1=$(($sockets-1))
 
     printf "%s \n" "<html>"  > $FILE
     printf "%s \n" "<head>" >> $FILE
@@ -292,7 +267,7 @@ plot_data_power()
     printf "%s \n" "var data = new google.visualization.DataTable();" >> $FILE
     printf "%s \n" "data.addColumn('number', 'Execution Time (sec)');">> $FILE
 
-    for soc_num in $(seq 0 $sockets_m1); do
+    for ((soc_num=0; soc_num<$sockets; soc_num++)); do
       printf "%s \n" "data.addColumn('number', 'socket_$soc_num');"   >> $FILE
     done
     printf "%s\n" "data.addRows(["                                    >> $FILE
@@ -432,12 +407,15 @@ finalize_module_power()
   # Uses: lscpu to determine # of sockets
 
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-
+echo "HERE finalize_module_power $REMORA_POWER_IGNORE" >> /home1/00770/milfeld/R
                 # RemPltRes must be set, and not equal to zero
   source $REMORA_OUTDIR/remora_env.txt
   if [[ -z ${REMORA_PLOT_RESULTS} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
       return
   fi
+
+  [[ $REMORA_POWER_IGNORE -ne 0 ]] && return 
+echo "NEVER HERE AFTER RETURN finalize_module_power $REMORA_POWER_IGNORE" >> /home1/00770/milfeld/R
 
   #NODE PLOT
 
@@ -518,7 +496,7 @@ finalize_module_power()
      printf "%s \n" "var data = new google.visualization.DataTable();" >> $FILE
      printf "%s \n" "data.addColumn('number', 'Execution Time (s)');"  >> $FILE
  
-     for soc_num in $(seq 0 $n_socs_m1); do
+     for ((soc_num=0; soc_num<$sockets; soc_num++)); do
        printf "%s \n" "data.addColumn('number', 'socket_$soc_num');"   >> $FILE
      done
      printf "%s\n" "data.addRows(["                                    >> $FILE
