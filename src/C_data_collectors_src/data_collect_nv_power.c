@@ -45,12 +45,19 @@ int main(int argc, char *argv[])
   if (n_hwmon == 6) // Grace-Hopper node
   {
     n_init_index = 1;
-    n_sensors = 4;
+    n_sensors    = 4;
   }
   else if (n_hwmon == 8) // Grace-Grace node
   {
     n_init_index = 2;
-    n_sensors = 6;
+    n_sensors    = 6;
+
+    FILE *file;         // Login has this file and index must start at 1
+    if ( (file = fopen("/sys/class/hwmon/hwmon1/device/power1_average","r"))){
+      n_init_index = 1;
+      fclose(file);
+    }
+
   }
   else
   {
@@ -132,3 +139,50 @@ int main(int argc, char *argv[])
 
   return EXIT_SUCCESS;
 }
+/*
+gg
+hwmon0  hwmon1  hwmon2  hwmon3  hwmon4  hwmon5  hwmon6  hwmon7
+
+==========0
+        hwmon0
+         k_d k_i k_po K_pu
+
+==========1
+        hwmon1
+	  |
+         mlx5,ib0, etc power
+
+==========2
+   Grace Power Socket 0
+==========3
+   CPU Power   Socket 0
+==========4
+   SysIO Power Socket 0
+==========5
+   Grace Power Socket 1
+==========6
+   Grace Power Socket 1
+==========7
+   SysIO Power Socket 1
+
+gh
+hwmon0  hwmon1  hwmon2  hwmon3  hwmon4  hwmon5
+
+==========0
+        hwmon0
+         k_d k_i k_po K_pu
+
+==========1
+Module Power   Socket 0
+
+==========2
+   Grace Power Socket 0
+==========3
+   CPU Power   Socket 0
+==========4
+   SysIO Power Socket 0
+
+==========5
+        hwmon5
+         mlx5,ib0, etc power
+*/

@@ -119,7 +119,7 @@ collect_data_power()
   local  POWER_FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.txt
   local ENERGY_FILE=$REMORA_TMPDIR/energy_${REMORA_NODE}.txt
 
-echo "HERE collect_data_power $REMORA_POWER_IGNORE" >> /home1/00770/milfeld/R
+#echo "HERE collect_data_power $REMORA_POWER_IGNORE" >> /home1/00770/milfeld/R
   [[ $REMORA_POWER_IGNORE -ne 0 ]] && return 1
 
   local sockets

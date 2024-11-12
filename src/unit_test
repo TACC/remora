@@ -87,7 +87,16 @@ export REMORA_PLOT_RESULTS=1
     fi
 #end Job Info
 
+#v  ENV
+    if [[ $MOD_NAME =~ power ]];then
+      source $REMORA_BIN/aux/extra
+      export REMORA_OUTDIR=${REMORA_OUTDIR-`pwd`}
+      check_energy_counter_accessibility
+    fi
+#^  end ENV
+
 #v Run Modules
+    [[ -f $REMORA_OUTDIR/remora_env.txt ]] && source  $REMORA_OUTDIR/remora_env.txt
 
     V=0; [[ $REMORA_VERBOSE == 1 ]] && V=1 
 
@@ -100,9 +109,6 @@ export REMORA_PLOT_RESULTS=1
     rm -rf /dev/shm/remora_*
     eval init_module_${MOD_NAME} $NODE $REMORA_OUTDIR $REMORA_TMPDIR
 
-#   Exceptions:
-    [[ -f $REMORA_OUTDIR/remora_env.txt ]] && source  $REMORA_OUTDIR/remora_env.txt
-    [[ $REMORA_POWER_IGNORE == 1 ]] && echo " ERROR: sensors cmd or rapl files not accessible. See init_module_power function." && exit 1
 
     sleep $REMORA_PERIOD
                [[ $V == 1 ]] && printf "%s\n" " finished." 
@@ -124,7 +130,7 @@ export REMORA_PLOT_RESULTS=1
 
        collect_tm=$( bc<<<"scale=4; ($tm_1-$tm_0)/1000000000" )
                printf " -> %s  %5d Time: %3.6f\n" $NODE $step $collect_tm  
-
+              #printf " -> MOD NAME%s\n" collect_data_${MOD_NAME}
        sleep $REMORA_PERIOD
     done
 

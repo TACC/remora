@@ -28,7 +28,79 @@
 
 init_module_nv_temperature()
 {
-    :
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+  local NCPUs NCPUsM1 header format A B C
+  local ARCH Ttype
+
+  #zones for aarch64  format 13 space (time), all others 12 spaces
+    zones_gh_titles=( "TIME         " "Skt0_CPU0   " "Skt0_CPU1   " "Skt0_CPU2   ")
+    zones_gh_titles+=( "Skt0_CPU3   " "Skt0_SOC0   " "Skt0_SOC1   " "Skt0_SOC2   ")
+    zones_gh_titles+=( "Skt0_SOC3   " "Skt0_SOC4   " "Skt0_TJMax  " "Skt0_TJMin  ")
+    zones_gh_titles+=( "Skt0_TJAvg  " "Skt0_TLimit")
+
+    zones_gg_titles=( "TIME         " "Skt0_CPU0   " "Skt0_CPU1   " "Skt0_CPU2   ")
+    zones_gg_titles+=( "Skt0_CPU3   " "Skt0_SOC0   " "Skt0_SOC1   " "Skt0_SOC2   ")
+    zones_gg_titles+=( "Skt0_SOC3   " "Skt0_SOC4   " "Skt0_TJMax  " "Skt0_TJMin  ")
+    zones_gg_titles+=( "Skt0_TJAvg  " "Skt1_CPU0   " "Skt1_CPU1   " "Skt1_CPU2   ")
+    zones_gg_titles+=( "Skt1_CPU3   " "Skt1_SOC0   " "Skt1_SOC1   " "Skt1_SOC2   ")
+    zones_gg_titles+=( "Skt1_SOC3   " "Skt1_SOC4   " "Skt1_TJMax  " "Skt1_TJMin  ")
+    zones_gg_titles+=( "Skt1_TJAvg  " "Skt0_TLimit " "Skt1_TLimit")
+
+# Let REMORA_TEMPERATURE_IGNORE be seen everywhere
+  export REMORA_TEMPERATURE_IGNORE=1     # 1 means ignore
+
+  ls -v /sys/devices/platform/coretemp.0/hwmon/hwmon?/temp*_input >/dev/null 2>&1
+  if [[ $? == 0 ]]; then
+     export REMORA_TEMPERATURE_IGNORE=1  # 0 means found temperatures
+     ARCH=x86_64
+     Ttype=""
+  fi
+  ls -v /sys/devices/virtual/thermal/thermal_zone0/hwmon0/temp*_input  >/dev/null 2>&1
+  if [[ $? == 0 ]]; then
+     export REMORA_TEMPERATURE_IGNORE=0  # 0 means found temperatures
+     ARCH=aarch64
+     Ttype="nv_"
+
+     n_zones=$(ls /sys/devices/virtual/thermal/thermal_zone0/hwmon0/temp*input|wc -l)
+     if [[ $n_zones != 26 ]] && [[ $n_zones != 13 ]]; then
+       export REMORA_TEMPERATURE_IGNORE=1  # 1 means not correct number of zones
+     fi
+  fi
+
+  REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+  if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
+      echo "export REMORA_TEMPERATURE_IGNORE=$REMORA_TEMPERATURE_IGNORE" >> $REMORA_OUTDIR/remora_env.txt
+  fi
+
+  [[ $REMORA_TEMPERATURE_IGNORE -eq 1 ]] && return 1
+
+  if [[ $ARCH == x86_64 ]]; then
+    NCPUs=`ls -d /sys/devices/platform/coretemp.* | wc -w`
+    NCPUsM1=$((NCPUs-1))
+
+    for CPU in `seq 0 $NCPUsM1`; do
+      header="TIME"
+      format="%-17s"
+      files=$( ls -v /sys/devices/platform/coretemp.${CPU}/hwmon/hwmon?/temp*_label )
+      for file in $files; do
+        read A B C < $file    # reads "Physical|Package id #" or "Core #"
+                              #            A   |  A     B  C  or    A  B
+        [[ $B == "id"   ]] && header="$header  CPU${C}"
+        [[ $A == "Core" ]] && header="$header Core${B}"
+        format="$format %6s"
+      done
+      printf "$format\n" $header > $REMORA_TMPDIR/${Type}temperature_cpu${CPU}_${REMORA_NODE}.txt
+    done
+  fi
+
+  if [[ $ARCH == aarch64 ]]; then
+    if [[ "$n_zones" == 13 ]]; then
+      printf "%s" "${zones_gh_titles[@]}" > $REMORA_TMPDIR/${Type}temperature_cpu${CPU}_${REMORA_NODE}.txt
+    else
+      printf "%s" "${zones_gg_titles[@]}" > $REMORA_TMPDIR/${Type}temperature_cpu${CPU}_${REMORA_NODE}.txt
+    fi
+      printf "\n"                        >> $REMORA_TMPDIR/${Type}temperature_cpu${CPU}_${REMORA_NODE}.txt
+  fi
 }
 
 collect_data_nv_temperature()
@@ -45,10 +117,15 @@ plot_data_nv_temperature()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
+    zones_0_12_gh_titles=(Skt0_CPU0 Skt0_CPU1 Skt0_CPU2 Skt0_CPU3 Skt0_SOC0 Skt0_SOC1 Skt0_SOC2 Skt0_SOC3 Skt0_SOC4 Skt0_TJMax Skt0_TJMin Skt0_TJAvg Skt0_TLimit)
+
+    zones_0_25_gg_titles=(Skt0_CPU0 Skt0_CPU1 Skt0_CPU2 Skt0_CPU3 Skt0_SOC0 Skt0_SOC1 Skt0_SOC2 Skt0_SOC3 Skt0_SOC4 Skt0_TJMax Skt0_TJMin Skt0_TJAvg Skt1_CPU0 Skt1_CPU1 Skt1_CPU2 Skt1_CPU3 Skt1_SOC0 Skt1_SOC1 Skt1_SOC2 Skt1_SOC3 Skt1_SOC4 Skt1_TJMax Skt1_TJMin Skt1_TJAvg Skt0_TLimit Skt1_TLimit)
+
     local timestamp idx row
     local node
     local n_columns n_zones
     local isGraceGrace isGraceHopper
+    local data_ln1=1
 
     if [[ -z ${REMORA_PLOT_RESULTS} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
@@ -63,18 +140,23 @@ plot_data_nv_temperature()
     FILE=$REMORA_TMPDIR/nv_temperature_${node}.html
 
     TEMP_TXT_FILE=${REMORA_TMPDIR}/nv_temperature_${REMORA_NODE}.txt 
+     
+    first_element=$(head -n1 ${TEMP_TXT_FILE}  | awk '{print $1}')
+    first_data_ln=2
+    [[ $first_element =~ TIME ]] && data_ln1=2
 
-    n_columns=`head -n1 ${TEMP_TXT_FILE} | wc -w`
+    #  Do this on data line, avoid header line possibly with spaces in labels
+    n_columns=`sed -n ${first_data_ln}p  ${TEMP_TXT_FILE} | wc -w` 
     n_zones=$(( n_columns - 1 ))
 
-    t0=`head -n1 ${TEMP_TXT_FILE} | awk '{print $1}'`
+    t0=`head -n$data_ln1 ${TEMP_TXT_FILE} | awk '{print $1}'`
 
     isGraceGrace=0
     isGraceHopper=0
 
     if [[ "$n_zones" == "26" ]]; then
         isGraceGrace=1
-    elif [[ "$n_zones" == "12" ]]; then
+    elif [[ "$n_zones" == "13" ]]; then
         isGraceHopper=1
     else
         echo " -> File $TEMP_TXT_FILE: incorrect format"
@@ -93,20 +175,22 @@ plot_data_nv_temperature()
     printf "%s \n" "data.addColumn('number', 'Execution Time (sec)');" >> $FILE
 
     if [[ "$isGraceGrace" == "1" ]]; then
-        for i in {1..26}; do
+       #for i in {1..26}; do
+        for i in ${zones_0_25_gg_titles[@]}; do
             printf "%s %s %s \n" "data.addColumn('number', '" $i "');" >> $FILE
         done
     fi
 
     if [[ "$isGraceHopper" == "1" ]]; then
-        for i in {1..12}; do
+       #for i in {1..13}; do
+        for i in ${zones_0_12_gh_titles[@]}; do
             printf "%s %s %s \n" "data.addColumn('number', '" $i "');" >> $FILE
         done
     fi
 
     printf "%s\n" "data.addRows([" >> $FILE
 
-    while read line; do
+    tail -n  +$data_ln1 $TEMP_TXT_FILE | while read line; do
 
         t=`echo $line | awk '{print $1;}'`
         timestamp=$(echo "scale=2; $t - $t0" | bc)
@@ -119,7 +203,7 @@ plot_data_nv_temperature()
         done
         printf "%s%s%s \n" "[" $row "]," >> $FILE
 
-    done < $TEMP_TXT_FILE
+    done   # Now using tail to avoid 1st line if necessary #< $TEMP_TXT_FILE
     printf "%s \n" "]);" >> $FILE
 
     printf "%s \n" "var options = { " >> $FILE

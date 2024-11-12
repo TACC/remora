@@ -499,11 +499,15 @@ capture_environment() {
 }
 
 check_energy_counter_accessibility() {
-  local sockets=1  #default
-  hash lscpu 2>/dev/null
-  [[ $? == 0 ]] && sockets=$(lscpu | grep 'Socket(s):' | awk '{print $2}')
+ #local sockets=1  #default
+ #hash lscpu 2>/dev/null
+ #[[ $? == 0 ]] && sockets=$(lscpu | grep 'Socket(s):' | awk '{print $2}')
 
-  #Check if sensors exists. Use hash for this and the result of the command
+  REMORA_POWER_COLLECTOR=none
+  REMORA_POWER_IGNORE=1        # specify no power utility
+
+  # Check if sensors exists. Use hash for this and the result of the command
+
   hash sensors 2>/dev/null
   local has_sensors=$?                         # 0/1 yes/no 
   if [[ has_sensors == 0 ]]; then              # test whether sensors provides "power1:"
@@ -512,20 +516,22 @@ check_energy_counter_accessibility() {
      if [[ $REMORA_POWER_IGNORE == 0 ]]; then  # sensors have power
         REMORA_POWER_COLLECTOR=sensors         # assuming KNL & only one socket
      fi  
-  else
-     REMORA_POWER_IGNORE=1       # specify no power utility so far 
-     REMORA_POWER_COLLECTOR=none
   fi  
 
-  if [[ $REMORA_POWER_IGNORE == 1 ]]; then # test for intel_rapl
-     power_readable=TRUE
-     for ((soc_num=0; soc_num<$sockets; soc_num++)); do
-       [[ ! -r /sys/devices/virtual/powercap/intel-rapl/intel-rapl:$soc_num/energy_uj ]] && power_readable=FALSE
-     done
-     if [[ $power_readable == TRUE ]]; then 
-        REMORA_POWER_IGNORE=0
-        REMORA_POWER_COLLECTOR=intel_rapl
-     fi  
+  # Check for  intel_rapl or nv_acpitz
+
+  if [[ $REMORA_POWER_IGNORE == 1 ]]; then # test for intel_rapl or nv_acpitz
+     # Just check for a single file (no need to check for all)
+
+     power_readable=FALSE
+     [[ -r /sys/devices/virtual/powercap/intel-rapl/intel-rapl:0/energy_uj ]] && 
+        REMORA_POWER_COLLECTOR=intel_rapl REMORA_POWER_IGNORE=0
+
+     # Just check for common to gg and gh
+     [[ -r /sys/class/hwmon/hwmon2/device/power1_average ]] && 
+        REMORA_POWER_COLLECTOR=nv_acpitz  REMORA_POWER_IGNORE=0
+
+#    echo "HERE1  $REMORA_POWER_COLLECTOR $REMORA_POWER_IGNORE" >>$HOME
   fi  
   echo "export REMORA_POWER_IGNORE=$REMORA_POWER_IGNORE"       >> $REMORA_OUTDIR/remora_env.txt
   echo "export REMORA_POWER_COLLECTOR=$REMORA_POWER_COLLECTOR" >> $REMORA_OUTDIR/remora_env.txt

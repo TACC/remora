@@ -30,7 +30,78 @@
 
 init_module_nv_power()
 {
-   :
+  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+  source $REMORA_OUTDIR/remora_env.txt
+
+  local  POWER_FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.txt
+  local ENERGY_FILE=$REMORA_TMPDIR/energy_${REMORA_NODE}.txt
+
+  local remora_date_precision="ms"
+  local remora_date_format='+%s.%3N'
+
+  local REMORA_POWER_IGNORE    # 0 == don't ignore     1 == ignore  
+
+  local sockets=1     #default
+  local ase_values=()
+  local soc_num
+
+  local J_header J_header_addon W_header W_header_addon
+  local baseln baseln_addon
+
+  hash lscpu 2>/dev/null
+  [[ $? == 0 ]] && sockets=$(lscpu | grep 'Socket(s):' | awk '{print $2}')
+
+  if [[ REMORA_POWER_COLLECTOR == intel_rapl ]]; then
+     base_values[0]=`date $remora_date_format`
+     for i in $(seq 1 $sockets); do
+        soc_num=$(( $i - 1 ))
+       base_values[$i]=$(</sys/devices/virtual/powercap/intel-rapl/intel-rapl:$soc_num/energy_uj)
+     done
+  fi
+
+  if [[ "$REMORA_POWER_IGNORE" == 1 ]]; then
+     [[ "$REMORA_VERBOSE"      == 1 ]] && echo " -> power not initialized, sensors not found."
+    return 1
+  fi
+
+  J_header=$(printf "%-17s" "TIME($remora_date_precision)" )
+  W_header=$J_header
+  baseln=$(printf "%-17s" ${base_values[0]} )
+
+  if [[ $REMORA_POWER_COLLECTOR == intel_rapl ]]; then
+
+     [[ $REMORA_POWER_COLLECTOR == intel_rapl ]] && metric="Energy"
+     for i in $(seq 1 $sockets); do
+        soc_num=$(( $i - 1 ))
+        J_header_addon=$(printf "%-17s" "E(uJ)_socket${soc_num}")
+        W_header_addon=$(printf "%-17s"  "P(W)_socket${soc_num}")
+          baseln_addon=$(printf "%-17s"     "${base_values[$i]}")
+        W_header+=$W_header_addon
+        J_header+=$J_header_addon
+        baseln+=$baseln_addon
+     done
+     rm -f $ENERGY_FILE
+     echo "$J_header"  > $ENERGY_FILE
+     echo "$baseln"   >> $ENERGY_FILE
+  fi
+
+  if [[ $REMORA_POWER_COLLECTOR == nv_acpitz ]]; then
+     for i in $(seq 1 $sockets); do
+       soc_num=$(( $i - 1 ))
+       for mod in Grace CPU SysIO; do
+         W_header_addon=$(printf " %-20s"  "socket${soc_num}_${mod}_P(W)")
+         W_header+=$W_header_addon
+       done 
+     done
+  fi
+
+  rm -f $POWER_FILE
+  echo "$W_header"     >  $POWER_FILE   #always put in a header for Power file
+                                        #will be filled in during collection
+                                        #either from sensors or energy differences.
+
+  #sleep 1 && echo remove sleep in $0 #used for testing, assure at least 1s before data collection
+
 }
 
 collect_data_nv_power()
@@ -113,13 +184,19 @@ plot_data_nv_power()
    printf "%s \n" "data.addColumn('number', 'Execution Time (sec)');" >> $FILE
 
    if [[ "$isGraceGrace" == "1" ]]; then
-      printf "%s \n" "data.addColumn('number', 'Grace_0');" >> $FILE
-      printf "%s \n" "data.addColumn('number', 'Grace_1');" >> $FILE
+      printf "%s \n" "data.addColumn('number', 'soc0_mod');"   >> $FILE
+      printf "%s \n" "data.addColumn('number', 'soc0_CPU');"   >> $FILE
+      printf "%s \n" "data.addColumn('number', 'soc0_SysIO');" >> $FILE
+      printf "%s \n" "data.addColumn('number', 'soc1_mod');"   >> $FILE
+      printf "%s \n" "data.addColumn('number', 'soc1_CPU');"   >> $FILE
+      printf "%s \n" "data.addColumn('number', 'soc1_SysIO');" >> $FILE
    fi
 
    if [[ "$isGraceHopper" == "1" ]]; then
-      printf "%s \n" "data.addColumn('number', 'Grace');" >> $FILE
-      printf "%s \n" "data.addColumn('number', 'Hopper');" >> $FILE
+      printf "%s \n" "data.addColumn('number', 'Module Pwr');" >> $FILE
+      printf "%s \n" "data.addColumn('number', 'Grace');"      >> $FILE
+      printf "%s \n" "data.addColumn('number', 'CPU');"        >> $FILE
+      printf "%s \n" "data.addColumn('number', 'SysIO');"      >> $FILE
    fi
       
    printf "%s\n" "data.addRows([" >> $FILE
@@ -128,29 +205,20 @@ plot_data_nv_power()
 
       line_num=0
       while read line; do
-         row="["
-         column_num=0
-         for word in $line; do
-         if [[ "$column_num" == "0" ]]; then
-                  word=$(echo "scale=2; $word - $t0" | bc)
-                  row="$row $word,"
-         elif [[ "$isGraceGrace" == "1" && "$column_num" == "1" ]];then
-            row="$row $word,"
-         elif [[ "$isGraceGrace" == "1" && "$column_num" == "4" ]];then
-            row="$row $word"
-         elif [[ "$isGraceHopper" == "1" && "$column_num" == "1" ]];then
-            total_power="$word"
-         elif [[ "$isGraceHopper" == "1" && "$column_num" == "2" ]];then
-            grace_power="$word"
-            hopper_power=$(echo "scale=2; $total_power - $grace_power" | bc)
-                  row="$row $grace_power, $hopper_power"
-         fi
-         column_num=$(( column_num + 1 ))
-         done
-         row="$row ],"
+        elements=($line)
+        row="["
+	echo " -> HERE0 elements=${elements[@]} $isGraceHopper" >>$HOME/INFO
+        if [[ $isGraceGrace == 1 ]]; then
+           row="$row $(echo "scale=2; ${elements[0]} - $t0" | bc)"
+           row="$row, ${elements[1]},${elements[2]},${elements[3]},${elements[4]},${elements[5]},${elements[6]},"
+        fi
+        if [[ $isGraceHopper == 1 ]]; then
+           row="$row $(echo "scale=2; ${elements[0]} - $t0" | bc)"
+           row="$row, ${elements[1]},${elements[2]},${elements[3]},${elements[4]},"
+        fi
 
-         echo "$row" >> $FILE
-         line_num=$(( $line_num + 1 ))
+        row="$row ],"
+        echo "$row" >> $FILE
       done < $POWER_TXT_FILE
    fi 
 
@@ -158,9 +226,9 @@ plot_data_nv_power()
    printf "%s \n" "var options = { " >> $FILE
 
    if [[ "$isGraceGrace" == "1" ]]; then
-      printf "%s \n" "title: '$REMORA_NODE Grace-Grace Power Consumption'," >> $FILE
+      printf "%s \n" "title: '$REMORA_NODE Grace-Grace Power'," >> $FILE
    else
-      printf "%s \n" "title: '$REMORA_NODE Grace-Hopper Power Consumption'," >> $FILE
+      printf "%s \n" "title: '$REMORA_NODE Grace-Hopper Power'," >> $FILE
    fi
    printf "%s \n" "titleTextStyle: {color: 'black', fontSize: '18'},"  >> $FILE
    printf "%s \n" "fontSize: 18,"  >> $FILE
