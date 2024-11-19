@@ -131,6 +131,10 @@ show_summary_report() {
         mpiTime=$(awk '{print $6}' $REMORA_OUTDIR/mv2_info.txt | tail -n 1 )
         printf "%-29s %-1s    %5.2f %%\n" " MPI Communication Time" ":" $mpiTime | tee -a $REMORA_OUTDIR/remora_summary.txt
     fi  
+    if [[ -e "$REMORA_OUTDIR/nv_mpip_data.txt" ]] && [[ -e "$REMORA_OUTDIR/nv_mpip_info.txt" ]]; then
+        mpiTime=$(awk '{print $6}' $REMORA_OUTDIR/nv_mpip_info.txt | tail -n 1 )
+        printf "%-29s %-1s    %5.2f %%\n" " MPI Communication Time" ":" $mpiTime | tee -a $REMORA_OUTDIR/remora_summary.txt
+    fi  
 
     #Show some timings (h:m:s.ms)
     show_time $((END-START))

@@ -89,20 +89,24 @@ init_module_nv_temperature()
         [[ $A == "Core" ]] && header="$header Core${B}"
         format="$format %6s"
       done
-      printf "$format\n" $header > $REMORA_TMPDIR/${Type}temperature_cpu${CPU}_${REMORA_NODE}.txt
+      printf "$format\n" $header > $REMORA_TMPDIR/${Type}nv_temperature${CPU}_${REMORA_NODE}.txt
     done
   fi
 
   if [[ $ARCH == aarch64 ]]; then
     if [[ "$n_zones" == 13 ]]; then
-      printf "%s" "${zones_gh_titles[@]}" > $REMORA_TMPDIR/${Type}temperature_cpu${CPU}_${REMORA_NODE}.txt
+#     printf "%s" "${zones_gh_titles[@]}" > $REMORA_TMPDIR/${Type}temperature_cpu${CPU}_${REMORA_NODE}.txt
+      printf "%s" "${zones_gh_titles[@]}" > $REMORA_TMPDIR/${Type}nv_temperature${CPU}_${REMORA_NODE}.txt
     else
-      printf "%s" "${zones_gg_titles[@]}" > $REMORA_TMPDIR/${Type}temperature_cpu${CPU}_${REMORA_NODE}.txt
+#     printf "%s" "${zones_gg_titles[@]}" > $REMORA_TMPDIR/${Type}temperature_cpu${CPU}_${REMORA_NODE}.txt
+      printf "%s" "${zones_gg_titles[@]}" > $REMORA_TMPDIR/${Type}nv_temperature${CPU}_${REMORA_NODE}.txt
     fi
-      printf "\n"                        >> $REMORA_TMPDIR/${Type}temperature_cpu${CPU}_${REMORA_NODE}.txt
+#     printf "\n"                        >> $REMORA_TMPDIR/${Type}temperature_cpu${CPU}_${REMORA_NODE}.txt
+      printf "\n"                        >> $REMORA_TMPDIR/${Type}nv_temperature${CPU}_${REMORA_NODE}.txt
   fi
 }
 
+#  TODO: nv_temperature binary: spread out data columns to match header columns
 collect_data_nv_temperature()
 {
     :
@@ -142,14 +146,15 @@ plot_data_nv_temperature()
     TEMP_TXT_FILE=${REMORA_TMPDIR}/nv_temperature_${REMORA_NODE}.txt 
      
     first_element=$(head -n1 ${TEMP_TXT_FILE}  | awk '{print $1}')
-    first_data_ln=2
+   #first_data_ln=2
     [[ $first_element =~ TIME ]] && data_ln1=2
 
     #  Do this on data line, avoid header line possibly with spaces in labels
-    n_columns=`sed -n ${first_data_ln}p  ${TEMP_TXT_FILE} | wc -w` 
+    n_columns=`sed -n ${data_ln1}p  ${TEMP_TXT_FILE} | wc -w` 
     n_zones=$(( n_columns - 1 ))
 
-    t0=`head -n$data_ln1 ${TEMP_TXT_FILE} | awk '{print $1}'`
+   #t0=`head -n$data_ln1 ${TEMP_TXT_FILE} | awk '{print $1}'`
+    t0=`sed -n ${data_ln1}p ${TEMP_TXT_FILE} | awk '{print $1}'`
 
     isGraceGrace=0
     isGraceHopper=0

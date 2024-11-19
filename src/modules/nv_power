@@ -33,8 +33,8 @@ init_module_nv_power()
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
   source $REMORA_OUTDIR/remora_env.txt
 
-  local  POWER_FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.txt
-  local ENERGY_FILE=$REMORA_TMPDIR/energy_${REMORA_NODE}.txt
+  local  POWER_FILE=$REMORA_TMPDIR/nv_power_${REMORA_NODE}.txt
+  local ENERGY_FILE=$REMORA_TMPDIR/nv_energy_${REMORA_NODE}.txt
 
   local remora_date_precision="ms"
   local remora_date_format='+%s.%3N'
@@ -153,12 +153,19 @@ plot_data_nv_power()
    local total_power
    local grace_power
    local hopper_power
+   local data_ln1=1
+   local data_ln_end
 
-   n_columns=`head -n1 ${POWER_TXT_FILE} | wc -w`
+   first_element=$(head -n1 $REMORA_TMPDIR/nv_power_${REMORA_NODE}.txt  | awk '{print $1}')
+   [[ $first_element =~ TIME ]] && data_ln1=2
+   data_ln_end=$( wc -l < $REMORA_TMPDIR/nv_power_${REMORA_NODE}.txt )
+
+   n_columns=`sed -n ${data_ln1}p ${POWER_TXT_FILE} | wc -w`
    n_zones=$(( n_columns - 1 ))
    n_zones_minus_1=$(( n_zones - 1 ))
 
-   t0=`head -n1 ${POWER_TXT_FILE} | awk '{print $1}'`
+#  t0=`head -n1 ${POWER_TXT_FILE} | awk '{print $1}'`
+   t0=`sed -n ${data_ln1}p ${POWER_TXT_FILE} | awk '{print $1}'`
 
    isGraceGrace=0
    isGraceHopper=0
@@ -203,11 +210,10 @@ plot_data_nv_power()
 
    if [[ -f $POWER_TXT_FILE ]]; then  #Could have been created at collection time
 
-      line_num=0
       while read line; do
         elements=($line)
         row="["
-	echo " -> HERE0 elements=${elements[@]} $isGraceHopper" >>$HOME/INFO
+#	echo " -> HERE0 elements=${elements[@]} $isGraceHopper" >>$HOME/INFO
         if [[ $isGraceGrace == 1 ]]; then
            row="$row $(echo "scale=2; ${elements[0]} - $t0" | bc)"
            row="$row, ${elements[1]},${elements[2]},${elements[3]},${elements[4]},${elements[5]},${elements[6]},"
@@ -219,7 +225,8 @@ plot_data_nv_power()
 
         row="$row ],"
         echo "$row" >> $FILE
-      done < $POWER_TXT_FILE
+    #done < <( $POWER_TXT_FILE )
+     done < <( sed -n "$data_ln1,$data_ln_end p"  $POWER_TXT_FILE  )
    fi 
 
    printf "%s \n" "]);" >> $FILE

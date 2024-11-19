@@ -57,7 +57,10 @@ plot_data_nv_mpip()
         return
     fi  
 
+    REMORA_MPI_VARIATION=${REMORA_MPI_VARIATION:-CV}  # CV=Coefficient of Variation; other= scaled Std. Dev.
+
     REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+    local DATA_FILE=nv_mpip_data.txt
 
     if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
         # Get overall data from generated file
@@ -96,30 +99,158 @@ plot_data_nv_mpip()
         printf "%s \n" "</body>" >> $REMORA_TMPDIR/nv_mpip_fraction.html
         printf "%s \n" "</html>" >> $REMORA_TMPDIR/nv_mpip_fraction.html
 
-        calls=()
-        percents=()
-        covs=()
+       #calls=()
+       #percents=()
+       #covs=()
 
-        firstline=$(grep -n "Aggregate Time" $REMORA_OUTDIR/nv_mpip_data.txt | awk -F ':' '{print $1}')
-        firstline=$((firstline+3))
+######
 
-        cnt=0; continue=yes
+         local firstline=$(grep -n "Callsites:" $REMORA_OUTDIR/$DATA_FILE    | awk -F ':' '{print $1}')
+         local firstline=$((firstline+3))
+         local lastline=$(grep -n "Aggregate Time" $REMORA_OUTDIR/$DATA_FILE | awk -F ':' '{print $1}')
+         local lastline=$((lastline-2))
+         local Nlines=$((lastline-firstline+1))
+         [[ ! -z $REMORA_MPI_DEBUG ]] &&  echo " -> Callsites: firstLn= $firstline lastLn= $lastline  No Lines=$Nlines"
 
-        while [[ $cnt -lt 20 ]] && [[ $continue == yes ]]; do
-            calls[$cnt]=$(    head -n $((firstline+$cnt)) $REMORA_OUTDIR/nv_mpip_data.txt | tail -n 1 | awk '{print $1 "_" $2}')
-            percents[$cnt]=$( head -n $((firstline+$cnt)) $REMORA_OUTDIR/nv_mpip_data.txt | tail -n 1 | awk '{print $5}')
-            covs[$cnt]=$(     head -n $((firstline+$cnt)) $REMORA_OUTDIR/nv_mpip_data.txt | tail -n 1 | awk '{print $6}')
+         local knt id lev
+         local id_old lnfunc_old mpi_call_old
+         declare -al  elements MPI_CALL ID Ln_Func
 
-            covs[$cnt]=$( echo "scale=2; ${covs[$cnt]} * 100" | bc )
-            percent=${percents[$cnt]}
-            p100=$(echo "scale=0;$percent*1000.123/1" |bc)   #divide by 1 makes sure scale is observed (Uh!)
+         id_old=1  knt=0
+         while read line; do
+            elements=($line)
+            id=${elements[0]}
+            lev=${elements[1]}
 
-            if (( $p100  <  5 )); then
-                continue=no
+            [[ $lev == 0 ]] &&  mpi_call=${elements[-1]}
+            if [[ $id != $id_old ]]; then     #Assumes that first id is 1
+               MPI_Call[$knt]=$mpi_call_old
+               ID[$knt]=$id_old
+               Ln_Func[$knt]=$lnfunc_old
+               knt=$((knt+1))
             fi
 
-            cnt=$((cnt+1))
-        done
+            mpi_call_old=$mpi_call
+              lnfunc_old=${elements[3]}_${elements[4]}_$mpi_call
+                  id_old=$id
+
+         done < <(sed -n "$firstline,$lastline p"  $REMORA_OUTDIR/$DATA_FILE )
+
+               ID[$knt]=$id_old
+          Ln_Func[$knt]=$lnfunc_old
+         MPI_Call[$knt]=$mpi_call_old
+
+         for i in `seq 0 $knt`; do
+            [[ ! -z $REMORA_MPI_DEBUG ]] && echo " -> Proc Site ID : Ln_Func_MPIcall : MPI_Call ${ID[$i]} ${Ln_Func[$i]} ${MPI_Call[$i]}"
+         done
+
+         # Add return for each element & sort for uniq (requires sequential identical values)
+         Ln_Func_Unique=( $(echo "${Ln_Func[@]}" | tr ' ' '\n' | sort | uniq) )
+
+         declare -Al call_site_ndxs
+         local key val ids
+         while read -r line; do
+            key="${line%%:*}"
+            val="${line#*:}"
+
+            ids=""        # convert line numbers to Site Call ID numbers
+            for i in $val; do ids+="${ID[$i]} "; done
+
+            call_site_ndxs["$key"]="$ids"
+            [[ ! -z $REMORA_MPI_DEBUG ]] && echo " -> Repeated Entries:  $key $val"
+
+         done < <( printf '%s\n' "${Ln_Func[@]}" |
+              awk '{ elmnt[$0]= ($0 in elmnt? elmnt[$0] FS:"") NR-1 }
+              END{ for (e in elmnt) print e ":",elmnt[e]}')
+
+         if [[ ! -z $REMORA_MPI_DEBUG ]]; then
+            for i in ${!call_site_ndxs[@]}; do
+               printf " -> Process Site ID map: %15s  IDkey= %s\n"  $i "${call_site_ndxs[$i]}"
+            done
+         fi
+
+         firstline=$(grep -n "Aggregate Time" $REMORA_OUTDIR/$DATA_FILE | awk -F ':' '{print $1}')
+         firstline=$((firstline+3))
+         lastline=$(grep -n "Aggregate Sent" $REMORA_OUTDIR/$DATA_FILE | awk -F ':' '{print $1}')
+         lastline=$((lastline-2))
+         Nlines=$((lastline-firstline+1))
+         [[ ! -z $REMORA_MPI_DEBUG ]] &&  echo " -> Agg Time: firstLn= $firstline lastLn= $lastline  No Lines=$Nlines"
+
+         i=0
+         while read line; do
+            tmp=($line)
+            AggTms[${tmp[1]}]=${tmp[2]}   #Note: AggTMs use process call site index
+            [[ ! -z $REMORA_MPI_DEBUG ]] &&  echo " -> Read Aggregate Time ln_no=$i AggTms[${tmp[1]}] time=${Time[$i]}"
+
+            i=$((i+1))
+         done < <(sed -n "$firstline,$lastline p"  $REMORA_OUTDIR/$DATA_FILE )
+         local knt_m1=$((i-1))
+
+         for Rid in `seq $(( ${#call_site_ndxs[@]} - 1 ))`; do  RTms[$Rid]=0.0; done
+
+         local Rid=0
+         local time
+         declare -la ndxs Rsite RTms
+
+         for i in ${!call_site_ndxs[@]}; do
+            ndxs=(${call_site_ndxs[$i]})
+            [[ ! -z $REMORA_MPI_DEBUG ]] && echo " -> Indices for call site ${i}:  ndexs=${ndxs[@]}"
+
+            Rsite[$Rid]=$i
+            tms=()
+            for j in ${ndxs[@]}; do
+                [[ -z ${AggTms[$j]} ]] && continue
+                time=${AggTms[$j]}
+                tms+=($time)
+                [[ ! -z $REMORA_MPI_DEBUG ]] && echo " -> Process_Site: $j Add Time: AddTms=${AggTms[$j]} to Tot Tm: ${RTms[$Rid]}"
+              RTms[$Rid]=$( awk "BEGIN{ print ${RTms[$Rid]} + $time }" )
+            done
+
+            Ntms=${#tms[@]}                # Standard Deviation
+            if [[ $Ntms -gt 1 ]]; then
+              Rvar[$Rid]=$( echo "${tms[@]}" | awk 'BEGIN { n = 0; sum = 0; sumsq = 0; }
+                {for (i = 1; i <= NF; i++) { n++; value = $i; sum += value; sumsq += value * value; } }
+                END { mean = sum / n; variance = (sumsq - sum * mean) / (n - 1); print variance; }' )
+		Rmean[$Rid]=$( echo "${tms[@]}" | awk '{sum=0; for(i=1;i<=NF;i++) sum+=$i; print sum/NF}' )
+            else
+               Rvar[$Rid]=0.0
+               Rmean[$Rid]=${tms[0]}
+            fi
+            Rid=$((Rid+1))
+         done
+
+         # Calculate Percents
+
+         local AggTms_Total=0.0
+
+         # Get Total Time
+         for tm in ${AggTms[@]}; do
+            AggTms_Total=$( awk "BEGIN{ print $AggTms_Total + $tm }" )
+         done
+
+	 # Calculate % of time in RTms(i)  <= (time/total_time) * 100 == PTime(i)
+	 # Calculate Standard Deviation== s^2   / Coefficient of Variation (s^2/mean)*100 == CV
+	 # Multiply s^2(i) by (time/total_time)(i) so that it is normalized to its time contribution
+
+         for i in ${!RTms[@]}; do    # Create Percents
+            RTms[$i]=$( awk "BEGIN{ print ${RTms[$i]}  * 100.0 / $AggTms_Total }" )
+	    if [[ $REMORA_MPI_VARIATION == CV ]]; then
+	       Rvar[$i]=$( awk "BEGIN{ print ${Rvar[$i]} / ${Rmean[$i]} }" )              # CV
+	       var_string="Coeff. of Variation"
+            else
+               Rvar[$i]=$( awk "BEGIN{ print ${Rvar[$i]}  * ${RTms[$i]} / 100.0  }" )     # s^2 scaled
+	       var_string="Std Deviation (x %)"
+            fi
+         done
+
+         if [[ ! -z $REMORA_MPI_DEBUG ]] ;then
+            for i in ${!RTms[@]}; do
+                printf " -> MPI Percent: %03.2f  %s: %10f  Site=%15s\n" ${RTms[$i]} "${var_string}" ${Rvar[$i]} ${Rsite[$i]}
+            done
+         fi
+	 NRsites_m1=$(( ${#RTms[@]} - 1 ))
+
+######
 
         # Generate the bar chart for top 20 MPI calls over 1%.
         printf "%s \n" "<html>"                                                            > $REMORA_TMPDIR/nv_mpip_breakdown.html
@@ -131,19 +262,20 @@ plot_data_nv_mpip()
         printf "%s \n" "      function drawChart() {"                                     >> $REMORA_TMPDIR/nv_mpip_breakdown.html
         printf "%s \n" "        var data = google.visualization.arrayToDataTable(["       >> $REMORA_TMPDIR/nv_mpip_breakdown.html
 
-        printf "                 ['MPI Call (_call-site)', 'Fraction of MPI Time (%%)', 'Coeff of Variation (%%)'],\n" >> $REMORA_TMPDIR/nv_mpip_breakdown.html
+#       printf "                 ['MPI Call (_call-site)', 'Fraction of MPI Time (%%)', 'Coeff of Variation (%%)'],\n" >> $REMORA_TMPDIR/nv_mpip_breakdown.html
+        printf "                 ['MPI Call (_call-site)', 'Fraction of MPI Time (%%)', '%s'],\n" "$var_string" >> $REMORA_TMPDIR/nv_mpip_breakdown.html
 
         comma=","
-        for i in `seq 0 $((cnt-1))`; do
-          [[ $i == $((cnt-1)) ]] && comma=""
-          printf "                 ['${calls[$i]}', ${percents[$i]}, ${covs[$i]}]${comma}\n" >> $REMORA_TMPDIR/nv_mpip_breakdown.html
+        for i in `seq 0 $NRsites_m1`; do
+          [[ $i   ==    $NRsites_m1 ]] && comma=""
+          printf "                 ['${Rsite[$i]}', ${RTms[$i]}, ${Rvar[$i]}]${comma}\n" >> $REMORA_TMPDIR/nv_mpip_breakdown.html
         done
 
         printf "%s \n" "        ]);"                                                         >> $REMORA_TMPDIR/nv_mpip_breakdown.html
 
         printf "%s \n" "        var options = {"                                         >> $REMORA_TMPDIR/nv_mpip_breakdown.html
         printf "%s \n" "          legend: { position: 'in', alignment: 'end' },"         >> $REMORA_TMPDIR/nv_mpip_breakdown.html
-        printf "%s \n" "          title: 'Top MPI Calls (Call_Call-site, greater than 0.5%)'," >> $REMORA_TMPDIR/nv_mpip_breakdown.html
+        printf "%s \n" "          title: 'Relative MPI Execution Time  (Line_Prog-func_MPI-call)',"         >> $REMORA_TMPDIR/nv_mpip_breakdown.html
         printf "%s \n" "          isStacked:true"                                        >> $REMORA_TMPDIR/nv_mpip_breakdown.html
         printf "%s \n" "        };"                                                      >> $REMORA_TMPDIR/nv_mpip_breakdown.html
 
@@ -165,12 +297,14 @@ finalize_module_nv_mpip()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     source $REMORA_OUTDIR/remora_env.txt
+echo HERE0
     # LD_PRELOAD is only reset now for executation of application.
     #unset LD_PRELOAD
     REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
     if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
         if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
             if [[ -e "$REMORA_BIN/../lib/libmpiP.so" ]] ; then
+echo HERE1
                 cd $REMORA_OUTDIR/..
                 # Check for mpiP output in case code was not MPI based
                 fileNum=$( ls -ltr *.mpiP )

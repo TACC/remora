@@ -168,6 +168,7 @@ export NODES=( $( cat $REMORA_OUTDIR/remora_nodes.txt ) )
 source $REMORA_BIN/scripts/remora_collect.sh #Source the remora_collect script
 remora_collect "$@"                          #Start data collection (Verbose is in script )
 
+
 ##TODO: REMOVE
 ## Need to wait for file system commit  ##KFM this should wait on remora_out_$NODE from each node?
 # lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
@@ -203,16 +204,15 @@ if [[ "$REMORA_MODE" == "MONITOR" ]]; then
 	echo ""
 fi
 
-#                                  Some MPI modules require mpiP.so (REMORA_PRELOAD)
-#                                  Build up / tear down LD_PRELOAD in a simple way
+
+#                                  Remora can add to LD_PRELOAD 
+#                                  (mpiP is already included in remora_env.txt)
 if [[ ! -z $REMORA_PRELOAD ]]; then    # IF REMORA_PRELOAD is defined, do the following
-   if [[   -z $LD_PRELOAD      ]]; then
-      export LD_PRELOAD=$REMORA_PRELOAD
-   else
-      LD_PRELOAD_SAVED="$LD_PRELOAD"
-      export LD_PRELOAD=${REMORA_PRELOAD}:$LD_PRELOAD
-   fi
+   [[   -z $LD_PRELOAD      ]] && export LD_PRELOAD=$REMORA_PRELOAD
+   [[ ! -z $LD_PRELOAD      ]] && export LD_PRELOAD=${REMORA_PRELOAD}:$LD_PRELOAD
 fi
+
+export MPIP=${MPIP:--k 3}
 
 # Now that we are collecting data in the background We can start he actual application
 if [[ "$REMORA_VERBOSE" == "1" ]]; then
@@ -224,13 +224,6 @@ START=$(date +%s%N)     #Log the start time
 "$@"                    #Run the command !!!
 END=$(date +%s%N)       #Log the end time
 
-if [[ ! -z $REMORA_PRELOAD ]]; then       #Put back LD_PRELOAD, JIC
-   if [[ "$LD_PRELOAD" == "$REMORA_PRELOAD" ]]; then
-      unset  LD_PRELOAD
-   else
-      export LD_PRELOAD=$LD_PRELOAD_SAVED
-   fi
-fi
 
 #Once the command has finished, source and execute finalize method
 source $REMORA_BIN/scripts/remora_finalize.sh

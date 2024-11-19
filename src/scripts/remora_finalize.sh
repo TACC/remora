@@ -198,8 +198,8 @@ fi
         printf "%s \n" "<a href=\"https://github.com/TACC/remora\" target=\"_blank\"><img src=\"https://raw.githubusercontent.com/TACC/remora/master/docs/logos/Remora-logo-300px.png\" alt=\"REMORA Logo\" style=\"max-width:100%;\"></a>" >> $REMORA_OUTDIR/remora_summary.html
         printf "<h1>REMORA REPORT - JOB %s </h1>\n" "$REMORA_JOB_ID" >> $REMORA_OUTDIR/remora_summary.html
 	printf "<pre>\n"   >> $REMORA_OUTDIR/remora_summary.html
-	printf "  ** NOTICE: IO Module (lustre) is not available on most TACC systems.\n"     >> $REMORA_OUTDIR/remora_summary.html
-	printf "  **         For security, root access is now required to extract IO data."   >> $REMORA_OUTDIR/remora_summary.html
+	printf "  ** NOTICE: IO Module (lustre/vast) is not available on most TACC systems.\n" >> $REMORA_OUTDIR/remora_summary.html
+	printf "  **         For security, root access is now required to extract IO data."    >> $REMORA_OUTDIR/remora_summary.html
 	printf "</pre>\n"  >> $REMORA_OUTDIR/remora_summary.html
         for i in ${!REMORA_MODULES[@]}; do
           R_module="${REMORA_MODULES[$i]}"
@@ -232,6 +232,10 @@ fi
             if [[ "${REMORA_MODULES[$i]}" == "impi_mpip" ]]; then
                 printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_mpip_fraction.html"  "Fraction"  >> $REMORA_OUTDIR/remora_summary.html
                 printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_mpip_breakdown.html" "Breakdown" >> $REMORA_OUTDIR/remora_summary.html
+            fi
+            if [[ "${REMORA_MODULES[$i]}" == "nv_mpip" ]]; then
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/nv_mpip_fraction.html"  "Fraction"  >> $REMORA_OUTDIR/remora_summary.html
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/nv_mpip_breakdown.html" "Breakdown" >> $REMORA_OUTDIR/remora_summary.html
             fi
             if [[ "${REMORA_MODULES[$i]}" == "gpu" ]]; then
                R_module=gpu_memory_stats
