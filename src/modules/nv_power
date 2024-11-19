@@ -213,7 +213,7 @@ plot_data_nv_power()
       while read line; do
         elements=($line)
         row="["
-#	echo " -> HERE0 elements=${elements[@]} $isGraceHopper" >>$HOME/INFO
+
         if [[ $isGraceGrace == 1 ]]; then
            row="$row $(echo "scale=2; ${elements[0]} - $t0" | bc)"
            row="$row, ${elements[1]},${elements[2]},${elements[3]},${elements[4]},${elements[5]},${elements[6]},"

@@ -119,7 +119,6 @@ collect_data_power()
   local  POWER_FILE=$REMORA_TMPDIR/power_${REMORA_NODE}.txt
   local ENERGY_FILE=$REMORA_TMPDIR/energy_${REMORA_NODE}.txt
 
-#echo "HERE collect_data_power $REMORA_POWER_IGNORE" >> /home1/00770/milfeld/R
   [[ $REMORA_POWER_IGNORE -ne 0 ]] && return 1
 
   local sockets
@@ -407,7 +406,6 @@ finalize_module_power()
   # Uses: lscpu to determine # of sockets
 
   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-echo "HERE finalize_module_power $REMORA_POWER_IGNORE" >> /home1/00770/milfeld/R
                 # RemPltRes must be set, and not equal to zero
   source $REMORA_OUTDIR/remora_env.txt
   if [[ -z ${REMORA_PLOT_RESULTS} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
@@ -415,7 +413,6 @@ echo "HERE finalize_module_power $REMORA_POWER_IGNORE" >> /home1/00770/milfeld/R
   fi
 
   [[ $REMORA_POWER_IGNORE -ne 0 ]] && return 
-echo "NEVER HERE AFTER RETURN finalize_module_power $REMORA_POWER_IGNORE" >> /home1/00770/milfeld/R
 
   #NODE PLOT
 

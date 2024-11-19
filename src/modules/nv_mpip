@@ -297,14 +297,13 @@ finalize_module_nv_mpip()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     source $REMORA_OUTDIR/remora_env.txt
-echo HERE0
+
     # LD_PRELOAD is only reset now for executation of application.
     #unset LD_PRELOAD
     REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
     if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
         if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
             if [[ -e "$REMORA_BIN/../lib/libmpiP.so" ]] ; then
-echo HERE1
                 cd $REMORA_OUTDIR/..
                 # Check for mpiP output in case code was not MPI based
                 fileNum=$( ls -ltr *.mpiP )

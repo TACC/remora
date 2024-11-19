@@ -531,7 +531,6 @@ check_energy_counter_accessibility() {
      [[ -r /sys/class/hwmon/hwmon2/device/power1_average ]] && 
         REMORA_POWER_COLLECTOR=nv_acpitz  REMORA_POWER_IGNORE=0
 
-#    echo "HERE1  $REMORA_POWER_COLLECTOR $REMORA_POWER_IGNORE" >>$HOME
   fi  
   echo "export REMORA_POWER_IGNORE=$REMORA_POWER_IGNORE"       >> $REMORA_OUTDIR/remora_env.txt
   echo "export REMORA_POWER_COLLECTOR=$REMORA_POWER_COLLECTOR" >> $REMORA_OUTDIR/remora_env.txt
