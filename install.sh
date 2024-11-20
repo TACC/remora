@@ -149,7 +149,7 @@
     
       cd $REMORA_BUILD_DIR/extra
       mkdir -p $REMORA_DIR/binutils-$BFD_VER
-#     CC=gcc CXX=g++ BFD_SRC_DIR=$REMORA_BUILD_DIR/extra  BFD_INSTALL_DIR=$REMORA_DIR/binutils-$BFD_VER  ./build_bfd.sh
+      CC=gcc CXX=g++ BFD_SRC_DIR=$REMORA_BUILD_DIR/extra  BFD_INSTALL_DIR=$REMORA_DIR/binutils-$BFD_VER  ./build_bfd.sh
     
     # cd $REMORA_BUILD_DIR/extra
     # CC=gcc CXX=g++ UNW_SRC_DIR=$REMORA_BUILD_DIR/extra  UNW_INSTALL_DIR=$REMORA_DIR/unwind-$UNW_VER    ./build_unwind.sh
@@ -188,7 +188,7 @@
         #export LD_LIBRARY_PATH=$REMORA_DIR/unwind-$UNW_VER:$LD_LIBRARY_PATH
         echo " -> ./configure CFLAGS="-g" --enable-demangling  --prefix=${REMORA_DIR}/mpiP-$MPIP_VER  "$BFD_OPTION" --disable-libunwind "
                   ./configure CFLAGS="-g" --enable-demangling  --prefix=${REMORA_DIR}/mpiP-$MPIP_VER  "$BFD_OPTION" --disable-libunwind \
-                              |& tee -a $BUILD_LOG.$$
+                              |& tee -a $BUILD_LOG
   
         make                       | tee -a $BUILD_LOG
         make shared                | tee -a $BUILD_LOG
