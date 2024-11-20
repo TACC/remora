@@ -24,14 +24,7 @@
 
 init_module_nv_mpip()
 {
-    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-
-    REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-    if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
-        if [[ -e "$REMORA_BIN/../lib/libmpiP.so" ]]; then
-            echo "export REMORA_PRELOAD=$REMORA_BIN/../lib/libmpiP.so" >> $REMORA_OUTDIR/remora_env.txt
-        fi
-    fi
+  :
 }
 
 collect_data_nv_mpip()
@@ -303,7 +296,11 @@ finalize_module_nv_mpip()
     REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
     if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
         if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
-            if [[ -e "$REMORA_BIN/../lib/libmpiP.so" ]] ; then
+
+            REMORA_DIR=$( dirname $REMORA_BIN )
+            mpip_dirs=$( ls -d $REMORA_DIR/mpiP-[0-9]* )
+            if [[  ${#mpip_dirs[@]} -ge 1 ]] ; then
+
                 cd $REMORA_OUTDIR/..
                 # Check for mpiP output in case code was not MPI based
                 fileNum=$( ls -ltr *.mpiP )
@@ -323,6 +320,7 @@ finalize_module_nv_mpip()
                     echo "MPI Fraction of Time : $mpiFrac (%)" >> $REMORA_OUTDIR/nv_mpip_info.txt
                     mv $outfile $REMORA_OUTDIR/nv_mpip_data.txt	
                 fi
+
             fi
         fi
         plot_data_nv_mpip $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR

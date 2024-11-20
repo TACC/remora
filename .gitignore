@@ -4,3 +4,5 @@
 /share
 *.log
 /src/binary_data_collectors/
+/binutils-2.43/
+/mpiP-3.5/

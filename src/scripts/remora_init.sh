@@ -95,7 +95,7 @@ function remora_init() {
 
     # Check taccstats support
     [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Checking if taccstats support is required."
-    check_taccstat
+    check_taccstats
     # Check if Energy/Power files are accessible
     [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Checking if Energy/Power files are accessible."
     check_energy_counter_accessibility

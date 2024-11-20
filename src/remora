@@ -51,6 +51,8 @@
 #
 #========================================================================
 #  HISTORY
+#       2024/11-20  Cleaned up LD_PRELOAD
+#                   nv_mpip nv_power nv_temperature by Albert + Kent
 #       2023/04-06  Version 2.0 by Albert Lu and Kent Milfeld
 #       2023/04/07  Power can now use intel_rapl.  
 #                   Now aggregated power plot is created.
@@ -81,6 +83,7 @@
 #       2015/11/21: Removing TACC specific data
 #       2015/09/09: Using python parser for file system data
 #       2015/08/12: Initial version
+#
 #========================================================================
 #  CITE REMORA
 #       If you use REMORA please cite it, it will help us secure support
@@ -100,8 +103,8 @@
 #========================================================================
 
 #USAGE
-APP=`basename $0`
-USAGE=" 
+  APP=`basename $0`
+  USAGE=" 
    USAGE:
 
    $APP -h            # This help
@@ -119,112 +122,134 @@ USAGE="
      REMORA_PLOT_RESULTS: 1(default)/0 Create/don't create plots
 
      REMORA_BIN     :  Remora top-level directory. Must be set in PATH variable.
-
 "
+
 [[ $1 =~ -h ]] && echo "$USAGE" && exit 0
 
 
-# Abort because we will not find any of the functions
-# if REMORA_BIN is not defined
-if [[ -z "$REMORA_BIN" ]]; then
-    echo "ERROR: REMORA_BIN undefined"
-    exit
-fi
+  # Abort because we will not find any of the functions
+  # if REMORA_BIN is not defined
+  if [[ -z "$REMORA_BIN" ]]; then
+      echo "ERROR: REMORA_BIN undefined"
+      exit
+  fi
+  
+# Function that tries to exit clean if REMORA is cancelled.
+# It finalizes all processes. The main code might continue running though.
+  exit_clean() {
+    $REMORA_BIN/scripts/remora_finalize.sh 0 0
+  }
 
-#Function that tries to exit clean if REMORA is cancelled.
-#It finalizes all processes. The main code might continue running though.
-exit_clean() {
-  $REMORA_BIN/scripts/remora_finalize.sh 0 0
-}
-#Trap the SIGTERM and SIGINT signals and call exit_clean
-trap "exit_clean" TERM SIGINT
-
-#Save the PID of REMORA in case we need it
-export REMORA_TOP_PID=$$
-
-remora_pids=`pgrep -x remora`
-
-#Make sure no old remora daemons are running. (e.g. for interative development)
-for pid in $remora_pids; do
-    if [[ $pid != $REMORA_TOP_PID ]]; then
-        echo "ERROR: there is another instance of REMORA already running."
-        echo "Your application will run without REMORA monitoring."
-        "$@"
-        exit
-    fi
-done
-
-SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
-SCRIPT_NAME="$(basename ${0})"
-
+# Trap the SIGTERM and SIGINT signals and call exit_clean
+  trap "exit_clean" TERM SIGINT
+  
+# Save the PID of REMORA in case we need it
+  export REMORA_TOP_PID=$$
+  
+  remora_pids=`pgrep -x remora`
+  
+# Make sure no old remora daemons are running. (e.g. for interative development)
+  for pid in $remora_pids; do
+      if [[ $pid != $REMORA_TOP_PID ]]; then
+          echo "ERROR: there is another instance of REMORA already running."
+          echo "Your application will run without REMORA monitoring."
+          "$@"
+          exit
+      fi
+  done
+  
+  SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
+  SCRIPT_NAME="$(basename ${0})"
+  
 # Parse input and setup data collection
-#Source the remora_init script (it defines the function that initializes REMORA)
-
-source $REMORA_BIN/scripts/remora_init.sh
-remora_init "$@"                             #Call the initialization function (Verbose in script)
-
-export NODES=( $( cat $REMORA_OUTDIR/remora_nodes.txt ) )
-
-source $REMORA_BIN/scripts/remora_collect.sh #Source the remora_collect script
-remora_collect "$@"                          #Start data collection (Verbose is in script )
-
-
-##TODO: REMOVE
-## Need to wait for file system commit  ##KFM this should wait on remora_out_$NODE from each node?
-# lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
-# while [[ "$lastline" != "#EOF" ]]; do
-# [[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA: WAITING"
-#     lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
-#     sleep 0.5
-# done
-
+# Source the remora_init script (it defines the function that initializes REMORA)
+  
+  source $REMORA_BIN/scripts/remora_init.sh
+  remora_init "$@"                             #Call the initialization function (Verbose in script)
+  
+  export NODES=( $( cat $REMORA_OUTDIR/remora_nodes.txt ) )
+  
+  source $REMORA_BIN/scripts/remora_collect.sh #Source the remora_collect script
+  remora_collect "$@"                          #Start data collection (Verbose is in script )
+  
+  
+  ##TODO: REMOVE
+  ## Need to wait for file system commit  ##KFM this should wait on remora_out_$NODE from each node?
+  # lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
+  # while [[ "$lastline" != "#EOF" ]]; do
+  # [[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA: WAITING"
+  #     lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
+  #     sleep 0.5
+  # done
+  
 ##KFM  Better way to check for remora_report.sh (and finished module inits) running on the nodes:
-knt=${#NODES[@]}  nodes_2b_checked4="${NODES[@]}"
-while [[ $knt > 0 ]]; do
-   for_nodes=$nodes_2b_checked4
-   for i in $for_nodes; do
-#                  # remove node when found
-     if [[ -f $REMORA_OUTDIR/.remora_out_${i} ]]; then
-        nodes_2b_checked4=`echo $nodes_2b_checked4 | sed s/$i//`
-        knt=$((knt-1))
-     fi
-     sleep 0.5
-   done
-     [[ "$REMORA_VERBOSE" == "1" ]] && echo " Waiting for $knt remora_report.sh nodes to check in: $nodes_2b_checked4"
-done
-
-source $REMORA_OUTDIR/remora_env.txt
-[[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA: Finished waiting for remote remora_report.sh processes to begin"
-
+  knt=${#NODES[@]}  nodes_2b_checked4="${NODES[@]}"
+  while [[ $knt > 0 ]]; do
+     for_nodes=$nodes_2b_checked4
+     for i in $for_nodes; do
+  #                  # remove node when found
+       if [[ -f $REMORA_OUTDIR/.remora_out_${i} ]]; then
+          nodes_2b_checked4=`echo $nodes_2b_checked4 | sed s/$i//`
+          knt=$((knt-1))
+       fi
+       sleep 0.5
+     done
+       [[ "$REMORA_VERBOSE" == "1" ]] && echo " Waiting for $knt remora_report.sh nodes to check in: $nodes_2b_checked4"
+  done
+  
+  source $REMORA_OUTDIR/remora_env.txt
+  [[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA: Finished waiting for remote remora_report.sh processes to begin"
+  
 # Output real time results if running in monitor mode
-if [[ "$REMORA_MODE" == "MONITOR" ]]; then
-	echo ""
-	echo "REMORA: Running in monitor mode. For real time updates use:"
-	echo "        tail -f $REMORA_OUTDIR/monitor.txt"
-	echo ""
-fi
+  if [[ "$REMORA_MODE" == "MONITOR" ]]; then
+  	echo ""
+  	echo "REMORA: Running in monitor mode. For real time updates use:"
+  	echo "        tail -f $REMORA_OUTDIR/monitor.txt"
+  	echo ""
+  fi
+  
+# bfd and unwind.  bfd used for vista   (aarch64)
+  if [[ $REMORA_PARALLEL == 1 ]]; then
 
+    REMORA_DIR=$( dirname $REMORA_BIN )
+    mpip_dirs=$( ls -d $REMORA_DIR/mpiP-[0-9]* )
+    if [[ ${#mpip_dirs[@]} -ge 1 ]] ; then
 
-#                                  Remora can add to LD_PRELOAD 
-#                                  (mpiP is already included in remora_env.txt)
-if [[ ! -z $REMORA_PRELOAD ]]; then    # IF REMORA_PRELOAD is defined, do the following
-   [[   -z $LD_PRELOAD      ]] && export LD_PRELOAD=$REMORA_PRELOAD
-   [[ ! -z $LD_PRELOAD      ]] && export LD_PRELOAD=${REMORA_PRELOAD}:$LD_PRELOAD
-fi
+          unw_dirs=$( ls -d $REMORA_DIR/binutils-[0-9]* )
+          [[ ${#unw_dirs[@]} -ge 1 ]] && export LD_LIBRARY_PATH=${unw_dirs[0]}/lib:$LD_LIBRARY_PATH
+          [[ ${#unw_dirs[@]} -gt 1 ]] && echo " Warning: multiple unwind dirs in $REMORA_DIR: using ${unw_dirs[0]}"
 
-export MPIP=${MPIP:--k 3}
+          bfd_dirs=$( ls -d $REMORA_DIR/binutils-[0-9]* )
+          [[ ${#bfd_dirs[@]} -ge 1 ]] && export LD_LIBRARY_PATH=${bfd_dirs[0]}/lib:$LD_LIBRARY_PATH
+          [[ ${#bfd_dirs[@]} -gt 1 ]] && echo " Warning: multiple binutils dirs in $REMORA_DIR: using ${bfd_dirs[0]}"
 
+          [[ ${#mpip_dirs[@]} -ge 1 ]] && export LD_PRELOAD=${mpip_dirs[0]}/lib/libmpiP.so${LD_PRELOAD:+:$LD_PRELOAD}
+          [[ ${#mpip_dirs[@]} -gt 1 ]] && echo " Warning: multiple mpiP dirs in $REMORA_DIR: using ${mpip_dirs[0]}"
+          #important to do PRELOAD after LD_LIBRARY because libmpiP.so have rpath to bdf
+
+          export MPIP=${MPIP:--k 3}
+    fi
+  fi
+  
+  
+# Remora can add to LD_PRELOAD 
+# (mpiP is already included in remora_env.txt)
+  if [[ ! -z $REMORA_PRELOAD ]]; then    # IF REMORA_PRELOAD is defined, do the following
+     [[   -z $LD_PRELOAD      ]] && export LD_PRELOAD=$REMORA_PRELOAD
+     [[ ! -z $LD_PRELOAD      ]] && export LD_PRELOAD=${REMORA_PRELOAD}:$LD_PRELOAD
+  fi
+  
 # Now that we are collecting data in the background We can start he actual application
-if [[ "$REMORA_VERBOSE" == "1" ]]; then
-  echo -e "\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-  echo "REMORA: Running command: $@ "
-  echo -e "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
-fi
-START=$(date +%s%N)     #Log the start time
-"$@"                    #Run the command !!!
-END=$(date +%s%N)       #Log the end time
-
-
+  if [[ "$REMORA_VERBOSE" == "1" ]]; then
+    echo -e "\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+    echo "REMORA: Running command: $@ "
+    echo -e "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+  fi
+  START=$(date +%s%N)     #Log the start time
+  "$@"                    #Run the command !!!
+  END=$(date +%s%N)       #Log the end time
+  
+  
 #Once the command has finished, source and execute finalize method
-source $REMORA_BIN/scripts/remora_finalize.sh
-remora_finalize $END $START
+  source $REMORA_BIN/scripts/remora_finalize.sh
+  remora_finalize $END $START

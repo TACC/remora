@@ -1,0 +1,16 @@
+#!/bin/bash
+
+USAGE="USAGE: $0 [bfd|unwind]"
+
+if [[ $# != 1 ]]; then
+  echo "$USAGE"; exit 0
+else
+  if [[ $1 != bfd ]] && [[ $1 != unwind ]]; then
+     echo "$USAGE"; exit 1
+  fi
+fi
+
+[[ $1 == bfd ]] && 
+    CC=gcc CXX=g++ BFD_SRC_DIR=`pwd`  BFD_INSTALL_DIR=`pwd`/bfd ./build_bfd.sh
+[[ $1 == unwind ]] && 
+    CC=gcc CXX=g++ UNW_SRC_DIR=`pwd`  UNW_INSTALL_DIR=`pwd`/unwind ./build_unwind.sh
