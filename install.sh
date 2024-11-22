@@ -181,7 +181,6 @@
   
         BFD_OPTION="--disable-bfd"
         [[ $ARCH == aarch64 ]] && BFD_OPTION="--with-binutils-dir=$REMORA_DIR/binutils-$BFD_VER"
-        [[ $ARCH == aarch64 ]] && BFD_OPTION="--with-binutils-dir=/home1/00770/milfeld/BUILD2/binutils-2.43"
   
         cd ${mpipdir}
 

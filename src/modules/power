@@ -26,6 +26,8 @@
 #  1.- The name of the node where this function is running
 #  2.- The full path where the output will be stored/read
 #  3.- The full path to an optional temporary storage location
+# ACPI references:
+# https://www.kernel.org/doc/Documentation/acpi/namespace.txt
 
 
 init_module_power()
