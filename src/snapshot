@@ -40,9 +40,15 @@ ARGS="$@"  # save command line
    -----------------------------------------------------------------------------
    $APP  N            # 1 Take N snapshots (N>1; period = \$REMORA_PERIOD | 10s)
    $APP plot          # 2 Create plots (use login if on a compute node)
+   $APP N plot        # 3 Collect data for N periods and create plots.
 
       1 -- take snapshots only \"when attached\" on compute nodes 
-      2 -- create plots anywhere/anytime
+      2 -- create the plots for the snapshots anywhere/anytime
+           (If you don't want the expensive plot creation to interfere with
+            job execute, run \"snapshot N\" on compute node to collect data
+            and \"snapshot plot\" on compute node in the same collection 
+            directory on a login node.
+      3 -- combined 1 and 2
    -----------------------------------------------------------------------------
        
    -----------------------------   ADVANCED  -----------------------------------
@@ -58,6 +64,8 @@ ARGS="$@"  # save command line
 
            plot|PLOT   keyword: REQUIRED create on login|comp node
            directory   a remora_<jobid> directory (default is latest)
+
+   $APP cannot collect MPI statistics
 "
 
 #ARGUMENTS

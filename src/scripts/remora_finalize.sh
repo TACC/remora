@@ -33,6 +33,8 @@ function remora_finalize() {
     export REMORA_MODULES REMORA_MODULES_OUTDIRS
     VERB_FILE=$REMORA_OUTDIR/REMORA_FINAL.out  #for debugging
 
+    FILE_SUM_HTML=$REMORA_OUTDIR/remora_summary.html
+
     if [[ "$REMORA_VERBOSE" == "1" ]]; then
         echo ""
         echo "REMORA: Starting REMORA finalize (in remora_finalize function)."
@@ -193,75 +195,85 @@ fi
 
     #We simply create an HTML file with links to all the different results
     if [[ "$REMORA_PLOT_RESULTS" != "0" ]] ; then
-        printf "%s \n" "<html lang=\"en\">" > $REMORA_OUTDIR/remora_summary.html
-        printf "%s \n" "<head><title>REMORA TACC</title></head><body>" >> $REMORA_OUTDIR/remora_summary.html
-        printf "%s \n" "<a href=\"https://github.com/TACC/remora\" target=\"_blank\"><img src=\"https://raw.githubusercontent.com/TACC/remora/master/docs/logos/Remora-logo-300px.png\" alt=\"REMORA Logo\" style=\"max-width:100%;\"></a>" >> $REMORA_OUTDIR/remora_summary.html
-        printf "<h1>REMORA REPORT - JOB %s </h1>\n" "$REMORA_JOB_ID" >> $REMORA_OUTDIR/remora_summary.html
-	printf "<pre>\n"   >> $REMORA_OUTDIR/remora_summary.html
-	printf "  ** NOTICE: IO Module (lustre/vast) is not available on most TACC systems.\n" >> $REMORA_OUTDIR/remora_summary.html
-	printf "  **         For security, root access is now required to extract IO data."    >> $REMORA_OUTDIR/remora_summary.html
-	printf "</pre>\n"  >> $REMORA_OUTDIR/remora_summary.html
+        printf "%s \n" "<html lang=\"en\">" > $FILE_SUM_HTML
+        printf "%s \n" "<head><title>REMORA TACC</title></head><body>" >> $FILE_SUM_HTML
+        printf "%s \n" "<a href=\"https://github.com/TACC/remora\" target=\"_blank\"><img src=\"https://raw.githubusercontent.com/TACC/remora/master/docs/logos/Remora-logo-300px.png\" alt=\"REMORA Logo\" style=\"max-width:100%;\"></a>" >> $FILE_SUM_HTML
+        printf "<h1>REMORA REPORT - JOB %s </h1>\n" "$REMORA_JOB_ID" >> $FILE_SUM_HTML
+	printf "<pre>\n"   >> $FILE_SUM_HTML
+	printf "  ** NOTICE: IO Module (lustre/vast) is not available on most TACC systems.\n" >> $FILE_SUM_HTML
+	printf "  **         For security, root access is now required to extract IO data."    >> $FILE_SUM_HTML
+	printf "</pre>\n"  >> $FILE_SUM_HTML
         for i in ${!REMORA_MODULES[@]}; do
+
           R_module="${REMORA_MODULES[$i]}"
+
           if [[ "$R_module" == "network" ]] && [[  $node_cnt -lt 2  ]]; then
                [[ "$REMORA_VERBOSE" == "1" ]] && echo " NETWORK Pt-2-Pt OUTPUT NOT INCLUDED, only 1 node." >> $VERB_FILE
           else
                [[ "$REMORA_VERBOSE" == "1" ]] && echo " Working on $R_module." >> $VERB_FILE
 
-            if [[ "$R_module" == "gpu" ]] &&  [[ "$REMORA_CUDA" == "0" ]]; then
-               [[ "$REMORA_VERBOSE" == 1 ]] && echo "  GPU summary not reported, REMORA_CUDA=0 or nvidia-smi not detected."
+            if [[ "$R_module" == "gpu" ]] &&  [[ "$REMORA_GPU" == "0" ]]; then
+               [[ "$REMORA_VERBOSE" == 1 ]] && echo "  GPU summary not reported, REMORA_GPU=0 or nvidia-smi not detected."
             else
-               printf "<h2>%s utilization</h2> \n" ${REMORA_MODULES[$i]} >> $REMORA_OUTDIR/remora_summary.html
+               printf "<h2>%s utilization</h2> \n" ${REMORA_MODULES[$i]} >> $FILE_SUM_HTML
+               ngpusM1=$(($REMORA_GPU_CNT - 1))
+
             fi
 
             if [[ "${REMORA_MODULES[$i]}" == "power" ]] && [[ $NodeCount -gt 1 ]]; then
-                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/power_aggregated.html" "Aggregated" >> $REMORA_OUTDIR/remora_summary.html
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/power_aggregated.html" "Aggregated" >> $FILE_SUM_HTML
             fi
 
             if [[ "${REMORA_MODULES[$i]}" == "lustre" ]]; then
-                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/lustre_aggregated.html" "Aggregated" >> $REMORA_OUTDIR/remora_summary.html
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/lustre_aggregated.html" "Aggregated" >> $FILE_SUM_HTML
             fi
             if [[ "${REMORA_MODULES[$i]}" == "impi" ]]; then
-                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_fraction.html"  "Fraction"  >> $REMORA_OUTDIR/remora_summary.html
-                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_breakdown.html" "Breakdown" >> $REMORA_OUTDIR/remora_summary.html
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_fraction.html"  "Fraction"  >> $FILE_SUM_HTML
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_breakdown.html" "Breakdown" >> $FILE_SUM_HTML
             fi
             if [[ "${REMORA_MODULES[$i]}" == "mv2" ]]; then
-                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/mv2_fraction.html"  "Fraction"  >> $REMORA_OUTDIR/remora_summary.html
-                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/mv2_breakdown.html" "Breakdown" >> $REMORA_OUTDIR/remora_summary.html
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/mv2_fraction.html"  "Fraction"  >> $FILE_SUM_HTML
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/mv2_breakdown.html" "Breakdown" >> $FILE_SUM_HTML
             fi
             if [[ "${REMORA_MODULES[$i]}" == "impi_mpip" ]]; then
-                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_mpip_fraction.html"  "Fraction"  >> $REMORA_OUTDIR/remora_summary.html
-                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_mpip_breakdown.html" "Breakdown" >> $REMORA_OUTDIR/remora_summary.html
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_mpip_fraction.html"  "Fraction"  >> $FILE_SUM_HTML
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_mpip_breakdown.html" "Breakdown" >> $FILE_SUM_HTML
             fi
             if [[ "${REMORA_MODULES[$i]}" == "nv_mpip" ]]; then
-                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/nv_mpip_fraction.html"  "Fraction"  >> $REMORA_OUTDIR/remora_summary.html
-                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/nv_mpip_breakdown.html" "Breakdown" >> $REMORA_OUTDIR/remora_summary.html
-            fi
-            if [[ "${REMORA_MODULES[$i]}" == "gpu" ]]; then
-               R_module=gpu_memory_stats
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/nv_mpip_fraction.html"  "Fraction"  >> $FILE_SUM_HTML
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/nv_mpip_breakdown.html" "Breakdown" >> $FILE_SUM_HTML
             fi
             for node in $NODES; do
-               #if [[ -f  $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]}/${REMORA_MODULES[$i]}_${node}.html ]]; then
+
                 if [[ -f  $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]}/${R_module}_${node}.html ]]; then
-                    printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/${R_module}_${node}.html" ${node} >> $REMORA_OUTDIR/remora_summary.html
+                    printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/${R_module}_${node}.html" ${node} >> $FILE_SUM_HTML
                 fi
+
+                if [[ "$R_module" == "gpu" ]] &&  [[ "$REMORA_GPU" == "1" ]]; then
+                   for gid in `seq 0 $ngpusM1`; do
+                     if [[ -f  $REMORA_OUTDIR/${REMORA_MODULES_OUTDIRS[$i]}/${R_module}_${node}_${gid}.html ]]; then
+                     printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/${R_module}_${node}_${gid}.html" ${node}_GPUid-${gid} >> $FILE_SUM_HTML
+                     fi
+                   done
+                fi
+
             done
           fi
         done
 
         #Add the summary at the end
-        printf "<h2>Summary for job %s</h2>\n" "$REMORA_JOB_ID" >> $REMORA_OUTDIR/remora_summary.html 
+        printf "<h2>Summary for job %s</h2>\n" "$REMORA_JOB_ID" >> $FILE_SUM_HTML 
         input="$REMORA_OUTDIR/INFO/remora_summary.txt"
-        printf "<pre>\n"  >> $REMORA_OUTDIR/remora_summary.html
+        printf "<pre>\n"  >> $FILE_SUM_HTML
         while IFS= read -r line
         do
-           #printf "<p>%s</p>\n" "$line" >> $REMORA_OUTDIR/remora_summary.html 
-            printf "%s\n"        "$line" >> $REMORA_OUTDIR/remora_summary.html 
+           #printf "<p>%s</p>\n" "$line" >> $FILE_SUM_HTML 
+            printf "%s\n"        "$line" >> $FILE_SUM_HTML 
         done < "$input"
 
-        printf "</pre>\n"  >> $REMORA_OUTDIR/remora_summary.html
+        printf "</pre>\n"  >> $FILE_SUM_HTML
 
-        printf "%s \n" "</body></html>" >> $REMORA_OUTDIR/remora_summary.html
+        printf "%s \n" "</body></html>" >> $FILE_SUM_HTML
     fi
 
     #Continue after generating the HTML file

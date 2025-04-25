@@ -6,7 +6,7 @@ impi,MPI
 impi_mpip,MPI
 mv2,MPI
 ib,NETWORK
-gpu,MEMORY
+gpu,GPU
 network,NETWORK
 nv_power,POWER
 nv_temperature,TEMPERATURE

@@ -46,7 +46,7 @@ show_summary_report() {
 
   if [[ ${REMORA_MODULES[@]} =~ memory ]]; then          #with selectable modules, memory may not be included
     if [[ -e $REMORA_OUTDIR/memory_all_nodes.txt ]]; then
-       #if [ "$REMORA_CUDA" == "0" ]; then
+       #if [ "$REMORA_GPU" == "0" ]; then
             max_Vmem_used=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print max}' $REMORA_OUTDIR/memory_all_nodes.txt)
             max_Pmem_used=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 > max {max=$3} END {print max}' $REMORA_OUTDIR/memory_all_nodes.txt)
        #else
@@ -93,27 +93,36 @@ show_summary_report() {
         fi
     fi
 
+##
+    if [[ "$REMORA_GPU" == "1" ]]; then
+       READ_FILE=$REMORA_OUTDIR/gpu_memory_all_nodes.txt
+       WRITE_FILE=$REMORA_OUTDIR/remora_summary.txt
 
-    if [[ "$REMORA_CUDA" == "1" ]]; then
-        if [[ -e $REMORA_OUTDIR/gpu_memory_all_nodes.txt ]]; then
+       if [[ -e $READ_FILE ]]; then
+          local header="#HOST MAX: "   # Will insert header in gpu_memory_all_nodes.txt below.
 
-            local min_avail max_used
-            local MiB=$(nvidia-smi --format=csv --query-gpu=memory.total| sed -n '2 p' | awk '{print $1}')
-           #local card_mem=$(echo "scale=2; $MiB / 1024 " | bc)
-            local card_mem=$(printf "%8.2f" $MiB)
+          local    ngpus=$(nvidia-smi -L |wc -l)
+          local      MiB=$(nvidia-smi --format=csv --query-gpu=memory.total| sed -n '2 p' | awk '{print $1}')
+          local card_mem=$(printf "%8.2f" $MiB)
 
-             max_used=$(awk ' NR == 1 {max=$2; min=$2} NR > 1 && $2 > max {max=$2} END {print max}' $REMORA_OUTDIR/gpu_memory_all_nodes.txt)
-            min_avail=$(awk ' NR == 1 {max=$3; min=$3} NR > 1 && $3 < min {min=$3} END {print min}' $REMORA_OUTDIR/gpu_memory_all_nodes.txt)
+          local max_used=()
+          local gpu_id=0
+          local max_percent_used
 
-           #low_Vmem=$(echo "$min_avail < 500.0" | bc)  
-            printf "%-29s %-1s %8.2f MB\n" " Max GPU      Memory Per Card" ":" $max_used     | tee -a $REMORA_OUTDIR/remora_summary.txt
-            printf "%-29s %-1s %8.2f MB\n" " Avail GPU Card Mem at Time 0" ":" $card_mem     | tee -a $REMORA_OUTDIR/remora_summary.txt
-           #if [ "$low_Vmem" -eq "1" ] && [ "$REMORA_WARNING" -gt "0" ]; then
-           #    printf "%-s \n" "*** REMORA: WARNING - Free memory per GPU < 500MB."         | tee -a $REMORA_OUTDIR/remora_summary.txt
-           #fi
-            sed -i '1i #HOST     MAX  FREE_MIN (MB)'                                                  $REMORA_OUTDIR/gpu_memory_all_nodes.txt
+          for col in $(seq 2 $((ngpus+1))); do
+             max_percent_used=$(awk ' NR == 1 {max=$'$col'} NR > 1 && $'$col' > max {max=$'$col'} END {print max}' $READ_FILE)
+             max_used[$gpu_id]=$(echo "scale=4; $max_percent_used/(100) * $card_mem" | bc)
+             gpu_id=$((gpu_id+1))
+          done
+
+          for id in $(seq 0 $((ngpus-1))); do
+            printf "%-25s %2d %-1s %8.2f MB\n" " Max GPU MEM Used by gpuID" $id ":" ${max_used[$id]} | tee -a $WRITE_FILE
+            id_list="$id_list id_$id"
+          done
+          printf "%-29s %-1s %8.2f MB\n" " Avail GPU MEM  per  gpu     " ":" $card_mem      | tee -a $WRITE_FILE
+          sed -i "1i $header $id_list  MIN: $id_list"  $READ_FILE
         else
-            printf "%-s\n" " *** REMORA: WARNING - Couldn't find the GPU memory summary file" | tee -a $REMORA_OUTDIR/remora_summary.txt
+          printf "%-s\n" " *** REMORA: WARNING - Couldn't find the GPU memory summary file" | tee -a $WRITE_FILE
         fi
     fi
 

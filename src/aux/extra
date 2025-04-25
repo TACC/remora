@@ -19,6 +19,7 @@
 #
 #========================================================================
 #  HISTORY
+#       2025/04/05: Cleaned up check_gpu
 #       2017/02/14: Improved verbose mode
 #       2015/12/04: Initial version
 #========================================================================
@@ -204,28 +205,31 @@ check_plot() {
 }
 
 check_gpu() {
+
+    REMORA_GPU_CNT=0
+
     # If nvidia-smi is not present assume no GPUs, disable GPU collection
                                                  # 0 means not available
     gputest=$(nvidia-smi > /dev/null 2> /dev/null || echo "0")
-    if [[ "$gputest" == "0" ]]; then
-       if [[ "$REMORA_CUDA" == "1" ]]; then
-          if [[ ${REMORA_MODULES[@]} =~ "gpu" ]]; then
-             print_error " nvidia-smi cmd not found. Disabling GPU collection."
-          else
-             print_error " System was not configured for gpu."
-             print_error " GPU collection is not performed."
-          fi
+
+    if [[ ${REMORA_MODULES[@]} =~ "gpu" ]]; then
+       if [[ ${REMORA_GPU:-1} == 0 ]]; then
+         print_info " -> User requested no GPU collection (REMORA_GPU set to 0)."
        else
-          if [[ ${REMORA_MODULES[@]} =~ "gpu" ]]; then
-             print_info  " GPU monitoring is active, but not on this node type."
-            #print_info  " (nvidia-smi cmd not found.)"
-          fi
+         if [[ "$gputest" == "0" ]]; then
+            print_info  " -> REMORA gpu monitoring is active, but either not a GPU node or nvidia-smi not available."
+            REMORA_GPU=0
+         else
+            REMORA_GPU=1
+            REMORA_GPU_CNT=$(nvidia-smi -L |wc -l)
+         fi
        fi
-       export REMORA_CUDA=0
-    else 
-        [[ -z "$REMORA_CUDA" ]] && export REMORA_CUDA=1
-    fi   
-    echo "export REMORA_CUDA=$REMORA_CUDA" >> $REMORA_OUTDIR/remora_env.txt
+    else
+       REMORA_GPU=0
+    fi
+    
+    echo "export REMORA_GPU=$REMORA_GPU"         >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_GPU_CNT=$REMORA_GPU_CNT" >> $REMORA_OUTDIR/remora_env.txt
 }
 
 ## KFM  remove this code

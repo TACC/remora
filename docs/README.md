@@ -2,11 +2,13 @@
 REMORA: REsource MOnitoring for Remote Applications
 
 Remora is a tool to monitor runtime resource utilization:
-  - Memory
-  - CPU utilization
+  - CPU Memory and Utilization
+  - GPU Memory, Occupancy, and Utilization
+  - MPI Stats
   - IO usage (Lustre, DVS)
   - NUMA memory
   - Network topology
+  - Power and Temperature
 
 To use the tool, modify your batch script and include 'remora' before your script, executable, or MPI launcher.
 

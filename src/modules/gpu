@@ -1,249 +1,374 @@
 #!/bin/bash
-#
-#========================================================================
-# HEADER
-#========================================================================
-#% DESCRIPTION
-#% gpu
-#%
-#% DO NOT call this script directly. This is called by REMORA
-#%
-#========================================================================
-#- IMPLEMENTATION
-#-      version     REMORA 2.0
-#-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
-#-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
-#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
-#-      license     MIT
-#========================================================================
-
-# All the functions take three arguments:
-#  1.- The name of the node where this function is running
-#  2.- The full path where the output will be stored/read
-#  3.- The full path to an optional temporary storage location
 
 init_module_gpu()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    if [[ "$REMORA_CUDA" == "1" ]]; then
-        local OUT_FILE=$REMORA_TMPDIR/gpu_memory_stats_${REMORA_NODE}.txt
-        local NGPUS=$( nvidia-smi -L |wc -l )
-        local LAST_GPU_NO=$(( NGPUS - 1 ))
-    
-        rm -f $OUT_FILE
-    
-        printf "%-17s " "#TIME" >$OUT_FILE
-    
-        for gpu_no in `seq 0 $LAST_GPU_NO`; do
-           printf "%-17s %-17s " "gpu_${gpu_no}_avail_GB" "gpu_${gpu_no}_used_GB" >>$OUT_FILE
-        done
-        printf "\n"           >>$OUT_FILE
-    
-        # Fix this later for GPU MEMORY
-        #if [[ "$REMORA_MODE" == "MONITOR" ]]; then
-        #            REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-        #            if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
-        #                    printf "%10s " "MAX_MEM_GB" >> $REMORA_TMPDIR/.monitor
-        #            fi
-        #    fi
+    if [[ ${REMORA_GPU:-0} == 1 ]]; then
+
+      local FILE=$REMORA_TMPDIR/gpu_stats_${REMORA_NODE}.txt
+
+      REMORA_GPU_APP_START_DT=$(date -d "+2 seconds" +"%F %T")   # DD-MM-YYYY HH:MM:SS + 2s delay
+      echo "APP_START @$REMORA_GPU_APP_START_DT" > $FILE   # Must wait 2s for dmon stats to be good.
+
+      ngpus=$(nvidia-smi -L |wc -l)
+      CNT_OPT=${REMORA_SMI_DMON_CNT+"-c $REMORA_SMI_DMON_CNT"}  # Used for snapshots
+      
+      nvidia-smi dmon $CNT_OPT -o T -s pu --gpm-metrics=10,1,2,3,4,5,11,12,13 -d $REMORA_PERIOD | \
+                 stdbuf -oL  grep -v ^# | \
+                 stdbuf -oL sed 's/-/0/g' &>> $FILE &
+
+      # -o T option gives time as HH:MM:SS, REMORA_GPU_DMON_START_DT captures day (DD-MM-YYY)..
     fi
 }
 
 collect_data_gpu()
-{
-    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    # Get GPU utilization data
-    if [[ "$REMORA_CUDA" == "1" ]]; then
-        current_time=`date +%s`
-        gpu_free_used=$( nvidia-smi --query-gpu=memory.free,memory.used --format=csv,nounits,noheader )
-        gpu_free_used=$( echo $gpu_free_used | sed 's/, */ /g' )
+{ :; }
 
-           line=$( printf "%-17d " $current_time )
-        for val in $gpu_free_used; do
-           valgb=$( echo "scale=3;  $val/1000" | bc )
-           line+=$( printf "%-17.3f " $valgb )
-        done
-           line+=$( printf "\n" )
-
-        echo "$line" >> $REMORA_TMPDIR/gpu_memory_stats_${REMORA_NODE}.txt
-    fi
-}
-# This function might perform some processing on the data.
-# If nothing needs to be done, it can be empty (but declared)
 process_data_gpu()
 {
-  :
-}
+   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+   reg='^ *[0-9][0-9]:[0-9][0-9]:[0-9][0-9]' # for determining if line starts with time HH:MM:SS
+   rm -f $REMORA_TMPDIR/gpu_${REMORA_NODE}_*.txt
 
-monitor_data_gpu()
-{
-  :
+   # Create a gpu_<node>_<gpu_id> file for each gpu.
+   if [[ $ngpus == 1 ]] ; then
+     mv $REMORA_TMPDIR/gpu_stats_${REMORA_NODE}.txt $REMORA_TMPDIR/gpu_${REMORA_NODE}_0.txt
+   else
+      headers=1
+      first=1
+      while read line; do
+         # Take care of header lines
+         if [[ $headers == 1 ]] && [[ ! $line =~ $reg ]]; then
+            for g_id in `seq 0 $ngpusM1`; do
+               if [[ $first == 1 ]]; then
+                 echo GPU_ID=$g_id $line >> $REMORA_TMPDIR/gpu_${REMORA_NODE}_$g_id.txt
+               else
+                 echo              $line >> $REMORA_TMPDIR/gpu_${REMORA_NODE}_$g_id.txt
+               fi
+            done
+            first=2
+            continue
+         fi
+         headers=2
+
+         # sort lines by gpu_id into separate files
+         gpu_id=$(awk '{print$2}'<<<$line)
+         echo $line >> $REMORA_TMPDIR/gpu_${REMORA_NODE}_$gpu_id.txt     
+      done <           $REMORA_TMPDIR/gpu_stats_${REMORA_NODE}.txt
+   fi
 }
 
 plot_data_gpu()
 {
-    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+   # Program execution is delayed 2s  after gpu_init [REMORA_GPU_DMON_OFFSET_DT (Date Time)
+   # Daemon collection starts earlier at    REMORA_GPU_DMON_DMON_DT   (Date Time)
+   # Both have form: DD-MM-YYYY HH:MM:SS
 
-  if [[ "$REMORA_CUDA" == "1" ]]; then
-    local  IN_FILE=$REMORA_TMPDIR/gpu_memory_stats_${REMORA_NODE}.txt
-    local OUT_FILE=$REMORA_TMPDIR/gpu_memory_stats_${REMORA_NODE}.html
+   # For determining if 1st string of line is time: nvidia-smi dmon -T reports  HH:MM:SS as time
+   local FILE
 
-    NGPUS=$( nvidia-smi -L |wc -l )
+   reg='^[0-9:]*[0-9:]*$'
+  #ln1=$(head -n 1 $REMORA_TMPDIR/gpu_stats_${REMORA_NODE}.txt)
+   ln1=$(head -n 1 $REMORA_TMPDIR/gpu_${REMORA_NODE}_0.txt)
+   if [[ $ln1 =~ @20[0-9:\ -]*$ ]]; then
+     APP_START_DT=${ln1##*@}
+   else
+     echo " -> ERROR:  GPU collection error.  No APP start time in header file." ; exit 1
+   fi
 
-    LAST_GPU_NO=$(( NGPUS - 1 ))
+   # When extracting data, only use times greater Application start time
+   t_offset=$(date -d "$APP_START_DT" +%s)
+   t_prev=$t_offset
+   day_base=${APP_START_DT% *}
 
-    ## Generate the plot for the current node
-    printf "%s \n" "<html>" >  $OUT_FILE
-    printf "%s \n" "<head>" >> $OUT_FILE
-    printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $OUT_FILE
-    printf "%s \n" "<script type=\"text/javascript\">"                          >> $OUT_FILE
-    printf "%s \n" "google.charts.load('current', {'packages':['line']});"      >> $OUT_FILE
+   #            pwr tmp sm mem gact smut smoc int tnsr dram fp64 fp32 fp16  (free)
+   # plotframe   4   4   2  3   2    2    2    1   1    3     1    1    1     3
+   local fpu=()   #FP and int Usage  5 lines
+   local smu=()   #SM Usage          4 lines
+   local mem=()   #Memory            2 lines
+   local pwr=()   #Power and temperature  2 lines
+   local times=()
+   local max_mem=( 0 0 0 0 0 0 0 0) ## 8 gpus per node should be enough
 
-    #v LOOP OVER GPUs
+   ##TODO  Other locals
 
-    for gpu_no in `seq 0 $LAST_GPU_NO`; do
-       printf "%s \n" "google.charts.setOnLoadCallback(drawGPU${gpu_no}Chart);" >> $OUT_FILE
-    done
+#  local reg FILE first ln DT t day_base t_prev max_mem
 
-    #v LOOP OVER GPUs MAIN LOOP
-    for gpu_no in `seq 0 $LAST_GPU_NO`; do
+   # Now read the files:
+   reg='^[0-9][0-9]:[0-9][0-9]:[0-9][0-9]' # for determining if line start with time HH:MM:SS
 
-      #Function to plot the requests
-  
-      printf "%s \n" "function drawGPU${gpu_no}Chart() {"                         >> $OUT_FILE
-      printf "%s \n" "var data = new google.visualization.DataTable();"           >> $OUT_FILE
-  
-      local first=0
-      local firsttimestamp=0
-      while read line; do
-          data_pos_1=$(( gpu_no * 2 + 1 ))
-          data_pos_2=$(( data_pos_1 + 1 ))
-                                               #First time through add headers
-          if [[ $first -eq 0 ]]; then
-              local idx=0
-              for i in $line; do
-                  [[ $idx == 0 ]]           && printf "%s%s%s \n" "data.addColumn('number','Execution Time (s)');" >>$OUT_FILE
-                  [[ $idx == $data_pos_1 ]] || 
-                  [[ $idx == $data_pos_2 ]] && printf "%s%s%s \n" "data.addColumn('number','"$i"');"               >>$OUT_FILE
-                  idx=$(( idx + 1))
-              done
-              first=1
-              continue
-          fi
-  
-                                               #Only for the second time through "open" Rows Container
-          if [[ $first -eq 1 ]]; then
-              printf "%s\n" "data.addRows(["                   >> $OUT_FILE
-              first=2
-          fi
-                                               #For Second through end add data
-  
-          printf "%s" "["                                      >> $OUT_FILE
-  
-          local idx=0
-          for i in $line; do
-              
-              if [[ $idx == 0 ]]; then
-                if [[ $first == 2 ]]; then
-                   base_time=$i
-                   first=3
-                fi
-                secs=$(( i - base_time ))
-                                           printf "%s," "$secs" >> $OUT_FILE
-              fi
-              
-              [[ $idx == $data_pos_1 ]] || 
-              [[ $idx == $data_pos_2 ]] && printf "%s," "$i"    >> $OUT_FILE
-              idx=$(( idx + 1))
-          done
-  
-          printf "%s\n" "],"                                    >> $OUT_FILE
-  
-      done < $IN_FILE
-  
-      printf "%s \n" "]);"                   >> $OUT_FILE
-  
-                                                        #End of data, add chart info
-  
-      printf "%s \n" "var options = { "      >> $OUT_FILE
-      printf "%s \n" "chart: {"              >> $OUT_FILE
-      printf "%s \n" "title: 'GPU ${gpu_no} Memory (GB)',"  >> $OUT_FILE
-     #printf "%s \n" "subtitle: '(GB)' "     >> $OUT_FILE
-      printf "%s \n" "},"                    >> $OUT_FILE
-      printf "%s \n" "width:  600, "         >> $OUT_FILE
-      printf "%s \n" "height: 500, "         >> $OUT_FILE
-      printf "%s \n" "axes: { "              >> $OUT_FILE
-      printf "%s \n" "x: { "                 >> $OUT_FILE
-      printf "%s \n" "0: {side: 'top'} "     >> $OUT_FILE
-      printf "%s \n" "} "                    >> $OUT_FILE
-      printf "%s \n" "}, "                   >> $OUT_FILE
-      printf "%s \n" "}; "                   >> $OUT_FILE
-  #                                                                                  vvv
-      printf "%s \n" "var chart = new google.charts.Line(document.getElementById('GPU_${gpu_no}_div')); ">> $OUT_FILE
-      printf "%s \n" "chart.draw(data, options); "                                                       >> $OUT_FILE
-      printf "%s \n" "} "                                                                                >> $OUT_FILE
+   for gpu_id in `seq 0 $ngpusM1`; do
+     FILE=$REMORA_TMPDIR/gpu_${REMORA_NODE}_${gpu_id}.html
+     first=1
+     {   
+       while read line; do
+         ln=( $line )
+ 
+         # If first string in line is not DD-MM-YYYY, it is a header line, skip it.
+         [[ $first == 1 ]] && [[ ! ${ln[0]} =~ $reg ]] && continue
+         first=2
+      
+         DT="${day_base} ${ln[0]}"
+         t=$(date -d "$DT" +%s)
+      
+         # If this time is smaller, adjust for crossing day boundary (e.g. 23:59:00 --> 00:00:10)
+         if [[ $((t_prev - t)) -gt 50000 ]]; then
+          day_base=$(date -d "$day_base+1 day" +%F)
+          DT="${day_base} ${ln[0]}"
+          t=$(date -d "$DT" +%s)
+         fi
+      
+         # Finally, the time
+         T=$((t-t_offset ))
+      
+         # Skip if time is NOT equal or more than remora gpu_init time (t_offset)
+         if [[ ! $t -ge $t_offset ]]; then
+           [[ $REMORA_DEBUG == 1 ]] && echo " => SKIPPING t=$t  offset=$t_offset"
+           continue
+         fi
+         t_prev=$t
+    
+         #https://www.cyberciti.biz/faq/how-to-add-days-to-date-and-get-new-date-on-linux/
+    
+         out_fpu+=("[$T,${ln[15]},${ln[16]},${ln[17]},${ln[18]},${ln[19]}],")
+         out_smu+=("[$T,${ln[5]},${ln[12]},${ln[13]},${ln[14]}],")
+         out_mem+=("[$T,${ln[6]},${ln[11]}],")
+         out_pwr+=("[$T,${ln[2]},${ln[3]}],")
+ 
+       done
 
-    done
-    #^ LOOP OVER GPUs MAIN LOOP
+     }< $REMORA_TMPDIR/gpu_${REMORA_NODE}_${gpu_id}.txt
 
 
-    printf "%s \n" "</script> " >> $OUT_FILE
-    printf "%s \n" "</head> "   >> $OUT_FILE
+   ## Needs out_<> data and ngpusM1 from process_module_gpu and finalize_module_gpu
 
-    printf "%s \n" "<body> "    >> $OUT_FILE
+   ## --------------------------------------------HTML Setup
+   ## LT smu   RT  mem
+   ## RB fpu   RB  pwr
 
-    printf "%s \n" "<table class='columns'>" >> $OUT_FILE
-    printf "%s \n" "<tr>"                    >> $OUT_FILE
+   printf "%s \n" "<html>"  > $FILE
+   printf "%s \n" "<head>" >> $FILE
+   printf "%s \n" ""       >> $FILE
 
-    #v LOOP OVER GPUS
-    for gpu_no in `seq 0 $LAST_GPU_NO`; do
-        modulo=$(( gpu_no % 2 ))
-        [[ $modulo == 0 ]] && [[ $gpu_no != 0 ]] && printf "%s \n" "</tr><tr>"           >> $OUT_FILE
+   printf "%s \n" "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>" >> $FILE
+   printf "%s \n" "<script type=\"text/javascript\">"                          >> $FILE
+   printf "%s \n" "google.charts.load('current', {'packages':['corechart']});" >> $FILE
 
-        printf "%s \n" "<td><div id='GPU_${gpu_no}_div' style='border: 1px solid; color: LightGray'></div></td>" >> $OUT_FILE
-    done
+   printf "%s \n" "google.charts.setOnLoadCallback(drawLoad);"         >> $FILE
+   printf "%s \n" "google.charts.setOnLoadCallback(drawMemory);"       >> $FILE
+   printf "%s \n" "google.charts.setOnLoadCallback(drawFloatingPoint);"  >> $FILE
+   printf "%s \n" "google.charts.setOnLoadCallback(drawPower);"        >> $FILE
 
-    printf "%s \n" "<td><div style='float:left; margin: 5px; background-color: blue;'></div></td>"    >> $OUT_FILE
-   #printf "%s \n" "<td><div id='data_div' style='border: 1px solid; color: LightGray'></div></td>"   >> $OUT_FILE
-    printf "%s \n" "</tr>"    >> $OUT_FILE
-    printf "%s \n" "</table>" >> $OUT_FILE
+## --------------------------------------------Load TL GPU Activity and SM...
 
-    printf "%s \n" "</body> " >> $OUT_FILE
+   printf "%s \n" "function drawLoad() {"         >> $FILE
+   printf "%s \n" "var data = google.visualization.arrayToDataTable([ " >> $FILE
 
-    printf "%s \n" "</html> " >> $OUT_FILE
+   printf "%s \n" "['Execution Time (sec)',"  >> $FILE
+   printf "%s \n" "'SM',"                     >> $FILE
+   printf "%s \n" "'GPU Activity',"           >> $FILE
+   printf "%s \n" "'SM Usage',"               >> $FILE
+   printf "%s \n" "'SM Occupancy',"           >> $FILE
+   printf "%s \n" "],"                        >> $FILE
 
-    #https://developers.google.com/chart/interactive/docs/gallery/linechart
-    #https://developers.google.com/chart/interactive/docs/gallery/linechart
-  fi
+  #printf "%s \n" "['Execution Time (sec)',"      >> $FILE
+  #printf "%s \n" "'Load'"                        >> $FILE
+  #printf "%s \n" "],"                            >> $FILE
+
+   for out_line in ${out_smu[@]}; do echo $out_line     >> $FILE; done
+   printf "%s \n" "]);"                                 >> $FILE
+
+   printf "%s \n" "var options = { "                    >> $FILE
+   printf "%s \n" " title : 'GPU Load',"                >> $FILE
+   printf "%s \n" " vAxis: {title: 'Percent(%)', viewWindow: {min: 0, max: 100}}," >> $FILE
+   printf "%s \n" " hAxis: {title: 'Time (sec)'},"      >> $FILE
+   printf "%s \n" " width:  800, "                      >> $FILE
+   printf "%s \n" " height: 600, "                      >> $FILE
+
+   printf "%s \n" " curveType: 'function',"             >> $FILE
+   printf "%s \n" " pointSize: 10,"                     >> $FILE
+   printf "%s \n" " dataOpacity: 0.3,"                  >> $FILE
+   printf "%s \n" " crosshair: { color: '#000', trigger: 'selection' }," >> $FILE
+
+   printf "%s \n" " legend: { position: 'top' },"     >> $FILE
+   printf "%s \n" "}; "                                 >> $FILE
+
+   printf "%s \n" " var chart = new google.visualization.LineChart(document.getElementById('line_load'));" >> $FILE
+   printf "%s \n" "chart.draw(data, options); "   >> $FILE
+   printf "%s \n" "} "                            >> $FILE
+
+## --------------------------------------------Floating Point
+
+   printf "%s \n" "function drawFloatingPoint() {"                           >> $FILE
+   printf "%s \n" "var data = google.visualization.arrayToDataTable(["       >> $FILE
+
+   printf "%s \n" "['Execution Time (sec)',"  >> $FILE
+   printf "%s \n" " 'integer',"               >> $FILE
+   printf "%s \n" " 'tensor',"                >> $FILE
+   printf "%s \n" " 'fp64',"                  >> $FILE
+   printf "%s \n" " 'fp32',"                  >> $FILE
+   printf "%s \n" " 'fp16',"                  >> $FILE
+   printf "%s \n" "],"                        >> $FILE
+   for out_line in ${out_fpu[@]}; do echo $out_line   >>$FILE; done
+   printf "%s \n" "]);"                       >> $FILE
+
+   printf "%s \n" "var options = { "                >> $FILE
+   printf "%s \n" " title: 'GPU Int, Floating Point and Tensor Usage',"            >> $FILE
+   printf "%s \n" " vAxis: {title: 'Percent(%)'}," >> $FILE
+   printf "%s \n" " hAxis: {title: 'Time (sec)'},"  >> $FILE
+   printf "%s \n" " width:  800, "                  >> $FILE
+   printf "%s \n" " height: 600, "                  >> $FILE
+
+   printf "%s \n" " curveType: 'function',"         >> $FILE
+   printf "%s \n" " pointSize: 10,"                 >> $FILE
+   printf "%s \n" " dataOpacity: 0.3,"              >> $FILE
+   printf "%s \n" " crosshair: { color: '#000', trigger: 'selection' }," >> $FILE
+
+   printf "%s \n" " legend: { position: 'in' },"    >> $FILE
+#   printf "%s \n" " vAxis:  {viewWindow: {min: 0}},">> $FILE
+   printf "%s \n" "}; "                             >> $FILE
+
+   printf "%s \n" " var chart = new google.visualization.LineChart(document.getElementById('line_fpu'));" >> $FILE
+   printf "%s \n" "chart.draw(data, options); " >> $FILE
+   printf "%s \n" "} "                          >> $FILE
+
+
+## --------------------------------------------Memory BL FP
+   printf "%s \n" "function drawMemory() {"                             >> $FILE
+   printf "%s \n" "var data = google.visualization.arrayToDataTable([ " >> $FILE
+
+   printf "%s \n" "['Execution Time (sec)',"  >> $FILE
+   printf "%s \n" "'Mem',"               >> $FILE
+   printf "%s \n" "'DRAM Usage',"        >> $FILE
+   printf "%s \n" "],"                        >> $FILE
+   for out_line in ${out_mem[@]}; do echo $out_line   >>$FILE; done
+   printf "%s \n" "]);"                       >> $FILE
+##
+
+   printf "%s \n" "var options = { "                          >> $FILE
+   printf "%s \n" " title : 'Memory Storage and Usage',"      >> $FILE
+   printf "%s \n" " vAxis: {title: 'Memory Storage (GiB)', viewWindow: {min: 0}},"  >> $FILE
+   printf "%s \n" " hAxis: {title: 'Time (sec)'},"            >> $FILE
+   printf "%s \n" " width:   800,"                    >> $FILE
+   printf "%s \n" " height:  600,"                    >> $FILE
+
+   printf "%s \n" " curveType: 'function',"           >> $FILE
+   printf "%s \n" " pointSize: 10,"                   >> $FILE
+   printf "%s \n" " dataOpacity: 0.3,"                >> $FILE
+   printf "%s \n" " crosshair: { color: '#000', trigger: 'selection' }," >> $FILE
+
+   printf "%s \n" " legend: {position: 'right'},"     >> $FILE
+   printf "%s \n" "}; "                               >> $FILE
+
+   printf "%s \n" " var chart = new google.visualization.LineChart(document.getElementById('line_mem'));" >> $FILE
+   printf "%s \n" "chart.draw(data, options); "       >> $FILE
+   printf "%s \n" "} "                                >> $FILE
+
+## --------------------------------------------Power
+
+   printf "%s \n" "function drawPower() {"                              >> $FILE
+   printf "%s \n" "var data = google.visualization.arrayToDataTable(["  >> $FILE
+
+   printf "%s \n" "['Execution Time (sec)',"   >> $FILE
+   printf "%s \n" " 'Power',"                  >> $FILE
+   printf "%s \n" " 'Temp.',"                  >> $FILE
+   printf "%s \n" "],"                         >> $FILE
+   for out_line in ${out_pwr[@]}; do echo $out_line   >>$FILE; done
+   printf "%s \n" "]);"                        >> $FILE
+
+   printf "%s \n" "var options = { "                  >> $FILE
+   printf "%s \n" " title : 'GPU Power and Temperature',"             >> $FILE
+   printf "%s \n" " vAxis: {title: 'power (watts), temp (Celcius)'}," >> $FILE
+   printf "%s \n" " hAxis: {title: 'Time (sec)'},"    >> $FILE
+   printf "%s \n" " width:   800,"                    >> $FILE
+   printf "%s \n" " height:  600,"                    >> $FILE
+
+   printf "%s \n" " curveType: 'function',"           >> $FILE
+   printf "%s \n" " pointSize: 10,"                   >> $FILE
+   printf "%s \n" " dataOpacity: 0.3,"                >> $FILE
+   printf "%s \n" " crosshair: { color: '#000', trigger: 'selection' }," >> $FILE
+
+   printf "%s \n" " legend: { position: 'in' },"      >> $FILE
+   printf "%s \n" "}; "                               >> $FILE
+
+   printf "%s \n" " var chart = new google.visualization.LineChart(document.getElementById('line_pwr'));" >> $FILE
+   printf "%s \n" "chart.draw(data, options); "       >> $FILE
+   printf "%s \n" "} "                                >> $FILE
+
+# printf "%s \n" "series: { 0: {type: 'line', color:'red', lineDashStyle: [1, 1]}, 
+#                           1: {type: 'line', color:'orange',lineWidth:3, lineDashStyle: [1, 1]},  
+#                           2: {type: 'line', color:'green', lineDashStyle: [1, 1]}, 
+#                           5: {type: 'line',lineWidth:5}, 
+#                           6: {type: 'line', color:        'aqua'}},"
+
+## -------------------------------------------- END
+
+#### Now lay it out
+   
+   printf "%s \n" "</script> "               >> $FILE
+   printf "%s \n" "</head> "                 >> $FILE
+   printf "%s \n" "<body> "                  >> $FILE 
+   printf "%s \n" "<table class='columns'> " >> $FILE
+   printf "%s \n" "<tr> "                    >> $FILE
+### printf "%s \n" "<td width='600' height='600'><div id='line_load'  style='border: 1px solid; color: LightGray'></div></td> " >> $FILE
+   printf "%s \n" "<td ><div id='line_load' style='border: 5px solid; color: LightGray'></div></td> " >> $FILE
+   printf "%s \n" "<td ><div id='line_fpu'  style='border: 5px solid; color: LightGray'></div></td> " >> $FILE
+   printf "%s \n %s \n" "</tr>" "<tr>"                                                                                          >> $FILE
+   printf "%s \n" "<td ><div id='line_mem'  style='border: 5px solid; color: LightGray'></div></td> " >> $FILE
+   printf "%s \n" "<td ><div id='line_pwr'  style='border: 5px solid; color: LightGray'></div></td> " >> $FILE
+   printf "%s \n" "</tr> "    >> $FILE
+   printf "%s \n" "</table>"  >> $FILE
+   printf "%s \n" "</body> "  >> $FILE 
+   printf "%s \n" "</html> "  >> $FILE 
+
+ done #end for gpu_id
 }
+# https://developers.google.com/chart/interactive/docs/gallery/linechart
+
+monitor_data_gpu()
+{ :; }
 
 finalize_module_gpu()
 {
-    REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
-    plot_data_gpu $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
+   REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
-  if [[ "$REMORA_CUDA" == "1" ]]; then
-     local col col_avail col_used
-     local min_avail max_used
+   ngpus=$(nvidia-smi -L |wc -l)
+   ngpusM1=$((ngpus - 1))
 
-     local NGPUS=$( nvidia-smi -L |wc -l )
-     local LAST_GPU_NO=$(( NGPUS - 1 ))
+   process_data_gpu $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 
-     local currenthost=$REMORA_NODE
+   [[ "$REMORA_PLOT_RESULTS" != "0" ]] &&
+   plot_data_gpu    $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 
-     for gpu_no in `seq 0 $LAST_GPU_NO`; do
-       col_avail=$((gpu_no*2 +2))
-       col_used=$((col_avail +1))
+   reg='^ *[0-9][0-9]:[0-9][0-9]:[0-9][0-9]' # for determining if line starts with time HH:MM:SS
 
-       if [[ $gpu_no == 0 ]]; then
-         min_avail=$(awk 'NR==2 {min=$'$col_avail'} NR>2 {if( ($'$col_avail')<min) min=($'$col_avail')} END {print min}' $REMORA_OUTDIR/gpu_memory_stats_$currenthost.txt)
-          max_used=$(awk 'NR==2 {max=$'$col_used' } NR>2 {if( ($'$col_used' )>max) max=($'$col_used' )} END {print max}' $REMORA_OUTDIR/gpu_memory_stats_$currenthost.txt)
-       else
-         min_avail=$(awk 'NR==2 {min='$min_avail'} NR>2 {if( ($'$col_avail')<min) min=($'$col_avail')} END {print min}'  $REMORA_OUTDIR/gpu_memory_stats_$currenthost.txt)
-          max_used=$(awk 'NR==2 {max='$max_used' } NR>2 {if( ($'$col_used' )>max) max=($'$col_used' )} END {print max}'  $REMORA_OUTDIR/gpu_memory_stats_$currenthost.txt)
-       fi
-     done
+   max_used=(  0 0 0 0 0 0 0 0)                                 ## 8 gpus per node should be enough
+   min_used=( 80000 80000 80000 80000 80000 80000 80000 80000) ## 8 gpus per node should be enough
 
-     echo "$currenthost $max_used $min_avail" >> $REMORA_OUTDIR/gpu_memory_all_nodes.txt
-  fi
+   for gpu_id in `seq 0 $ngpusM1`; do
+     FILE=$REMORA_TMPDIR/gpu_${REMORA_NODE}_${gpu_id}.txt
+     first=1
+     {
+       while read line; do
+         ln=( $line )
+
+         # If first string in line is not DD-MM-YYYY, it is a header line, skip it.
+         [[ $first == 1 ]] && [[ ! ${ln[0]} =~ $reg ]] && continue
+         first=2
+         [[ ${ln[6]} -gt ${max_used[$gpu_id]} ]] && max_used[$gpu_id]=${ln[6]}
+         [[ ${ln[6]} -lt ${min_used[$gpu_id]} ]] && min_used[$gpu_id]=${ln[6]}
+       done
+     }< $FILE
+
+   done #end for gpu_id
+
+   out=$(printf "%s  " $REMORA_NODE)
+   out="$out $(printf "%5s" ${max_used[@]:0:$ngpus})"
+   out="$out $(printf "     ")"
+   out="$out $(printf "%5s" ${min_used[@]:0:$ngpus})"
+   out="$out $(printf "\n")"
+
+   echo "$out" >> $REMORA_OUTDIR/gpu_memory_all_nodes.txt
+
+   #How do we collect from all now?
 }

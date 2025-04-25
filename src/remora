@@ -19,35 +19,33 @@
 #%
 #% It is advisable that he following environmental variables are set:
 #%
-#% REMORA_PERIOD  - How often statistics are collected.
+#% REMORA_PERIOD  - How often statistics are collected (integer only).
 #%                  Default is 10 seconds.
-#%                  Integer values are accepted.
-#% REMORA_VERBOSE - Verbose mode will save all information to a file.
-#%                  Default is 0 (off).
-#%                  Values 0 and 1 are accepted.
+#% REMORA_VERBOSE - Detailed information of progress (integer, 1 ON)
+#%                  Default is 0 (OFF).
 #% REMORA_MODE    - How many stats are collected. Possible values:
 #%                  - FULL (default): cpu, memory, network, lustre
 #%                  - BASIC: cpu, memory
-#% REMORA_PLOT_RESULTS  - Whether the results are plotted. Values:
-#%                          - 1 (default): HTML files are generated.
+
+#% REMORA_PLOT_RESULTS  - Whether Google HTML plots are created (integer)
+#%                          Default is 1: HTML files are generated.
 #%                          - 0: plots will be generated only if the
 #%                               postprocessing tool (remora_post) is
 #%                               invoked.
-#% REMORA_CUDA    - Set to 0 to turn off GPU Mem collection when gpu
-#%                  module is available on system.
+#% REMORA_GPU     - Turn on/off GPU statistics collection
+#%                  Default is 1 (ON) when nvidia-smi dmon available 
 #%
 #========================================================================
 #- IMPLEMENTATION
-#-      version     REMORA 2.0
+#-      version     REMORA 2.1
 #-
-#-                  up to mid 2017
+#-                  Main initial authors, up to mid 2015
 #-      authors     Carlos Rosales ( carlos@tacc.utexas.edu)
 #-                  Antonio Gomez  ( agomez@tacc.utexas.edu)
-#-      custodian   Kent Milfeld   (milfeld@tacc.utexas.edu)
-#-      license     MIT
-#-                  after mid 2017
+#-                  Authors 2015 --
 #-      authors     Albert Lu      (    alu@tacc.utexas.edu)
 #-                  Kent Milfeld   (milfeld@tacc.utexas.edu)
+#-      license     MIT
 #
 #========================================================================
 #  HISTORY
@@ -71,7 +69,7 @@
 #       2020/10/16  For Remora-provided mpiP, includes coeff of Variation(Kent)
 #       2020/10/10  Allow more than 5 MPI call reports.(Kent)
 #       2020/10/06  mpip added to LD_PRELOAD only for app execution.(Kent)
-#       2020/10/05  REMORA_CUDA=0 turns off GPU collection.  (Kent)
+#       2020/10/05  REMORA_GPU=0 turns off GPU collection.  (Kent)
 #       2019-2020   Many small fixes. (Kent)
 #       2019/06/21  Collect GPU memory  (Kent)
 #       2018/06/30: Bug fixing and new summary HTML page. 
@@ -107,21 +105,43 @@
   USAGE=" 
    USAGE:
 
+   Command Line Mode: remora wrapper for batch job or interactive job
+
    $APP -h            # This help
    $APP <executable>  # e.g. $APP ibrun -np 8 ./a.out
 
      Use these environment variables for control:
      REMORA_PERIOD  :  Integer, time (seconds) between collections. 
-     REMORA_MODULES :  list of modules (collectors) to use (space separated)
-                       list of modules to exclude (each/every item has - prefix).
-                         e.g. use:     export REMORA_MODULES=\"cpu memory numa\"
-                         e.g. exclude: export REMORA_MODULES=\"-power -temperature\"
-     REMORA_VERBOSE :  1 to see details of remora progress.
+     REMORA_MODULES :  USE specific modules (collectors) (list, space separated)
+                       EXCLUDE specific modules (each/every item has - prefix).
+                         e.g. USE:     export REMORA_MODULES=\"cpu memory numa\"
+                         e.g. EXCLUDE: export REMORA_MODULES=\"-power -temperature\"
+     REMORA_VERBOSE :  Set to 1 for details of remora progress.
 
-     REMORA_SHOW_MODULES: 1 shows modules (collectors)
-     REMORA_PLOT_RESULTS: 1(default)/0 Create/don't create plots
+     REMORA_SHOW_MODULES: Set to 1 -- to SHOWS MODULES (collectors)
+     REMORA_PLOT_RESULTS: Set to 0 -- to TURN OFF Google HTML plot creation.
+     REMORA_GPU:          Set to 0 -- to Turn OFF
 
      REMORA_BIN     :  Remora top-level directory. Must be set in PATH variable.
+
+   OR
+   
+   Attach to a node and collect data interactively, independent of job execution:
+
+   snapshot N  [Period_sec] [modules] [plot|PLOT]
+
+           N           integer: REQUIRED # of snapshots
+           Period_sec  integer: sets REMORA_PERIOD
+           modules     list of modules to run (e.g. cpu memory ...)
+           plot|PLOT   keyword: create plots after snapshots 
+                       (use login|compute_nodes to create plots)
+
+   snapshot plot|PLOT  [directory]
+
+           plot|PLOT   keyword: REQUIRED create on login|compute node
+           directory   a remora_<jobid> directory (default is latest)
+
+   snapshot cannot collect MPI statistics
 "
 
 [[ $1 =~ -h ]] && echo "$USAGE" && exit 0

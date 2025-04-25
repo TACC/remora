@@ -10,7 +10,7 @@
 #% This script launches the data collection function for all active 
 #% modules
 #%
-#% remora_report.sh NODE_NAME REMORA_BIN OUTDIR REMORA_PERIOD SYMMETRIC REMORA_MODE REMORA_CUDA
+#% remora_report.sh NODE_NAME REMORA_BIN OUTDIR REMORA_PERIOD SYMMETRIC REMORA_MODE REMORA_GPU
 #========================================================================
 #- IMPLEMENTATION
 #-      version     REMORA 2.0
@@ -64,6 +64,9 @@ trap "exit_clean" EXIT
      init_module_$MODULE $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 
   done
+
+##GPU
+  [[ $REMORA_GPU == 1 ]] && sleep 2
 
   # Generate unique node file to let remora/snapshot know init_module_x completed
   touch $REMORA_OUTDIR/.remora_out_$REMORA_NODE  ##KFM now remora looks for this.

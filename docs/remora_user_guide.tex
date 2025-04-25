@@ -123,17 +123,17 @@ Copyright 2023 The University of Texas at Austin.
 \begin{abstract}
 
 REMORA is a modular tool to monitor a job runtime resource utilization in HPC environments. 
-As of version 2.0 the suite contains code designed to test:
+As of version 2.1 the suite contains code designed to test:
 
 \begin{itemize}
-\item Memory utilization in CPUs, Xeon Phi co-processors, and NVIDIA GPUs
-\item CPU utilization
-\item IO utilization for the Lustre and DVS file systems
-\item NUMA properties
+\item Memory: CPU and NVIDIA GPU
+\item Load: CPU and NVIDIA GPU
+\item IO: (when stats avaiable wo root perm.)
+\item NUMA: local misses and page-size
 \item Network topology
-\item MPI communication statistics
-\item Socket Power consumption
-\item CPU temperature
+\item MPI Communication Statistics
+\item Power Module Consumption: CPU and NVIDIA GPU
+\item Temperature: CPU and NVIDIA GPU
 \end{itemize}
 
 Throughout the text we have used text boxes to highlight important information. These boxes look like this:
@@ -145,7 +145,7 @@ and presents easy to understand high level information of resource usage, as wel
 We welcome all feedback, particulary suggestions that  includes improvement in the usability, reliability, 
 and accuracy. 
 
-Version 2.0 is a feature release that has been optimized to reduced collection overhead, programmed for attachment to
+Version 2.1 is a feature release that has been optimized to reduced collection overhead, programmed for attachment to
 running jobs, power collection for all intel platforms (with rapl), provide easier control over 
 resource module selection, and support unit testing.
 
@@ -240,7 +240,7 @@ If the mkmod utility is installed on your system, after installation, cd to the 
 directory (where bin exists), and execute the follow to create a my\_remora user-space module:
 \begin{verbatim}
 	module load mkmod 
-	export NAME=remora VER=2.0 TOPDIR=`pwd` 
+	export NAME=remora VER=2.1 TOPDIR=`pwd` 
         mkmod
 \end{verbatim}
 After this, the command module load my\_remora will create an execution environment for you
