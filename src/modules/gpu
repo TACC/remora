@@ -186,7 +186,7 @@ plot_data_gpu()
    printf "%s \n" " height: 600, "                      >> $FILE
 
    printf "%s \n" " curveType: 'function',"             >> $FILE
-   printf "%s \n" " pointSize: 10,"                     >> $FILE
+   printf "%s \n" " pointSize: 5,"                      >> $FILE
    printf "%s \n" " dataOpacity: 0.3,"                  >> $FILE
    printf "%s \n" " crosshair: { color: '#000', trigger: 'selection' }," >> $FILE
 
@@ -220,7 +220,7 @@ plot_data_gpu()
    printf "%s \n" " height: 600, "                  >> $FILE
 
    printf "%s \n" " curveType: 'function',"         >> $FILE
-   printf "%s \n" " pointSize: 10,"                 >> $FILE
+   printf "%s \n" " pointSize: 5,"                  >> $FILE
    printf "%s \n" " dataOpacity: 0.3,"              >> $FILE
    printf "%s \n" " crosshair: { color: '#000', trigger: 'selection' }," >> $FILE
 
@@ -253,7 +253,7 @@ plot_data_gpu()
    printf "%s \n" " height:  600,"                    >> $FILE
 
    printf "%s \n" " curveType: 'function',"           >> $FILE
-   printf "%s \n" " pointSize: 10,"                   >> $FILE
+   printf "%s \n" " pointSize: 5,"                    >> $FILE
    printf "%s \n" " dataOpacity: 0.3,"                >> $FILE
    printf "%s \n" " crosshair: { color: '#000', trigger: 'selection' }," >> $FILE
 
@@ -284,7 +284,7 @@ plot_data_gpu()
    printf "%s \n" " height:  600,"                    >> $FILE
 
    printf "%s \n" " curveType: 'function',"           >> $FILE
-   printf "%s \n" " pointSize: 10,"                   >> $FILE
+   printf "%s \n" " pointSize: 5,"                    >> $FILE
    printf "%s \n" " dataOpacity: 0.3,"                >> $FILE
    printf "%s \n" " crosshair: { color: '#000', trigger: 'selection' }," >> $FILE
 

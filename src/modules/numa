@@ -40,8 +40,17 @@ init_module_numa()
   if [[ "$REMORA_MODE" == "FULL" ]]; then
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
  
+    # get only NUMA nodes which are used (with -z non-zero option)
+    # For numastat -z
+    # get 3rd line, of form "Node 0  Node 1  Node 3 ... Total"
+    #                 words:   1  2   3   4    5  6 ... +1
+    #    number of nodes = (number_of_words - 1)/2
+    # Use NUMASTAT_WIDTH=200 to avoid wrapping if testing interactively
 
-    local numNodes=$(numastat | egrep  'node[0-9]' |wc -w)
+    local word_count=$(numastat -z  | sed -n 3p  | wc -w)
+          nNodes=$(( (word_count-1)/2 ))
+
+    local nNodesP1=$((nNodes + 1))
 
     local FILE=$REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
     
@@ -53,25 +62,25 @@ init_module_numa()
     printf "%5s "    "Nodes"     >>$FILE
     
     for t_base in "${titles_10_1[@]}"; do
-    for num    in `seq 0 $numNodes`; do
-      [[ $num -lt $numNodes ]] && title=${t_base}_n${num}
-      [[ $num  == $numNodes ]] && title=${t_base}_tot
+    for num    in `seq 0 $nNodes`; do
+      [[ $num -lt $nNodes ]] && title=${t_base}_n${num}
+      [[ $num  == $nNodes ]] && title=${t_base}_tot
       printf "%10s " ${title}   >>$FILE
     done
     done
     
     for t_base in "${titles_15_1[@]}"; do
-    for num    in `seq 0 $numNodes`; do
-      [[ $num -lt $numNodes ]] && title=${t_base}_n${num}
-      [[ $num  == $numNodes ]] && title=${t_base}_tot
+    for num    in `seq 0 $nNodes`; do
+      [[ $num -lt $nNodes ]] && title=${t_base}_n${num}
+      [[ $num  == $nNodes ]] && title=${t_base}_tot
       printf "%15s " ${title}   >>$FILE
     done
     done
     
     for t_base in "${titles_10_2[@]}"; do
-    for num    in `seq 0 $numNodes`; do
-      [[ $num -lt $numNodes ]] && title=${t_base}_n${num}
-      [[ $num  == $numNodes ]] && title=${t_base}_tot
+    for num    in `seq 0 $nNodes`; do
+      [[ $num -lt $nNodes ]] && title=${t_base}_n${num}
+      [[ $num  == $nNodes ]] && title=${t_base}_tot
       printf "%10s " ${title}   >>$FILE
     done
     done
@@ -97,38 +106,59 @@ collect_data_numa(){
    # 20-22    Node0_Free    Node1_Free    Total_Free
    # 23 25    Node0_Used    Node1_Used    Total_Used
    #
-   # Re-written to optimize performance by Kent Milfeld 11/20/2023
+   # Re-written to optimize performance by Kent Milfeld 11/20/2023 Apr 2024 updated
    # TODO Check Anonymous Pages on Rocky system.
    #      May require using /proc/meminfo values.
 
    local timestamp   numStatC numaStatM
-   local  numNodes nodesless1 out timestamp
+   local out timestamp
+
+   # get only NUMA nodes which are used (with -z non-zero option)
+   # For numastat -z
+   # get 3rd line, of form "Node 0  Node 1  Node 3 ... Total"
+   #                 words:   1  2   3   4    5  6 ... +1
+   #    number of nodes = (number_of_words - 1)/2
+   # Use NUMASTAT_WIDTH=200 to avoid wrapping if testing interactively
+
+   local word_count=$(numastat -z  | sed -n 3p  | wc -w)
+   local     nNodes=$(( (word_count-1)/2 ))
+   local   nNodesP1=$((nNodes + 1))
+
 
    timestamp=`date +%s.%3N`
 
-   #   all numastat lines have an identifier (keyword) followed by numbers, one for each node,
-   #   and a Total(sum).   Keywords are removed, and only necessary line are acquired.
-   #   On Lonestar6 multiple "Token Node not in hash table." appear. grep -v removes them. Uh!
+   #   A series of warning/information lines may be displaced before the report begins
+   #   The warning and report are separated by a line with dashes (------ ----- ...).
+   #   numastat is piped through awk to removed these lines and only print non-zero
+   #   numa information (print only keyword and $nNodes numa columns).
+   #   Use a mapfile to form an array of the data. Note: Element 0 is the dash line.
 
-   mapfile -t numaStatC < <( numastat -c | sed -n '5,7p'  | sed 's/^[^0-9]*//' )
-   mapfile -t numaStatM < <( numastat -m | grep -v "not in hash" | grep -v Shmem | sed -n '3,30p' | sed 's/^[^0-9]*//' )
-  #mapfile -t numaStatM < <( numastat -m | sed -n '3,30p' | sed 's/^[^0-9]*//' )
+#                            numastat -c | awk -v n=$nNodesP1 '/-------/{flag=1} flag {for(i=1;i<=n;i++) printf "%s ", $i; printf "%s", $NF; print ""}'
+   mapfile -t numaStatC < <( numastat -c | awk -v n=$nNodesP1 '/-------/{flag=1} flag {for(i=2;i<=n;i++) printf "%s ", $i; printf "%s", $NF; print ""}' )
+   mapfile -t numaStatM < <( numastat -m | awk -v n=$nNodesP1 '/-------/{flag=1} flag {for(i=2;i<=n;i++) printf "%s ", $i; printf "%s", $NF; print ""}' )
 
-   # Count # of "Node"s in first line:
-   #                   1st line "Node 0  Node 1  Total" appears as "0 Node 1 Total"
-   #                   after generic keyword removal above. Must Add 1 for Actual count.
+#                 Each NumaStatM|C has 3 values for dual socket systems(node0, node1, total), etc.
 
-   nodesless1=$(echo "${numaStatM[0]}" | grep -o ' Node' | wc -l)
-     numNodes=$(( nodesless1 + 1 ))
 
-#                 Each NumaStatM|C has 3 values for dual sockec (node0, node1, total)
-   out="$timestamp $numNodes"
-   out="$out ${numaStatM[15]}"                  #FilePages (file buffer)
-   out="$out ${numaStatM[17]} ${numaStatM[27]}" #Anon, and AnonHuge      
-   out="$out ${numaStatC[@]}"                   #Numa_Hit, Numa_Miss, Numa_Foreign
-   out="$out ${numaStatM[3]} ${numaStatM[4]}"   #MemFree MemUse
+   echo "1 $timestamp $nNodes"                  >> /home1/00770/milfeld/SEE
+   echo "2 ${numaStatM[14]}"                    >> /home1/00770/milfeld/SEE                  #FilePages (file buffer)
+   echo "3 ${numaStatM[16]} ${numaStatM[26]}"   >> /home1/00770/milfeld/SEE       #Anon, and AnonHuge      
+   echo "4 ${numaStatC[@]:1:3}"                    >> /home1/00770/milfeld/SEE     #Numa_Hit, Numa_Miss, Numa_Foreign
+   echo "5 ${numaStatM[2]} ${numaStatM[3]}"   >> /home1/00770/milfeld/SEE   #MemFree MemUse
+
+
+
+   out="$timestamp $nNodes"
+   out="$out ${numaStatM[14]}"                  #FilePages (file buffer)
+   out="$out ${numaStatM[16]} ${numaStatM[26]}" #Anon, and AnonHuge      
+
+   out="$out ${numaStatC[@]:1:3}"               #Numa_Hit, Numa_Miss, Numa_Foreign
+                                                #all fields except element 0,the  dash line
+   out="$out ${numaStatM[2]} ${numaStatM[3]}"   #MemFree MemUse
 
    echo  $out  >> $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt
+   echo  $out  >> $REMORA_TMPDIR/numa_stats_${REMORA_NODE}.txt2
+   echo  $out  >> /home1/00770/milfeld/SEE2
 
   fi
 }
@@ -145,15 +175,14 @@ plot_data_numa()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
    #source $REMORA_OUTDIR/remora_env.txt
-
     local FILE=$REMORA_TMPDIR/numa_${REMORA_NODE}.html
 
     if [[ -z ${REMORA_PLOT_RESULTS+x} ]] || [[ "$REMORA_PLOT_RESULTS" -eq "0" ]] ; then
         return
     fi
-
-    local numNodes=$(numastat | egrep  'node[0-9]' |wc -w)
-    local nodesLess1=$(( numNodes - 1 ))
+    local word_count=$(numastat -z  | sed -n 3p  | wc -w)
+    local     nNodes=$(( (word_count-1)/2 ))
+    local nodesLess1=$(( nNodes - 1 ))
 
 #####
     local collect_time first time_base miss_base_node0 miss_base_total out_line
@@ -164,10 +193,10 @@ plot_data_numa()
 
     first=1
     {   
-      read
+      read                   #skip header line
       while read line; do
         ln=( $line )
-        if [[ $first == 1 ]]; then
+        if [[ $first == 1 ]]; then                   # first real line, get base for time and miss rates
           first=2 
                 time_base=${ln[ 0]}
           miss_base_node0=${ln[17]}
@@ -227,8 +256,12 @@ plot_data_numa()
     printf "%s \n" "title : 'Numa Allocation Misses',"             >> $FILE
     printf "%s \n" "vAxis: {title: 'Numa Misses (MiB)'},"          >> $FILE
     printf "%s \n" "hAxis: {title: 'Time (sec)'},"                 >> $FILE
+# Line with: vAxis: { viewWindowMode: 'explicit', viewWindow: { max: 1, min: 0 } },
+# will work but max required, can be programmed above.  TODO
+# The following works, avoid negative v axis, but lets values larger than 1 (NP)
+    printf "%s \n" " vAxis: { maxValue: 1 },"      >> $FILE
 
-    printf "%s \n" "pointSize: 10,"                   >> $FILE
+    printf "%s \n" "pointSize: 5,"                   >> $FILE
     printf "%s \n" "dataOpacity: 0.3,"                >> $FILE
     printf "%s \n" "width:  1024,"                    >> $FILE
     printf "%s \n" "height:  800"                     >> $FILE
@@ -244,7 +277,7 @@ plot_data_numa()
     printf "%s \n" "var data = new google.visualization.DataTable();"         >> $FILE
     printf "%s \n" "var data = google.visualization.arrayToDataTable(["       >> $FILE
 
-    printf "%s \n" "['Execution Time (sec)'"                             >> $FILE
+    printf "%s \n" "['Execution Time (sec)'"       >> $FILE
     for i in `seq 0 $nodesLess1`; do
        printf "%s %s %s \n" ", 'Node"$i"'"         >> $FILE
     done
@@ -257,10 +290,11 @@ plot_data_numa()
     printf "%s \n" "]);" >> $FILE
 
     printf "%s \n" "var options = { "              >> $FILE
-    printf "%s \n" "title: 'NUMA Memory Used',"    >> $FILE
+    printf "%s \n" "title: 'NUMA Memory Used (stacked)',"    >> $FILE
     printf "%s \n" "vAxis: {title: 'MiBs'},"       >> $FILE
     printf "%s \n" "hAxis: {title: 'Time (sec)'}," >> $FILE
-    printf "%s \n" "isStacked: true,"              >> $FILE
+    printf "%s \n" "pointSize: 5,"                 >> $FILE
+    printf "%s \n" "isStacked:true,"               >> $FILE
 
     printf "%s \n" "width: 1024, "     >> $FILE
     printf "%s \n" "height: 800, "     >> $FILE
@@ -298,7 +332,7 @@ plot_data_numa()
     printf "%s \n" "vAxis: {title: 'User/Anonymous Allocated Memory (MiBs)'}," >> $FILE
     printf "%s \n" "hAxis: {title: 'Time (sec)'}," >> $FILE
 
-    printf "%s \n" "pointSize: 10,"                   >> $FILE
+    printf "%s \n" "pointSize: 5,"                    >> $FILE
     printf "%s \n" "dataOpacity: 0.3,"                >> $FILE
     printf "%s \n" "width:  1024,"                    >> $FILE
     printf "%s \n" "height:  800"                     >> $FILE
@@ -328,6 +362,7 @@ plot_data_numa()
     printf "%s \n" "title : 'NUMA File Cache Memory'," >> $FILE
     printf "%s \n" "vAxis: {title: 'MiBs'},"       >> $FILE
     printf "%s \n" "hAxis: {title: 'Time (sec)'}," >> $FILE
+    printf "%s \n" "pointSize: 5,"                 >> $FILE
     printf "%s \n" "isStacked: true,"              >> $FILE
     printf "%s \n" "width: 1024, "                 >> $FILE
     printf "%s \n" "height: 800, "                 >> $FILE
@@ -369,3 +404,4 @@ finalize_module_numa()
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     plot_data_numa $REMORA_NODE $REMORA_OUTDIR $REMORA_TMPDIR
 }
+#https://developers.google.com/chart/interactive/docs/gallery/columnchart

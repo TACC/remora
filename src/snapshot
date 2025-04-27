@@ -125,7 +125,7 @@ ARGS="$@"  # save command line
 
       if [[ ! -z $TACC_SYSTEM ]]; then #For TACC Systems--Don't use remora on a login node
          my_node=`hostname -f`                                        #vv backdoor for debugging
-         if [[ ! $my_node =~ ^c[0-9][0-9][0-9]-[0-9][0-9][0-9] ]] && [[ -z $REMORA_SS_BYPASS ]]; then
+         if [[ ! $my_node =~ ^.[0-9][0-9][0-9]-[0-9][0-9][0-9] ]] && [[ -z $REMORA_SS_BYPASS ]]; then
             echo " Found $USER using $APP on a non-compute (login) node: $my_node."
             echo " You can only use $APP for collection on a compute node (in batch or interactive batch)"
             exit 1
@@ -292,7 +292,6 @@ ARGS="$@"  # save command line
 
  ### CREATE PLOT (By default, don't create plots, since that might disrupt a running job.)
    if [[ $REMORA_PLOT != 0 ]]; then    # either plot or PLOT, default is plot (on login)
-
       source $REMORA_BIN/aux/scheduler
       get_job_id
       SNAPSHOT_JOBID=$REMORA_JOB_ID       # == -1 if not a job
