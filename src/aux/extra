@@ -514,6 +514,8 @@ check_energy_counter_accessibility() {
 
   hash sensors 2>/dev/null
   local has_sensors=$?                         # 0/1 yes/no 
+  sensor |& grep ERROR > /dev/null
+  [[ ${PIPESTATUS[1]} == 0 ]] && has_sensors=1 # sensor cmd does not work (e.g. ls6 GPU nodes)
   if [[ has_sensors == 0 ]]; then              # test whether sensors provides "power1:"
      sensors | grep power1 2>/dev/null
      REMORA_POWER_IGNORE=${PIPESTATUS[1]}      #if power1 found status=0,set don't ignore

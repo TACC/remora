@@ -229,7 +229,7 @@
   fi
   
 # bfd and unwind.  bfd used for vista   (aarch64)
-  if [[ $REMORA_PARALLEL == 1 ]]; then
+  if [[ $REMORA_PARALLEL == 1 ]] && [[ `uname -a` =~ aarch64 ]] ; then
 
     REMORA_DIR=$( dirname $REMORA_BIN )
     mpip_dirs=$( ls -d $REMORA_DIR/mpiP-[0-9]* )
