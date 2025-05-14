@@ -50,7 +50,7 @@
 #========================================================================
 #  HISTORY
 #       2024/11-20  Cleaned up LD_PRELOAD
-#                   nv_mpip nv_power nv_temperature by Albert + Kent
+#                   omp_mpip nv_power nv_temperature by Albert + Kent
 #       2023/04-06  Version 2.0 by Albert Lu and Kent Milfeld
 #       2023/04/07  Power can now use intel_rapl.  
 #                   Now aggregated power plot is created.

@@ -1,21 +1,4 @@
 #!/bin/bash
-# Installation script for REMORA
-#
-# Change CC, MPICC and the corresponding flags to match your own compiler in
-# file "Makefile.in". You should not have to edit this file at all.
-#
-# v2_0   (2023-06-29)  Albert Lu & Kent Milfeld
-# v1_8_4 (2020-10-19)  Kent Milfeld
-# v1_8_3 (2018-04-25)  Kent Milfeld/Si Liu
-# v1_8_2 (2017-08-08)  Carlos Rosales-Fernandez
-#                      Antonio Gomez-Iglesias
-#
-# Thanks to Kenneth Hoste, from HPC-UGent, for his input
-# Changed to use mpiP for intel 2019 and above  (impi_mpiP) (Kent)
-# 11/19/24 KFM Removed PHI support.   
-# 11/19/24 KFM mpiP 3.5 for aarch64, otherwise 3.4.1
-
-# Do not change anything below this line
 #--------------------------------------------------------------------------------
   
   # Default installation directory is PWD unless defined by  $REMORA_INSTALL_PREFIX
@@ -72,101 +55,120 @@
   
   #Now build mpstat
 
-    echo "Building mpstat ..." | tee -a $BUILD_LOG
-    cd $REMORA_BUILD_DIR/extra
+  echo " ==> Building mpstat ..." | tee -a $BUILD_LOG
+  cd $REMORA_BUILD_DIR/extra
   
-    sysfile=`ls sysstat*.tar.gz`
-    sysdir=`echo  ${sysfile%%.tar.gz}`
-    tar xzvf ${sysfile}
-    cd ${sysdir}
-    sed -i 's/-pipe //g' Makefile
-    sed -i 's/-pipe //g' Makefile.in
+  sysfile=`ls sysstat*.tar.gz`
+  sysdir=`echo  ${sysfile%%.tar.gz}`
+  tar xzvf ${sysfile}
+  cd ${sysdir}
+  sed -i 's/-pipe //g' Makefile
+  sed -i 's/-pipe //g' Makefile.in
     
-#   ./configure | tee -a $BUILD_LOG
-#   make mpstat | tee -a $BUILD_LOG
+  ./configure | tee -a $BUILD_LOG
+  make mpstat | tee -a $BUILD_LOG
     
-    echo "Installing mpstat ..." | tee -a $INSTALL_LOG
-#   cp mpstat $REMORA_DIR/bin
+  echo " ==> Installing mpstat ..." | tee -a $INSTALL_LOG
+  cp mpstat $REMORA_DIR/bin
 
-  #Now build mpiP
-    # Check if MPI compiler is available. If not, disable MPI module and skip mpiP build
-    export CC=mpicc
-    export F77=mpif77
-    
-    if [[ "$( $CC --version > /dev/null 2>&1 || echo "0")" == "0" ]]; then 
-        haveMPICC=0
-    else 
-        haveMPICC=1
-    fi
-    
-    if [[ "$( $F77 --version > /dev/null 2>&1 || echo "0")" == "0" ]]; then
-         haveMPIFC=0
-    else 
-         haveMPIFC=1 
-    fi
-    
-    if [[ $haveMPICC == 1 ]] && [[ $haveMPIFC == 1 ]]; then
-    
-       mpicc -v 2>/dev/null | grep 'Intel(R) MPI' > /dev/null 2>&1 
-       haveIMPI=$((1-${PIPESTATUS[1]}))           #1=has IMPI, 0=does not have IMPI
-    
-       mpicc -v 2>/dev/null | grep 'MVAPICH2'     > /dev/null 2>&1 
-       haveMV2=$((1-${PIPESTATUS[1]}))            #1=has MVAPICH2, 0=does not have MV2
-    
-       mpicc -v 2>&1 >/dev/null | grep 'NVCOMPILER' > /dev/null 2>&1
-       haveNVHPC=$((1-${PIPESTATUS[1]}))          #1=has NVHPC, 0=does not have NVHPC
-    
-       if [[ $haveIMPI == 1 ]]; then
-          IMPI_year=$( mpicc -v 2>/dev/null | grep 'Library 20' | sed 's/.*Library 20\([0-9][0-9]\).*/\1/' )
-          if [[ $IMPI_year > 18 ]]; then
-             IMPI_stats="impi_mpip"
-          else
-             IMPI_stats=impi
-          fi
-          #mpicc -v |& grep 'MPI Library 2019' > /dev/null 2>&1 
-          #haveIMPI19=$((1-${PIPESTATUS[1]}))      #1=has IMPI 19, 0=does not have IMPI 19
-       fi
-    else
-        echo ""
-        [[ $haveMPICC == 0 ]] && echo " WARNING : mpicc not found " | tee -a $BUILD_LOG
-        [[ $haveMPIFC == 0 ]] && echo " WARNING : mpi77 not found " | tee -a $BUILD_LOG
-        echo " WARNING : REMORA will be built without MPI support " | tee -a $BUILD_LOG
-        echo ""
-    fi
+  #MPI
+  # Check if MPI compiler is available. If not, disable MPI module and skip mpiP build
+  export CC=mpicc
+  export F77=mpif77
   
+  echo " ==> Checking on MPI ..." | tee -a $INSTALL_LOG
+
+  if [[ "$( $CC --version > /dev/null 2>&1 || echo "0")" == "0" ]]; then 
+      haveMPICC=0
+  else 
+      haveMPICC=1
+  fi
   
-  # Building binutils for Vista
-    # libunwind-1.3.0.tar.gz  libunwind-1.3.2.tar.gz  libunwind-1.3-rc1.tar.gz  libunwind-1.8.1.tar.gz
-    # binutils-2.23.2.tar.gz  binutils-2.27.tar.gz  binutils-2.35.1.tar.gz  binutils-2.36.tar.gz  binutils-2.40.tar.gz
-    
-    if [[ $ARCH == aarch64 ]] &&  [[ "$haveNVHPC" == "1" ]]; then
-    	# For Vista  (aarch64 and OpenMPI) use BFD (binutils) for extracting prg. function names
-    	# Used by mpiP.  All tested unwind builds break with a combo of bfd and mpiP.
-    	# DON'T INCLUDE UNWIND in vista remora build
-    
+  if [[ "$( $F77 --version > /dev/null 2>&1 || echo "0")" == "0" ]]; then
+       haveMPIFC=0
+  else 
+       haveMPIFC=1 
+  fi
+  
+  if [[ $haveMPICC == 1 ]] && [[ $haveMPIFC == 1 ]]; then
+  
+     mpicc -v 2>/dev/null | grep 'Intel(R) MPI' > /dev/null 2>&1 
+     haveIMPI=$((1-${PIPESTATUS[1]}))           #1=has IMPI, 0=does not have IMPI
+  
+     mpicc -v 2>/dev/null | grep 'MVAPICH2'     > /dev/null 2>&1 
+     haveMV2=$((1-${PIPESTATUS[1]}))            #1=has MVAPICH2, 0=does not have MV2
+  
+     mpicc -v 2>&1 >/dev/null | grep 'NVCOMPILER' > /dev/null 2>&1
+     haveNVHPC=$((1-${PIPESTATUS[1]}))          #1=has NVHPC, 0=does not have NVHPC
+     [[ $haveNVHPC == 1 ]] &&  [[ $MPI_ROOT =~ openmpi ]] && haveOMPI=1
+
+     mpicc -v 2>&1 >/dev/null | grep 'GCC' > /dev/null 2>&1
+     haveGCC=$((1-${PIPESTATUS[1]}))          #1=has GCC, 0=does not have GCC
+     if [[ $haveGCC == 1 ]] &&  [[ $MPI_ROOT =~ openmpi ]]; then
+       haveOMPI=1
+       FLAGS="LDFLAGS=-g -Wno-implicit-int -Wno-implicit-function-declaration"
+     fi
+  
+     if [[ $haveIMPI == 1 ]]; then
+        IMPI_year=$( mpicc -v 2>/dev/null | grep 'Library 20' | sed 's/.*Library 20\([0-9][0-9]\).*/\1/' )
+        if [[ $IMPI_year > 18 ]]; then
+           IMPI_stats="impi_mpip"
+        else
+           IMPI_stats=impi
+        fi
+        #mpicc -v |& grep 'MPI Library 2019' > /dev/null 2>&1 
+        #haveIMPI19=$((1-${PIPESTATUS[1]}))      #1=has IMPI 19, 0=does not have IMPI 19
+     fi
+     echo " ==> MPI: IMPI=$haveIMPI MV2=$haveMV2 OMPII=$haveOMPI ..." | tee -a $INSTALL_LOG
+  else
+      echo ""
+      [[ $haveMPICC == 0 ]] && echo " WARNING : mpicc not found " | tee -a $BUILD_LOG
+      [[ $haveMPIFC == 0 ]] && echo " WARNING : mpi77 not found " | tee -a $BUILD_LOG
+      echo " WARNING : REMORA will be built without MPI support " | tee -a $BUILD_LOG
+      echo ""
+  fi
+
+  # BFD binutils and unwind for Vista (OpenMPI aarch64)  do this before building mpiP
+  # libunwind-1.3.0.tar.gz  libunwind-1.3.2.tar.gz  libunwind-1.3-rc1.tar.gz  libunwind-1.8.1.tar.gz
+  # binutils-2.23.2.tar.gz  binutils-2.27.tar.gz  binutils-2.35.1.tar.gz  binutils-2.36.tar.gz  binutils-2.40.tar.gz
+
+ #if [[ $ARCH == aarch64 ]] &&  [[ "$haveOMPI" == "1" ]] && [[ "$haveGCC" == 1 ]] ; then
+  if [[ $ARCH == aarch64 ]] &&  [[ "$haveOMPI" == "1" ]]; then
+      # For Vista  (aarch64 and OpenMPI) use BFD (binutils) for extracting prg. function names
+      # Used by mpiP.  All tested unwind builds break with a combo of bfd and mpiP.
+      # DON'T INCLUDE UNWIND in vista remora build
+
+      echo " ==> Building BFD (binutils) ..." | tee -a $INSTALL_LOG
+  
       export UNW_VER=1.8.1  # libUNWind version
       export BFD_VER=2.43   # libUNWind version
-    
+  
+  
       cd $REMORA_BUILD_DIR/extra
       mkdir -p $REMORA_DIR/binutils-$BFD_VER
       CC=gcc CXX=g++ BFD_SRC_DIR=$REMORA_BUILD_DIR/extra  BFD_INSTALL_DIR=$REMORA_DIR/binutils-$BFD_VER  ./build_bfd.sh
-    
-    # cd $REMORA_BUILD_DIR/extra
-    # CC=gcc CXX=g++ UNW_SRC_DIR=$REMORA_BUILD_DIR/extra  UNW_INSTALL_DIR=$REMORA_DIR/unwind-$UNW_VER    ./build_unwind.sh
-    
-    fi
+     #export LD_LIBRARY_PATH=$REMORA_DIR/binutils-${BFD_VER}:$LD_LIBRARY_PATH
   
-  # MPI
+      # cd $REMORA_BUILD_DIR/extra
+      # CC=gcc CXX=g++ UNW_SRC_DIR=$REMORA_BUILD_DIR/extra  UNW_INSTALL_DIR=$REMORA_DIR/unwind-$UNW_VER    ./build_unwind.sh
+      #export LD_LIBRARY_PATH=$REMORA_DIR/unwind-$UNW_VER:$LD_LIBRARY_PATH
+  fi  
+
+  # mpiP
   if [[ "$haveMPICC" == "1" ]] && [[ "$haveMPIFC"  == "1" ]]; then
+
+     if [[ "$haveMV2" == 1 || "$haveOMPI" == 1 ||  "$IMPI_stats" == "impi_mpip" ]] ; then
   
-     if [[ "$haveMV2"    == "1" || "$haveNVHPC" == "1" || "$IMPI_stats" == "impi_mpip" ]] ; then
-  
-        [[ "$haveMV2"    == "1" ]]         && echo " REMORA built with mpiP statistics for Mvapich2"  | tee -a $BUILD_LOG
-        [[ "$haveNVHPC"  == "1" ]]         && echo " REMORA built with mpiP statistics for NVHPC"  | tee -a $BUILD_LOG
-        [[ "$IMPI_stats" == "impi_mpip" ]] && echo " REMORA built with mpiP statistics for IMPI 20$IMPI_year" | tee -a $BUILD_LOG
-  
+        echo " ==> Building mpiP ..." | tee -a $INSTALL_LOG
+
+        [[ "$haveMV2"    == 1 ]]         && echo " REMORA built with mpiP statistics for Mvapich2"          | tee -a $BUILD_LOG
+        [[ "$haveOMPI"   == 1 ]]         && echo " REMORA built with mpiP statistics for OMPI"              | tee -a $BUILD_LOG
+        [[ "$IMPI_stats" == impi_mpip ]] && echo " REMORA built with mpiP statistics for IMPI 20$IMPI_year" | tee -a $BUILD_LOG
+
         echo "Building mpiP ..." | tee -a $BUILD_LOG
         cd $REMORA_BUILD_DIR/extra
+
+        FLAGS=${FLAGS:-CFLAGS=-g}    # default is -g unless FLAGS is defined above
   
         mpipfile=mpiP-${MPIP_VER}.tar.gz
         mpipdir=${mpipfile%%.tar.gz}
@@ -178,103 +180,120 @@
            sed -i 's/PYTHON  = python$/PYTHON  = python2/'         ./mpiP-3.4.1/Defs.mak.in &&
            sed -i 's/PYTHON  = python$/PYTHON  = python2/'         ./mpiP-3.4.1/Defs.mak    &&    #preserved across install.sh executions
            sed -i 's@#!/usr/local/bin/python@#!/usr/bin/python2@'  ./mpiP-3.4.1/make-wrappers.py
-  
+
         BFD_OPTION="--disable-bfd"
-        [[ $ARCH == aarch64 ]] && BFD_OPTION="--with-binutils-dir=$REMORA_DIR/binutils-$BFD_VER"
+
+        if [[ ${MPIP_VER} == 3.5 ]] && [[ $ARCH == aarch64 ]] && [[ "$haveGCC" == 1 ]]; then
+          cp -p patched_3.5_pc_lookup.c ./extra/mpiP-3.5/pc_lookup.c
+        fi
+        if [[ ${MPIP_VER} == 3.5 ]] && [[ $ARCH == aarch64 ]]; then
+          BFD_OPTION="--with-binutils-dir=$REMORA_DIR/binutils-$BFD_VER"
+        fi
   
         cd ${mpipdir}
 
-        #export LD_LIBRARY_PATH=$REMORA_DIR/unwind-$UNW_VER:$LD_LIBRARY_PATH
-        echo " -> ./configure CFLAGS="-g" --enable-demangling  --prefix=${REMORA_DIR}/mpiP-$MPIP_VER  "$BFD_OPTION" --disable-libunwind "
-                  ./configure CFLAGS="-g" --enable-demangling  --prefix=${REMORA_DIR}/mpiP-$MPIP_VER  "$BFD_OPTION" --disable-libunwind \
-                              |& tee -a $BUILD_LOG
+        #echo " -> ./configure CFLAGS="-g" --enable-demangling  --prefix=${REMORA_DIR}/mpiP-$MPIP_VER  "$BFD_OPTION" --disable-libunwind "
+                 # ./configure CFLAGS="-g" --enable-demangling  --prefix=${REMORA_DIR}/mpiP-$MPIP_VER  "$BFD_OPTION" --disable-libunwind \
+                 # ./configure LDFLAGS="-g -Wno-implicit-int -Wno-implicit-function-declaration" --enable-demangling  --prefix=${REMORA_DIR}/mpiP-$MPIP_VER  "$BFD_OPTION" --disable-libunwind \
+
+        echo " ==> mpiP ./configure --prefix=${REMORA_DIR}/mpiP-$MPIP_VER  "$FLAGS"  "$BFD_OPTION"  --enable-demangling  --disable-libunwind"
+
+                   # "$FLAGS" \
+
+echo " ==>"        ./configure --prefix=${REMORA_DIR}/mpiP-$MPIP_VER \
+                    CFLAGS="-g" \
+                    "$BFD_OPTION" \
+                    --enable-demangling \
+                    --disable-libunwind | tee -a $BUILD_LOG
+
+        ./configure --prefix=${REMORA_DIR}/mpiP-$MPIP_VER \
+                    CFLAGS="-g" \
+                    "$BFD_OPTION" \
+                    --enable-demangling \
+                    --disable-libunwind \
+                    |& tee -a $BUILD_LOG
+
   
-        make                       | tee -a $BUILD_LOG
-        make shared                | tee -a $BUILD_LOG
-        echo "Installing mpiP ..." | tee -a $INSTALL_LOG
+        make                            | tee -a $BUILD_LOG
+        make shared                     | tee -a $BUILD_LOG
+        echo " --> Installing mpiP ..." | tee -a $INSTALL_LOG
         make install
   
      fi
   
      if [[ "$IMPI_stats" == "impi" ]]; then
         echo "" 
-        echo " REMORA built with support for impi (ipm) statistics" | tee -a $BUILD_LOG
+        echo " ==> REMORA built with support for impi (ipm) statistics" | tee -a $BUILD_LOG
         echo ""
      fi
   
-     if [[ "$haveMV2" == "0" ]] && [[ "$haveNVHPC" == "0" ]] && [[ "$haveIMPI" == "0" ]]; then
+     if [[ "$haveIMPI" == 0 ]] && [[ "$haveMV2" == 0 ]] && [[ "$haveOMPI" == 0 ]]; then
         echo "" 
-        echo " REMORA only supports statistics for IMPI, NVHPC, and MVAPICH2"  | tee -a $BUILD_LOG
-        echo " WARNING : REMORA will be built with NO MPI statistics support " | tee -a $BUILD_LOG
+        echo " ==> REMORA only supports statistics for IMPI, MVAPICH2 and OpenMPI"  | tee -a $BUILD_LOG
+        echo " ==> WARNING : REMORA will be built with NO MPI statistics support " | tee -a $BUILD_LOG
         echo ""
      fi
      has_MPI=yes
+        echo " ==> Finished Building mpiP ..." | tee -a $INSTALL_LOG
   else
      has_MPI=no
   fi
-  
-  # Build Binary Collectors
-    if [[ $REMORA_BINARIES == 1 ]]; then
-      cd $REMORA_BUILD_DIR/src/C_data_collectors_src
-      make
-    fi
-    cd $REMORA_BUILD_DIR
-    
-    echo "Copying all scripts to installation folder ..." |  tee -a $INSTALL_LOG
-    
-    cp -vr ./src/* $REMORA_DIR/bin
-    rm -rf         $REMORA_DIR/bin/C_data_collectors_src
-  
-  # Copy scripts to installation folder
 
-    echo "Copying all scripts to installation folder ..." |  tee -a $INSTALL_LOG
+  # Build Binary Collectors
+  if [[ $REMORA_BINARIES == 1 ]]; then
+    echo " ==> Building Binary Collectors ..." | tee -a $INSTALL_LOG
+    cd $REMORA_BUILD_DIR/src/C_data_collectors_src
+    make
+  fi  
+  cd $REMORA_BUILD_DIR
     
-    #TODO  clean up names of mpi.  e.g. mpi_omp mpi_nvomp mpi_mv2 mpi_impi
-    if [[ "$haveMPICC" == "0" ]] || [[ "$haveMPIFC" == "0" ]]; then
-        sed -i '/impi,MPI/d'      $REMORA_DIR/bin/config/modules
-        sed -i '/impi_mpip,MPI/d' $REMORA_DIR/bin/config/modules
-        sed -i '/mv2,MPI/d'       $REMORA_DIR/bin/config/modules
-        sed -i '/nv_mpip,MPI/d'   $REMORA_DIR/bin/config/modules
-    else
-        if [[ "$haveIMPI" == "1" ]]; then
-                                               sed -i '/mv2,MPI/d'       $REMORA_DIR/bin/config/modules
-                                               sed -i '/nv_mpip,MPI/d'   $REMORA_DIR/bin/config/modules
-           [[ $IMPI_stats == "impi_mpip" ]] && sed -i '/impi,MPI/d'      $REMORA_DIR/bin/config/modules
-           [[ $IMPI_stats == "impi"      ]] && sed -i '/impi_mpip,MPI/d' $REMORA_DIR/bin/config/modules
-        fi
-        if [[ "$haveMV2" == "1" ]]; then
-           sed -i '/impi,MPI/d'      $REMORA_DIR/bin/config/modules
-           sed -i '/impi_mpip,MPI/d' $REMORA_DIR/bin/config/modules
-           sed -i '/nv_mpip,MPI/d'   $REMORA_DIR/bin/config/modules
-        fi
-        if [[ "$haveNVHPC" == "1" ]]; then
-           sed -i '/impi,MPI/d'      $REMORA_DIR/bin/config/modules
-           sed -i '/impi_mpip,MPI/d' $REMORA_DIR/bin/config/modules
-           sed -i '/mv2,MPI/d'       $REMORA_DIR/bin/config/modules
-        fi
-    fi
+  # Copy scripts to installation folder
+  echo " ==> Copying all scripts to installation folder ..." |  tee -a $INSTALL_LOG
+  cp -vr ./src/* $REMORA_DIR/bin
+  rm -rf         $REMORA_DIR/bin/C_data_collectors_src
+
+
+  if [[ "$haveMPICC" == "1" ]] && [[ "$haveMPIFC" == "1" ]]; then
+     /sbin/lsmod | grep hfi1 > /dev/null 2>&1 
+     if [[ $? == 0 ]]; then
+        sed -i 's/ib,NETWORK/opa,NETWORK/' $REMORA_DIR/bin/config/modules
+     fi
+  fi
     
-    if [[ "$haveMPICC" == "1" ]] && [[ "$haveMPIFC" == "1" ]]; then
-       /sbin/lsmod | grep hfi1 > /dev/null 2>&1 
-       if [[ $? == 0 ]]; then
-          sed -i 's/ib,NETWORK/opa,NETWORK/' $REMORA_DIR/bin/config/modules
-       fi
-    fi
+  if [[ $(hostname -f) =~ ".ls6.tacc" ]] || [[ $(hostname -f) =~ ".frontera.tacc" ]]; then
+     sed -i '/lustre,IO/d' $REMORA_DIR/bin/config/modules
+    sed -i '/lnet,IO/d'   $REMORA_DIR/bin/config/modules
+     echo "** WARNING \"lustre,IO\" and \"lnet,IO\" modules are NOT AVAILABLE. **  "  |  tee -a $INSTALL_LOG
+     echo "**         Recent security changes only allow root access to IO counters." |  tee -a $INSTALL_LOG
+     echo "**         Remora will be updated when a workaround becomes available."    |  tee -a $INSTALL_LOG
+  fi
+
+  echo " ==> Setting up mpip in config/modules ..." | tee -a $INSTALL_LOG
+  # Modify config/modules to use appropriate mpi module (mpi,MPI) -> (remove_it, impi, ompi_mpip, mv2, etc.)
+  if [[ "$haveMPICC" == "0" ]] || [[ "$haveMPIFC" == "0" ]]; then
+      sed -i      '/mpi,MPI/d' $REMORA_DIR/bin/config/modules
+  else
+      if [[ "$haveIMPI" == "1" ]]; then
+         [[ $IMPI_stats == "impi"      ]] && sed -i 's/mpi,MPI/impi,MPI/'     $REMORA_DIR/bin/config/modules
+         [[ $IMPI_stats == "impi_mpip" ]] && sed -i 's/mpi,MPI/impi_mpip,MPI/' $REMORA_DIR/bin/config/modules
+         [[ $IMPI_stats == "impi_mpip" ]] && echo " ==>  Using impi_mpip ..." | tee -a $INSTALL_LOG
+      fi
+      if [[ "$haveMV2" == "1" ]]; then
+         sed -i 's/mpi,MPI/mv2,MPI/' $REMORA_DIR/bin/config/modules
+      echo " ==>  Using mv2 ..." | tee -a $INSTALL_LOG
+      fi
+      if [[ "$haveOMPI" == "1" ]]; then
+         sed -i 's/mpi,MPI/ompi_mpip,MPI/' $REMORA_DIR/bin/config/modules
+      echo " ==>  Using ompi_mpip ..." | tee -a $INSTALL_LOG
+      fi
+  fi
     
-    if [[ $(hostname -f) =~ ".ls6.tacc" ]] || [[ $(hostname -f) =~ ".frontera.tacc" ]]; then
-       sed -i '/lustre,IO/d' $REMORA_DIR/bin/config/modules
-       sed -i '/lnet,IO/d'   $REMORA_DIR/bin/config/modules
-       echo "** WARNING \"lustre,IO\" and \"lnet,IO\" modules are NOT AVAILABLE. **  "  |  tee -a $INSTALL_LOG
-       echo "**         Recent security changes only allow root access to IO counters." |  tee -a $INSTALL_LOG
-       echo "**         Remora will be updated when a workaround becomes available."    |  tee -a $INSTALL_LOG
-    fi
-    
-    if [[ "$REMORA_BUILD_DIR/docs" != $REMORA_DIR/docs ]]; then
-            cp $PWD/docs/modules_help          $REMORA_DIR/docs
-            cp $PWD/docs/modules_whatis        $REMORA_DIR/docs
-            cp $PWD/docs/remora_user_guide.pdf $REMORA_DIR/docs
-      echo "Copied modules_help modules_whatis and remora.pdf to $REMORA_DIR/docs dir."
-    fi
+  if [[ "$REMORA_BUILD_DIR/docs" != $REMORA_DIR/docs ]]; then
+          cp $PWD/docs/modules_help          $REMORA_DIR/docs
+          cp $PWD/docs/modules_whatis        $REMORA_DIR/docs
+          cp $PWD/docs/remora_user_guide.pdf $REMORA_DIR/docs
+    echo "Copied modules_help modules_whatis and remora.pdf to $REMORA_DIR/docs dir."
+  fi
   
   echo $SEPARATOR
   echo "Installation of REMORA v$VERSION completed."

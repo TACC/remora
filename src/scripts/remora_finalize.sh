@@ -239,9 +239,9 @@ fi
                 printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_mpip_fraction.html"  "Fraction"  >> $FILE_SUM_HTML
                 printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/impi_mpip_breakdown.html" "Breakdown" >> $FILE_SUM_HTML
             fi
-            if [[ "${REMORA_MODULES[$i]}" == "nv_mpip" ]]; then
-                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/nv_mpip_fraction.html"  "Fraction"  >> $FILE_SUM_HTML
-                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/nv_mpip_breakdown.html" "Breakdown" >> $FILE_SUM_HTML
+            if [[ "${REMORA_MODULES[$i]}" == "ompi_mpip" ]]; then
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/ompi_mpip_fraction.html"  "Fraction"  >> $FILE_SUM_HTML
+                printf "<a href="%s" target="_blank">%s</a><p/>\n" "${REMORA_MODULES_OUTDIRS[$i]}/ompi_mpip_breakdown.html" "Breakdown" >> $FILE_SUM_HTML
             fi
             for node in $NODES; do
 
