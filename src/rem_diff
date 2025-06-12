@@ -1,0 +1,105 @@
+#!/bin/bash
+
+USAGE+=" USAGE: Set RDIR to directory to compare against this one (in PWD).\n"
+USAGE+="        Default: compares $RDIR/src to $PWD/src.\n" 
+USAGE+="        To compare to remote bin use RBINorSRC=bin.\n" 
+USAGE+="        (RBINorSRC=bin and RDIR==PWD, checking self bin against src.\n" 
+
+
+RBINorSRC=src
+RDIR=`pwd`
+RDIR=/home1/00770/milfeld/REMORA_GPU/NEW/remora_w
+
+# Don't change parameters below this line.
+
+#TODO  Allow checking local bin again remote src|bin
+LDIR=`pwd`
+LBINorSRC=src
+
+echo " "
+echo " LOCAL  Directory ${LBINorSRC}:  $LDIR."
+echo " REMOTE Directory ${RBINorSRC}:  $RDIR."
+echo " "
+
+if [[ `pwd` == $RDIR ]] && [[ $RBINorSRC != bin ]]; then
+  echo " ERROR: if RDIR (remote directory) is PWD, RBINorSRC must be bin."
+  echo -e "$USAGE"
+  exit 1
+fi
+
+#                 # if Local and Remote dirs are the same, don't do this
+if [[ `pwd` != $RDIR ]]; then
+  echo "========================================================install ="
+    echo  " < install.sh >"
+  diff install.sh $RDIR/install.sh
+fi
+
+
+modules=(cpu dvs eth eth_old gpu ib \
+impi impi_mpip lnet lustre memory modules_utils \
+mv2 network numa nv_power nv_temperature ompi_mpip opa power)
+
+echo "======================================================= modules ="
+for module in "${modules[@]}"; do
+  echo  " < $module >"
+  diff src/modules/$module $RDIR/$RBINorSRC/modules/$module
+done
+
+scripts=(
+remora_collect.sh
+remora_finalize.sh
+remora_init.sh
+remora_monitor_memory.sh
+remora_monitor.sh
+remora_mpi_post.sh
+remora_remote_post.sh
+remora_report_mic.sh
+remora_report.sh 
+)
+
+echo "======================================================= scripts ="
+for script in ${scripts[@]}; do
+  echo  " < $script >"
+  diff src/scripts/$script $RDIR/$RBINorSRC/scripts/$script
+done
+
+auxs=(extra report scheduler sql_functions)
+
+echo "======================================================= aux     ="
+for aux in ${auxs[@]}; do
+  echo " < $aux >"
+  diff src/aux/$aux $RDIR/$RBINorSRC/aux/$aux
+done
+
+
+configs=(modules)
+
+echo "======================================================= config  ="
+for config in ${configs[@]}; do
+  echo  " < $config >"
+  diff  src/config/$config $RDIR/$RBINorSRC/config/$config
+done
+
+srcs=(remora remora_post unit_test remora_mem_safe  remora_post_crash  snapshot)
+echo "======================================================= src     ="
+for src in ${srcs[@]}; do
+  echo  " < $src >"
+  diff src/$src $RDIR/$RBINorSRC/$src
+done
+
+echo "================================================================="
+
+#                 # if Local and Remote dirs are the same, don't do this
+if [[ $LDIR != $RDIR ]]; then
+  if [[ $RBINorSRC == src ]] && [[ $LBINorSRC == src ]]; then
+    collectors=( cpu.c cpu_ori.c eth.c gpu.c ib.c memory.c numa.c numa.c_old nv_power.c nv_temperature.c opa.c)
+
+    for collector in ${collectors[@]}; do
+      echo  " < data_collect_$collector >"
+      diff        src/C_data_collectors_src/data_collect_$collector \
+            $RDIR/src/C_data_collectors_src/data_collect_$collector
+    done
+
+  fi
+
+fi
