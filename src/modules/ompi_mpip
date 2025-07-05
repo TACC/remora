@@ -290,6 +290,7 @@ finalize_module_ompi_mpip()
 {
     REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
     source $REMORA_OUTDIR/remora_env.txt
+    [[ $REMORA_PARALLEL == 0 ]] && return
 
     # LD_PRELOAD is only reset now for executation of application.
     #unset LD_PRELOAD
