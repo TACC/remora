@@ -65,7 +65,7 @@ get_node_list()
     elif [[ -n "$LSB_HOSTS" ]]; then
         REMORA_SCHEDULER=lava
         REMORA_JOB_ID=$LSB_JOBID
-        NODES=`cat $LSB_HOSTS | sort | uniq`
+        NODES=`echo $LSB_HOSTS | sort | uniq`
     else
         REMORA_SCHEDULER=none
         REMORA_JOB_ID=`date +%s`
