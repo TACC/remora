@@ -18,9 +18,6 @@
   fi
   
   mkdir -p $REMORA_DIR/bin
-  mkdir -p $REMORA_DIR/include
-  mkdir -p $REMORA_DIR/lib
-  mkdir -p $REMORA_DIR/share
   mkdir -p $REMORA_DIR/docs
   
   source $(dirname ${BASH_SOURCE[0]})/src/VERSION 
@@ -174,18 +171,23 @@
         mpipfile=mpiP-${MPIP_VER}.tar.gz
         mpipdir=${mpipfile%%.tar.gz}
         tar xzvf ${mpipfile}
-        [[ -f ./extra/mpiP-3.4.1/make-wrappers.py ]] && sed -i 's@#!/usr/local/bin/python@#!/usr/bin/python2@' ./extra/mpiP-3.4.1/make-wrappers.py
+
+        # TACC no longer supports python2 on most systems and the distro mpiP-3.4.1/make-wrappers.py is python2 code.
+        if [[ $(hostname -f) =~ ".ls6.tacc" ]]; then
+           sed -i 's/PYTHON  = python$/PYTHON  = python2/'         ./mpiP-3.4.1/Defs.mak.in &&
+           sed -i 's/PYTHON  = python$/PYTHON  = python2/'         ./mpiP-3.4.1/Defs.mak    &&    #preserved across install.sh executions
+           sed -i 's@#!/usr/local/bin/python@#!/usr/bin/python2@'  ./mpiP-3.4.1/make-wrappers.py
+        else
+          # Non-python2 support: Use the AI_Grok 4.7 converted code that supports python3
+          cp make-wrappers-3.4.1-python3.py ./mpiP-3.4.1/make-wrappers.py
+        fi
+
         [[ -f ./extra/mpiP-3.5/make-wrappers.py   ]] && sed -i 's@#!/usr/local/bin/python@#!/usr/bin/python@'  ./extra/mpiP-3.5/make-wrappers.py
         if [[ -f ./mpiP-3.5/report.c        ]]; then
              sed -i 's/^  for (i = 0; (i < 20) && (i < ac); i++)/  for (i = 0; i < ac; i++)/'  ./mpiP-3.5/report.c
              sed -i 's/Aggregate Time (top twenty,/Aggregate Time (all,/'                      ./mpiP-3.5/report.c
         fi
   
-        [[ $(hostname -f) =~ ".ls6.tacc" ]] && 
-           sed -i 's/PYTHON  = python$/PYTHON  = python2/'         ./mpiP-3.4.1/Defs.mak.in &&
-           sed -i 's/PYTHON  = python$/PYTHON  = python2/'         ./mpiP-3.4.1/Defs.mak    &&    #preserved across install.sh executions
-           sed -i 's@#!/usr/local/bin/python@#!/usr/bin/python2@'  ./mpiP-3.4.1/make-wrappers.py
-
         BFD_OPTION="--disable-bfd"
 
         if [[ ${MPIP_VER} == 3.5 ]] && [[ $ARCH == aarch64 ]] && [[ "$haveGCC" == 1 ]]; then
@@ -221,8 +223,8 @@ echo " ==>"        ./configure --prefix=${REMORA_DIR}/mpiP-$MPIP_VER \
   
         make                            | tee -a $BUILD_LOG
         make shared                     | tee -a $BUILD_LOG
-        echo " --> Installing mpiP ..." | tee -a $INSTALL_LOG
-        make install
+        echo " --> Installing mpiP in ${REMORA_DIR}/mpiP-$MPIP_VER" | tee -a $INSTALL_LOG
+        make install                    | tee -a $BUILD+LOG
   
      fi
   
@@ -258,12 +260,14 @@ echo " ==>"        ./configure --prefix=${REMORA_DIR}/mpiP-$MPIP_VER \
   rm -rf         $REMORA_DIR/bin/C_data_collectors_src
 
 
-  if [[ "$haveMPICC" == "1" ]] && [[ "$haveMPIFC" == "1" ]]; then
-     /sbin/lsmod | grep hfi1 > /dev/null 2>&1 
-     if [[ $? == 0 ]]; then
-        sed -i 's/ib,NETWORK/opa,NETWORK/' $REMORA_DIR/bin/config/modules
-     fi
-  fi
+## ib now performs opa and mellanox
+# if [[ "$haveMPICC" == "1" ]] && [[ "$haveMPIFC" == "1" ]]; then
+#    /sbin/lsmod | grep hfi1 > /dev/null 2>&1 
+#    if [[ $? == 0 ]]; then
+#       sed -i 's/ib,NETWORK/opa,NETWORK/' $REMORA_DIR/bin/config/modules
+#    fi
+# fi
+
   HOSTNAME=$(hostname -f)  
   if [[ $HOSTNAME =~ ".ls6.tacc" ]] || [[ $HOSTNAME =~ ".stampede.tacc" ]] || [[ $HOSTNAME =~ ".stampede.tacc" ]]; then
      sed -i '/lustre,IO/d' $REMORA_DIR/bin/config/modules
@@ -301,8 +305,8 @@ echo " ==>"        ./configure --prefix=${REMORA_DIR}/mpiP-$MPIP_VER \
   fi
 
   #check for an nvidia GPU:
-  gputest=$(nvidia-smi > /dev/null 2> /dev/null || echo "0")
-  if [[ $gputest != 0 ]]; then
+  hash nvcc 2>/dev/null
+  if [[ $? == 0 ]]; then
      sed -i 's/power,POWER/nv_power,POWER/'                         $REMORA_DIR/config/modules
      sed -i 's/temperature,TEMPERATURE/nv_temperature,TEMPERATURE/' $REMORA_DIR/config/modules
   fi

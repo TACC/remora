@@ -1,18 +1,22 @@
 #!/bin/bash
-# @ TACC, you can use mkmod to create
-# a module
+# @ TACC, you can use the LMOD mkmod module to make
+# your own module file:  ./mk_mod |& tee mkmod.log
 
 ml mkmod
 
 export VER=2.1
-export NAME=rem8
+export NAME=remora
 export TOPDIR=`pwd`
-export PREFIX=""
+#export PREFIX=""  # uncomment for module name "remora"
+                   # default is my_remora
 
 export ENV1="REMORA_BIN=`pwd`/bin"
 export ENV2="REMORA_PERIOD=10"
 
 [[ -d $TOPDIR/mpiP-3.5/lib ]] &&
 export TOPDIR_LDPATH_LIST=$TOPDIR/mpiP-3.5/lib
+
+[[ -d $TOPDIR/mpiP-3.4.1/lib ]] &&
+export TOPDIR_LDPATH_LIST=$TOPDIR/mpiP-3.4.1/lib
            
 mkmod

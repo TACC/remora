@@ -155,11 +155,12 @@ parse_environment() {
     echo "export REMORA_VERBOSE=$REMORA_VERBOSE"   >> $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_MONITOR_PERIOD=$REMORA_MONITOR_PERIOD" >> $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_BINARIES=$REMORA_BINARIES" >> $REMORA_OUTDIR/remora_env.txt
-    echo "export REMORA_CONFIG_PATH=$CONFIGPATH"    >> $REMORA_OUTDIR/remora_env.txt
-    echo "export REMORA_MODULE_PATH=$MODULEPATH"    >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_CONFIG_PATH=$CONFIGPATH"   >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_MODULE_PATH=$MODULEPATH"   >> $REMORA_OUTDIR/remora_env.txt
     [[ ! -z $REMORA_SNAPS ]] &&
     echo "export REMORA_SNAPS=$REMORA_SNAPS"       >> $REMORA_OUTDIR/remora_env.txt
     echo "export REMORA_TOP_PID=$REMORA_TOP_PID"   >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_BIN=$REMORA_BIN"           >> $REMORA_OUTDIR/remora_env.txt
 
 }
 
@@ -252,20 +253,114 @@ check_taccstats() {
 check_io() {
     # Check if lustre / dvs / other file systems are present
     REMORA_LUSTRE=0
-   #if [[ -d /proc/fs/lustre ]]; then  
-   #                               Latest lustre uses root protected /sys/kernel/debug/...
-   #                               and stats are not available in /proc/fs/lustre/mdc or .../llite
-    ls /proc/fs/lustre/mdc/home*/stats >& /dev/null
-    if [[  $? == 0 ]]; then
-        export REMORA_LUSTRE=1
-    fi
-    echo "export REMORA_LUSTRE=$REMORA_LUSTRE" >> $REMORA_OUTDIR/remora_env.txt
+
+    # Check for file and read access on /sys/fs/lustre
+    # TODO  Finish
+    REMORA_LUSTRE=0
+    REMORA_LUSTRE_IGNORE=YES
+    REMORA_LUSTRE_COMMENT="Lustre_collectors_not_available"
+
+    echo "export REMORA_LUSTRE_IGNORE=$REMORA_LUSTRE_IGNORE"   >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_LUSTRE_COMMENT=$REMORA_LUSTRE_COMMENT" >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_LUSTRE=$REMORA_LUSTRE"                 >> $REMORA_OUTDIR/remora_env.txt
 
     REMORA_DVS=0
     if [[ -d /proc/fs/dvs ]]; then
         export REMORA_DVS=1
     fi
     echo "export REMORA_DVS=$REMORA_DVS" >> $REMORA_OUTDIR/remora_env.txt
+}
+
+#### Need ib/opa, temperature and power access check here
+#### before remora_set_active_modules(). 
+
+check_energy_counter_accessibility() {
+ #local sockets=1  #default
+ #hash lscpu 2>/dev/null
+ #[[ $? == 0 ]] && sockets=$(lscpu | grep 'Socket(s):' | awk '{print $2}')
+
+  REMORA_POWER_COLLECTOR=none
+  REMORA_POWER_IGNORE=YES        # specify no power utility
+
+  # Check if sensors exists. Use hash for this and the result of the command
+
+  hash sensors 2>/dev/null
+  local has_sensors=$?                         # 0/1 yes/no 
+  sensor |& grep ERROR > /dev/null
+  [[ ${PIPESTATUS[1]} == 0 ]] && has_sensors=1 # sensor cmd does not work (e.g. ls6 GPU nodes)
+  if [[ has_sensors == 0 ]]; then              # test whether sensors provides "power1:"
+     sensors | grep power1 2>/dev/null
+     pipe1_status=${PIPESTATUS[1]}      # if power1 found status=0,set don't ignore
+     if [[ $pipe1_status == 0 ]]; then  # sensors have power
+        REMORA_POWER_COLLECTOR=sensors  # assuming KNL & only one socket
+        REMORA_POWER_IGNORE=NO
+     else
+        REMORA_POWER_IGNORE=YES
+     fi  
+  fi  
+
+  # Check for  intel_rapl or nv_acpitz
+
+  if [[ $REMORA_POWER_IGNORE == YES ]]; then # test for intel_rapl or nv_acpitz
+     # Just check for a single file (no need to check for all)
+
+     power_readable=FALSE
+     [[ -r /sys/devices/virtual/powercap/intel-rapl/intel-rapl:0/energy_uj ]] && 
+        REMORA_POWER_COLLECTOR=intel_rapl REMORA_POWER_IGNORE=NO
+
+     # Just check for common to gg and gh
+     [[ -r /sys/class/hwmon/hwmon2/device/power1_average ]] && 
+        REMORA_POWER_COLLECTOR=nv_acpitz  REMORA_POWER_IGNORE=NO
+
+  fi  
+  echo "export REMORA_POWER_IGNORE=$REMORA_POWER_IGNORE"       >> $REMORA_OUTDIR/remora_env.txt
+  echo "export REMORA_POWER_COLLECTOR=$REMORA_POWER_COLLECTOR" >> $REMORA_OUTDIR/remora_env.txt
+} 
+
+check_ib_counter_accessibility() {
+
+  #  IB interfaces counters (cntr)
+  # Check for file and read access on IB  port_xmit_data
+  # (There are also others: port_xmit_packets, port_rcv_packets and port_rcv_data.)
+
+  REMORA_IB_IGNORE=1
+  REMORA_IB_COMMENT="none"
+
+    cntr_64b="/sys/class/infiniband/mlx4_0/ports/1/counters_ext/"
+    cntr_32b="/sys/class/infiniband/mlx4_0/ports/1/counters/"
+  dev_hfi1_0="/sys/class/infiniband/hfi1_0/ports/1/counters/"
+  dev_mlx5_0="/sys/class/infiniband/mlx5_0/ports/1/counters/"
+
+  if [[ -d $cntr_64b ]]; then
+      ib_IFACE=mlx4_0
+      ib_snd_byte_cntr="${cntr_64b}port_xmit_data_64"
+  elif [[ -d $dev_hfi1_0 ]]; then
+      ib_IFACE=hfi1_0
+      ib_snd_byte_cntr="${dev_hfi1_0}port_xmit_data"
+  elif [[ -d $dev_mlx5_0 ]]; then
+      ib_IFACE=mlx5_0
+      ib_snd_byte_cntr="${dev_mlx5_0}port_xmit_data"
+  elif [[ -d $cntr_32b ]]; then
+      ib_IFACE=mlx4_0
+      ib_snd_byte_cntr="${cntr_32b}port_xmit_data"
+  else
+      REMORA_IB_IGNORE=0
+      REMORA_IB_COMMENT="NO_/sys/class/infiniband_counters"
+  fi 
+
+  if [[ $REMORA_IB_IGNORE == 1 ]]; then
+    ib_snd_bytes=`cat $ib_snd_byte_cntr >& /dev/null`
+    if [[ $? != 0 ]]; then
+        REMORA_IB_IGNORE=0
+        REMORA_IB_COMMENT="NO_READ_PERMISSIONS_on_$ib_IFACE."
+    fi
+  fi
+
+  [[ $REMORA_IB_IGNORE == 1 ]] && REMORA_IB_COMMENT=$ib_IFACE
+
+  echo "export REMORA_IB_IGNORE=$REMORA_IB_IGNORE"   >> $REMORA_OUTDIR/remora_env.txt
+  echo "export REMORA_IB_COMMENT=$REMORA_IB_COMMENT" >> $REMORA_OUTDIR/remora_env.txt
+
 }
 
 
@@ -399,8 +494,51 @@ remora_set_active_modules()
         done
     done
 
-    echo "export REMORA_ACTIVE_MODULES=\"${REMORA_MODULES[@]}\"" >> $REMORA_OUTDIR/remora_env.txt
-    echo "export REMORA_ACTIVE_MODULES_OUTDIRS=\"${REMORA_ACTIVE_MODULES_OUTDIRS[@]}\"" >> $REMORA_OUTDIR/remora_env.txt
+    check_ib_counter_accessibility
+    [[ " ${REMORA_MODULES[*]} " == *" ib "* ]]  && has_ib_default=yes
+    source $REMORA_OUTDIR/remora_env.txt
+    if [[ ! -z $has_ib_default ]] && [[ $REMORA_IB_IGNORE == 0 ]]; then
+      for i in ${!REMORA_MODULES[@]}; do
+        # Replace module and directory element with empty string 
+        if [[ ${REMORA_MODULES[$i]} == ib ]]; then
+            REMORA_MODULES[$i]=""
+            REMORA_ACTIVE_MODULES_OUTDIRS[$i]=""
+        fi
+      done
+                     REMORA_MODULES=(  ${REMORA_MODULES[@]} )   # rm the empty element
+      REMORA_ACTIVE_MODULES_OUTDIRS=(  ${REMORA_ACTIVE_MODULES_OUTDIRS[@]} )  # "
+    fi
+
+    check_energy_counter_accessibility
+    [[ " ${REMORA_MODULES[*]} " == *" power "* ]]  && using_power=yes
+    source $REMORA_OUTDIR/remora_env.txt
+    if [[ $using_power == yes ]] && [[ $REMORA_POWER_IGNORE == YES ]]; then
+      for i in ${!REMORA_MODULES[@]}; do
+        if [[ ${REMORA_MODULES[$i]} == power ]]; then
+            REMORA_MODULES[$i]=""
+            REMORA_ACTIVE_MODULES_OUTDIRS[$i]=""
+        fi
+      done
+                     REMORA_MODULES=(  ${REMORA_MODULES[@]} )   # rm the empty element
+      REMORA_ACTIVE_MODULES_OUTDIRS=(  ${REMORA_ACTIVE_MODULES_OUTDIRS[@]} )   # rm the empty element
+    fi
+##
+    check_io
+    [[ " ${REMORA_MODULES[*]} " == *" lustre "* ]]  && using_lustre=yes
+    source $REMORA_OUTDIR/remora_env.txt
+    if [[ $using_lustre == yes ]] && [[ $REMORA_LUSTRE_IGNORE == YES ]]; then
+      for i in ${!REMORA_MODULES[@]}; do
+        if [[ ${REMORA_MODULES[$i]} == lustre ]]; then
+            REMORA_MODULES[$i]=""
+            REMORA_ACTIVE_MODULES_OUTDIRS[$i]=""
+        fi
+      done
+                     REMORA_MODULES=(  ${REMORA_MODULES[@]} )   # rm the empty element
+      REMORA_ACTIVE_MODULES_OUTDIRS=(  ${REMORA_ACTIVE_MODULES_OUTDIRS[@]} )   # rm the empty element
+    fi
+##
+
+
 
     ##KM Is it necessary to source them here?
     ##TODO:  see about removing this
@@ -411,6 +549,9 @@ remora_set_active_modules()
             echo "      Module $MODULE is active"
         fi  
     done
+
+    echo "export REMORA_ACTIVE_MODULES=\"${REMORA_MODULES[@]}\"" >> $REMORA_OUTDIR/remora_env.txt
+    echo "export REMORA_ACTIVE_MODULES_OUTDIRS=\"${REMORA_ACTIVE_MODULES_OUTDIRS[@]}\"" >> $REMORA_OUTDIR/remora_env.txt
 }
 
 
@@ -503,42 +644,3 @@ capture_environment() {
     env > $REMORA_OUTDIR/runtime_env.txt
 }
 
-check_energy_counter_accessibility() {
- #local sockets=1  #default
- #hash lscpu 2>/dev/null
- #[[ $? == 0 ]] && sockets=$(lscpu | grep 'Socket(s):' | awk '{print $2}')
-
-  REMORA_POWER_COLLECTOR=none
-  REMORA_POWER_IGNORE=1        # specify no power utility
-
-  # Check if sensors exists. Use hash for this and the result of the command
-
-  hash sensors 2>/dev/null
-  local has_sensors=$?                         # 0/1 yes/no 
-  sensor |& grep ERROR > /dev/null
-  [[ ${PIPESTATUS[1]} == 0 ]] && has_sensors=1 # sensor cmd does not work (e.g. ls6 GPU nodes)
-  if [[ has_sensors == 0 ]]; then              # test whether sensors provides "power1:"
-     sensors | grep power1 2>/dev/null
-     REMORA_POWER_IGNORE=${PIPESTATUS[1]}      #if power1 found status=0,set don't ignore
-     if [[ $REMORA_POWER_IGNORE == 0 ]]; then  # sensors have power
-        REMORA_POWER_COLLECTOR=sensors         # assuming KNL & only one socket
-     fi  
-  fi  
-
-  # Check for  intel_rapl or nv_acpitz
-
-  if [[ $REMORA_POWER_IGNORE == 1 ]]; then # test for intel_rapl or nv_acpitz
-     # Just check for a single file (no need to check for all)
-
-     power_readable=FALSE
-     [[ -r /sys/devices/virtual/powercap/intel-rapl/intel-rapl:0/energy_uj ]] && 
-        REMORA_POWER_COLLECTOR=intel_rapl REMORA_POWER_IGNORE=0
-
-     # Just check for common to gg and gh
-     [[ -r /sys/class/hwmon/hwmon2/device/power1_average ]] && 
-        REMORA_POWER_COLLECTOR=nv_acpitz  REMORA_POWER_IGNORE=0
-
-  fi  
-  echo "export REMORA_POWER_IGNORE=$REMORA_POWER_IGNORE"       >> $REMORA_OUTDIR/remora_env.txt
-  echo "export REMORA_POWER_COLLECTOR=$REMORA_POWER_COLLECTOR" >> $REMORA_OUTDIR/remora_env.txt
-} 

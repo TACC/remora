@@ -47,7 +47,7 @@ init_module_nv_temperature()
     zones_gg_titles+=( "Skt1_TJAvg  " "Skt0_TLimit " "Skt1_TLimit")
 
 # Let REMORA_TEMPERATURE_IGNORE be seen everywhere
-  export REMORA_TEMPERATURE_IGNORE=1     # 1 means ignore
+  export REMORA_TEMPERATURE_IGNORE=0     # Start out with ignoring 
 
   ls -v /sys/devices/platform/coretemp.0/hwmon/hwmon?/temp*_input >/dev/null 2>&1
   if [[ $? == 0 ]]; then
@@ -57,7 +57,7 @@ init_module_nv_temperature()
   fi
   ls -v /sys/devices/virtual/thermal/thermal_zone0/hwmon0/temp*_input  >/dev/null 2>&1
   if [[ $? == 0 ]]; then
-     export REMORA_TEMPERATURE_IGNORE=0  # 0 means found temperatures
+     export REMORA_TEMPERATURE_IGNORE=1  # 0 means found temperatures
      ARCH=aarch64
      Ttype="nv_"
 

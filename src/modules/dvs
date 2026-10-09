@@ -37,7 +37,7 @@ init_module_dvs()
             for i in `ls /proc/fs/dvs/mounts`; do
                 isBlacklisted=0
                 currentName=$(basename `grep "remote-path" /proc/fs/dvs/mounts/$i/mount | awk '{print $2}'`)
-                for elem in `cat $REMORA_BIN/config/fs_blacklist`; do
+                for elem in `cat $REMORA_BIN/config/fs_dvs_blacklist`; do
                     if [[ "$currentName" == "$elem" ]]; then isBlacklisted=1; fi
                 done
                 if [[ "$isBlacklisted" == "0" ]]; then

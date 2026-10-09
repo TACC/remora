@@ -44,6 +44,10 @@ trap "exit_clean" EXIT
 ## REMORA_MODULES=( ${REMORA_ACTIVE_MODULES[@]} )
    REMORA_MODULES=( $REMORA_ACTIVE_MODULES )
    export REMORA_MODULES
+
+FILE=$HOME/REM_$REMORA_NODE
+echo HERE0 ${REMORA_MODULES[@]}    >> $FILE
+cat $REMORA_OUTDIR/remora_env.txt  >> $FILE
    
 # Create TMPDIR if it is not there
    mkdir -p $REMORA_TMPDIR     
@@ -77,7 +81,7 @@ trap "exit_clean" EXIT
  
   collect_limit=0.100  # (sec)  If REMORA_PERIOD - collection time < collect_limit, warn user
 
-  reported_warn=no reported_crit=no period_cntr=1 info=""
+  reported_warn=no reported_crit=no info=""
 
   # sleep_time correction reset
   reset=1
@@ -91,7 +95,7 @@ trap "exit_clean" EXIT
     REMORA_MODULES=( "${REMORA_MODULES[@]/power}" )
   fi
 
-  period_no=1
+  period_cnt=1
   while [[ 1 ]]; do
 
      tm_0=$( date +%s.%3N )
@@ -122,7 +126,7 @@ trap "exit_clean" EXIT
   
         if (( $(bc <<< "$sleep_time > 0.0") == 1 )); then
            if [[ $reported_warn != "yes" ]]; then
-              echo "  ***** WARNING  ******* Sleep time between collections is less than $collect_limit, period=$period_cntr." >>$FILE_ADVICE
+              echo "  ***** WARNING  ******* Sleep time between collections is less than $collect_limit, period=$period_cnt." >>$FILE_ADVICE
               echo "                         REMORA_PERIOD=$REMORA_PERIOD and Collection Time=$collect_tm." >>$FILE_ADVICE
               echo "                         You should use a larger PERIOD for this system."               >>$FILE_ADVICE
               reported_warn=yes
@@ -132,7 +136,7 @@ trap "exit_clean" EXIT
         if (( $(bc <<< "$sleep_time < 0.0") == 1 )); then  #Houston, we have a problem.
   
            if [[ $reported_crit != "yes" ]]; then
-              echo "  ***** CRITICAL ******* Sleep time between collections is less than $collect_limit, period=$period_cntr." >>$FILE_ADVICE
+              echo "  ***** CRITICAL ******* Sleep time between collections is less than $collect_limit, period=$period_cnt." >>$FILE_ADVICE
               echo "  *****          ******* TIMING RESULTS MAY BE INACCURATE."                            >>$FILE_ADVICE
               echo "                        REMORA_PERIOD=$REMORA_PERIOD and Collection Time=$collect_tm." >>$FILE_ADVICE
               echo "                        Use a larger PERIOD for this system."                          >>$FILE_ADVICE
@@ -158,7 +162,7 @@ trap "exit_clean" EXIT
        tm_d=$( bc<<<"$tm_2-$tm_0-$REMORA_PERIOD" )
      fi
      # vvv for snapshot to know when to stop collecting data -- /dev/shm/remora_* files are removed by trap
-     [[ ! -z  $REMORA_SNAPS ]] && [[ "$period_no" == "$REMORA_SNAPS" ]] && touch $REMORA_OUTDIR/.done_snaps_${REMORA_NODE} && exit 0
-     period_no=$(( period_no+1 ))
+     [[ ! -z  $REMORA_SNAPS ]] && [[ "$period_cnt" == "$REMORA_SNAPS" ]] && touch $REMORA_OUTDIR/.done_snaps_${REMORA_NODE} && exit 0
 
+     (( period_cnt++ ))
   done

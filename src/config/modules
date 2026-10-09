@@ -1,12 +1,11 @@
 cpu,CPU
 memory,MEMORY
 numa,NUMA
-mpi,MPI
-ib,NETWORK
+impi_mpip,MPI
 gpu,GPU
+ib,NETWORK
 network,NETWORK
+eth,NETWORK
 power,POWER
 temperature,TEMPERATURE
-eth,NETWORK
-lnet,IO
 lustre,IO

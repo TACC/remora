@@ -24,14 +24,16 @@
 
 init_module_impi_mpip()
 {
-  REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
+  :
+ # TODO: remove this commented lines, there is no need to set preload-- it is too late.
+ #REMORA_NODE=$1; REMORA_OUTDIR=$2; REMORA_TMPDIR=$3
 
-  REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
-  if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
-      if [[ -e "$REMORA_BIN/../lib/libmpiP.so" ]]; then
-          echo "export REMORA_PRELOAD=$REMORA_BIN/../lib/libmpiP.so" >> $REMORA_OUTDIR/remora_env.txt
-      fi
-  fi
+ #REMORA_MASTER=`head -n 1 $REMORA_OUTDIR/remora_nodes.txt`
+ #if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
+ #    if [[ -e "$REMORA_BIN/../lib/libmpiP.so" ]]; then
+ #        echo "export REMORA_PRELOAD=$REMORA_BIN/../lib/libmpiP.so" >> $REMORA_OUTDIR/remora_env.txt
+ #    fi
+ #fi
 }
 
 collect_data_impi_mpip()
@@ -166,8 +168,10 @@ finalize_module_impi_mpip()
   if [[ "$REMORA_NODE" == "$REMORA_MASTER" ]]; then
     if [[ "$REMORA_MODE" == "FULL" ]] || [[ "$REMORA_MODE" == "MONITOR" ]]; then
                                 [[ "$REMORA_VERBOSE" == "1" ]] &&  echo " Inside finalize on Master " >$VERB_FILE
-      if [[ -e "$REMORA_BIN/../lib/libmpiP.so" ]] ; then
-                                [[ "$REMORA_VERBOSE" == "1" ]] &&  echo " Found $REMORA_BIN/../lib/libmpiP.so" >>$VERB_FILE
+      REMORA_DIR=$( dirname $REMORA_BIN )
+      mpip_dirs=( $REMORA_DIR/mpiP-[0-9]*/ )
+      if [[ ${#mpip_dirs[@]} -ge 1 ]]; then
+                                [[ "$REMORA_VERBOSE" == "1" ]] &&  echo " Found libmpiP.so in $REMORA_BIN/../${mpip_dirs[0]}/lib" >>$VERB_FILE
           cd $REMORA_OUTDIR/..
           # Why go to the directory, why not bring the file into REMORA_OUTDIR ##KM
           # Check for mpiP output in case code was not MPI based 

@@ -48,6 +48,8 @@
 #
 #========================================================================
 #  HISTORY
+#       2026/10-07  Cleaned of IGNORES. AI'd mpiP-3.14 python2 wrapper
+#                   (./extra/mpiP-3.4.1/make-wrappers.py) to be python3.
 #       2024/11-20  Cleaned up LD_PRELOAD
 #                   omp_mpip nv_power nv_temperature by Albert + Kent
 #       2023/04-06  Version 2.0 by Albert Lu and Kent Milfeld
@@ -192,16 +194,7 @@
   remora_collect "$@"                          #Start data collection (Verbose is in script )
   
   
-  ##TODO: REMOVE
-  ## Need to wait for file system commit  ##KFM this should wait on remora_out_$NODE from each node?
-  # lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
-  # while [[ "$lastline" != "#EOF" ]]; do
-  # [[ "$REMORA_VERBOSE" == "1" ]] && echo "REMORA: WAITING"
-  #     lastline=$(tail -n 1 $REMORA_OUTDIR/remora_env.txt)
-  #     sleep 0.5
-  # done
-  
-##KFM  Better way to check for remora_report.sh (and finished module inits) running on the nodes:
+# check for remora_report.sh (and finished module inits) running on the nodes:
   knt=${#NODES[@]}  nodes_2b_checked4="${NODES[@]}"
   while [[ $knt > 0 ]]; do
      for_nodes=$nodes_2b_checked4
@@ -228,28 +221,28 @@
   fi
   
 # bfd and unwind.  bfd used for vista   (aarch64)
-  if [[ $REMORA_PARALLEL == 1 ]] && [[ `uname -a` =~ aarch64 ]] ; then
+
+  if [[ $REMORA_PARALLEL == 1 ]]; then  # if mpiP directory exist, assume using external mpiP
 
     REMORA_DIR=$( dirname $REMORA_BIN )
-    mpip_dirs=$( ls -d $REMORA_DIR/mpiP-[0-9]* )
-    if [[ ${#mpip_dirs[@]} -ge 1 ]] ; then
 
-          unw_dirs=$( ls -d $REMORA_DIR/binutils-[0-9]* )
-          [[ ${#unw_dirs[@]} -ge 1 ]] && export LD_LIBRARY_PATH=${unw_dirs[0]}/lib:$LD_LIBRARY_PATH
-          [[ ${#unw_dirs[@]} -gt 1 ]] && echo " Warning: multiple unwind dirs in $REMORA_DIR: using ${unw_dirs[0]}"
+X=$REMORA_DIR
+   REMORA_DIR=/scratch/00770/milfeld/TEST/remora10
 
-          bfd_dirs=$( ls -d $REMORA_DIR/binutils-[0-9]* )
-          [[ ${#bfd_dirs[@]} -ge 1 ]] && export LD_LIBRARY_PATH=${bfd_dirs[0]}/lib:$LD_LIBRARY_PATH
-          [[ ${#bfd_dirs[@]} -gt 1 ]] && echo " Warning: multiple binutils dirs in $REMORA_DIR: using ${bfd_dirs[0]}"
+     unw_dirs=( $REMORA_DIR/libunwind-[0-9]*/ )
+     [[ ${#unw_dirs[@]} -ge 1 ]] && export LD_LIBRARY_PATH=${unw_dirs[0]}/lib:$LD_LIBRARY_PATH
+     [[ ${#unw_dirs[@]} -gt 1 ]] && echo " Warning: multiple unwind dirs in $REMORA_DIR: using ${unw_dirs[0]}"
 
-          [[ ${#mpip_dirs[@]} -ge 1 ]] && export LD_PRELOAD=${mpip_dirs[0]}/lib/libmpiP.so${LD_PRELOAD:+:$LD_PRELOAD}
-          [[ ${#mpip_dirs[@]} -gt 1 ]] && echo " Warning: multiple mpiP dirs in $REMORA_DIR: using ${mpip_dirs[0]}"
-          #important to do PRELOAD after LD_LIBRARY because libmpiP.so have rpath to bdf
+     bfd_dirs=( $REMORA_DIR/binutils-[0-9]*/ )
+     [[ ${#bfd_dirs[@]} -ge 1 ]] && export LD_LIBRARY_PATH=${bfd_dirs[0]}/lib:$LD_LIBRARY_PATH
+     [[ ${#bfd_dirs[@]} -gt 1 ]] && echo " Warning: multiple binutils dirs in $REMORA_DIR: using ${bfd_dirs[0]}"
 
-          export MPIP=${MPIP:--k 3}
-    fi
+     #important to do PRELOAD after LD_LIBRARY because libmpiP.so have rpath to bdf
+     mpip_dirs=( $REMORA_DIR/mpiP-[0-9]*/ )
+     [[ ${#mpip_dirs[@]} -ge 1 ]] && export LD_PRELOAD=${mpip_dirs[0]}lib/libmpiP.so${LD_PRELOAD:+:$LD_PRELOAD}
+     [[ ${#mpip_dirs[@]} -gt 1 ]] && echo " Warning: multiple mpiP dirs in $REMORA_DIR: using ${mpip_dirs[0]}"
+     [[ mpiP-3.5 =~ ${mpip_dirs[0]} ]] && export MPIP=${MPIP:--k 3}
   fi
-  
   
 # Remora can add to LD_PRELOAD 
 # (mpiP is already included in remora_env.txt)
@@ -257,6 +250,7 @@
      [[   -z $LD_PRELOAD      ]] && export LD_PRELOAD=$REMORA_PRELOAD
      [[ ! -z $LD_PRELOAD      ]] && export LD_PRELOAD=${REMORA_PRELOAD}:$LD_PRELOAD
   fi
+  [[ "$REMORA_VERBOSE" == "1" ]] && echo " --> Using LD_PRELOAD $L_PRELOAD"
   
 # Now that we are collecting data in the background We can start he actual application
   if [[ "$REMORA_VERBOSE" == "1" ]]; then

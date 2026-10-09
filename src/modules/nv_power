@@ -39,8 +39,6 @@ init_module_nv_power()
   local remora_date_precision="ms"
   local remora_date_format='+%s.%3N'
 
-  local REMORA_POWER_IGNORE    # 0 == don't ignore     1 == ignore  
-
   local sockets=1     #default
   local ase_values=()
   local soc_num
@@ -57,11 +55,6 @@ init_module_nv_power()
         soc_num=$(( $i - 1 ))
        base_values[$i]=$(</sys/devices/virtual/powercap/intel-rapl/intel-rapl:$soc_num/energy_uj)
      done
-  fi
-
-  if [[ "$REMORA_POWER_IGNORE" == 1 ]]; then
-     [[ "$REMORA_VERBOSE"      == 1 ]] && echo " -> power not initialized, sensors not found."
-    return 1
   fi
 
   J_header=$(printf "%-17s" "TIME($remora_date_precision)" )

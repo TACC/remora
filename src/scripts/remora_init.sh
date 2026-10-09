@@ -96,9 +96,17 @@ function remora_init() {
     # Check taccstats support
     [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Checking if taccstats support is required."
     check_taccstats
-    # Check if Energy/Power files are accessible
-    [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Checking if Energy/Power files are accessible."
-    check_energy_counter_accessibility
+
+#   Now done in aux/extea
+#    TODO move this to aux/extra
+#   # Check if Energy/Power files are accessible
+#   [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Checking if Energy/Power files are accessible."
+#   check_energy_counter_accessibility
+
+#    Now done in aux/extra
+#    # Check if Infiniband counter files are accessible
+#    [[ "$REMORA_VERBOSE" == "1" ]] && echo "  Checking if Infiniband (ib) counter files are accessible."
+#    check_ib_counter_accessibility
 
     ## Check TIMER precision (date precision) and if REMORA_DATE_PRECISION is set
     #if [[ "$REMORA_VERBOSE" == "1" ]]; then
