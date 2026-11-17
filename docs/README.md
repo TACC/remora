@@ -14,7 +14,7 @@ To use the tool, modify your batch script and include 'remora' before your scrip
 
 Download and use
 -------------------
-Please, do not try to use the version available in the master branch. We regularly change the code and it might contain bugs. If you want to download and use remora, have a look at the different tags. [The most recent release can be found here] (https://github.com/TACC/remora/tree/v1.6.0).
+Please, do not try to use the version available in the master branch. We regularly change the code and it might contain bugs. If you want to download and use remora, have a look at the different tags. [The most recent release can be found here](https://github.com/TACC/remora/releases/).
 
 Why name it Remora?
 -------------------
